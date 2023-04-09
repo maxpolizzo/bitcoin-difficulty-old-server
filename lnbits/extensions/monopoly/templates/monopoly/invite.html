@@ -1,0 +1,32 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block scripts %} {{ window_vars(user) }}
+<script>
+  {% if invite_vars %}
+    window.invite_vars = {{ invite_vars | tojson | safe }}
+  {% endif %}
+</script>
+<script type="module" src="/monopoly/static/js/invite.js"></script>
+{% endblock %} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+    <q-card>
+      <div style="padding: 1em; font-size: 1.2em;">
+          <div style="margin-top: 0.5em;">
+             Welcome to Bitcoin Monopoly!
+          </div>
+          <span style="margin-top: 0.5em;">
+             Claiming your sats...
+          </span>
+          <div class="row">
+            <div class="offset-5 col-2 offset-md-5 col-md-2" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
+              <q-spinner
+                color="primary"
+                size="2em"
+              />
+            </div>
+          </div>
+      </div>
+    </q-card>
+  </div>
+</div>
+{% endblock %}
