@@ -1,0 +1,287 @@
+{% extends "base.html" %} {% from "macros.jinja" import window_vars with context
+%} {% block scripts %} {{ window_vars(user) }}
+<script type="module" src="/monopoly/static/js/index.js"></script>
+{% endblock %} {% block page %}
+<div class="row q-col-gutter-md">
+  <div class="col-12 col-md-7 q-gutter-y-md">
+
+    <q-card>
+      <!-- Welcome view -->
+      <div style="padding: 1em; font-size: 1.2em;" v-if="!game.created && !game.imported">
+        <div class="row">
+          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+             Welcome to Bitcoin Monopoly!
+          </span>
+          <span class="offset-1 col-3 offset-md-1 col-md-3" style="margin-top:0.5em; font-size:1em">
+            <q-btn row color="primary" icon="account_balance" style="margin-left: 2em;" @click="createGame()">
+              <span style="margin-left:0.25em;">Start</span>
+            </q-btn>
+          </span>
+        </div>
+        <div class="row">
+          <span class="col-12 col-md-12" style="margin-top: 1.5em; font-size: 0.87em">
+                Click the Start button to create a new game and generate your dedicated LNBits player wallet
+          </span>
+        </div>
+      </div>
+
+      <!-- Game funding view -->
+      <div style="padding: 1em; font-size: 1.2em;" v-if="game.created && game.showFundingView">
+        <div class="row">
+          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+             You are {% raw %}{{game.player.name}}{% endraw %}!
+          </span>
+          <span class="col-2 col-md-2" style="margin-top: 0.5em;">
+            <q-btn row color="primary" icon="qr_code_2" size="1em" style="margin-left: 2em;" v-if="game.created"@click="showFundingDialog()">
+            </q-btn>
+          </span>
+          <span v-if="game.bankBalance >= game.minFunding" class="col-2 col-md-2" style="margin-top: 0.5em;">
+            <q-btn row color="primary" icon="play_circle" size="1em" v-if="game.created"@click="onGameFunded()"></q-btn>
+          </span>
+          <span v-else class="col-2 col-md-2" style="margin-top: 0.5em;">
+            <q-btn disabled row color="grey" icon="play_circle" size="1em" v-if="game.created"@click=""></q-btn>
+          </span>
+        </div>
+        <div class="row">
+          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+             Fund the bank to start playing (minimum {% raw %} {{game.minFunding}} {% endraw %} sats)...
+          </span>
+        </div>
+        <!-- Spinner -->
+        <div class="row">
+          <div class="offset-5 col-2 offset-md-5 col-md-2" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
+            <q-spinner
+              color="primary"
+              size="2em"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Invite players view -->
+      <div style="padding: 1em; font-size: 1.2em;" v-if="game.fundingStatus == 'success' && !game.started">
+        <!-- For game creator -->
+        <div class="row" v-if="game.created">
+          <span v-if="game.playersCount < game.minPlayersCount" class="col-8 col-md-8" style="margin-top: 0.5em;">
+            Invite at least {% raw %}{{game.minPlayersCount - game.playersCount}}{% endraw %} more player to start playing
+          </span>
+          <span v-else-if="game.playersCount >= game.minPlayersCount && game.playersCount < game.maxPlayersCount" class="col-8 col-md-8" style="margin-top: 0.5em;">
+            Invite up to {% raw %}{{game.maxPlayersCount - game.playersCount}}{% endraw %} more players or start playing now
+          </span>
+          <span v-else class="col-8 col-md-8" style="margin-top: 0.5em;">
+            Click the play button to start playing now
+          </span>
+          <span class="col-2 col-md-2" style="margin-top: 0.5em;">
+            <q-btn  v-if="game.playersCount >= game.maxPlayersCount" disabled row icon="qr_code_2" size="1em" style="margin-left: 2em;" @click="showInviteQR"></q-btn>
+            <q-btn  v-else-if="game.lnurlVoucherId" row color="primary" icon="qr_code_2" size="1em" style="margin-left: 2em;" @click="showInviteQR"></q-btn>
+          </span>
+          <span class="col-2 col-md-2" style="margin-top: 0.5em;">
+            <q-btn v-if="game.playersCount >= game.minPlayersCount" row color="primary" icon="play_circle" size="1em" @click="startGame()"></q-btn>
+            <q-btn v-else disabled row icon="play_circle" size="1em" @click="startGame()"></q-btn>
+          </span>
+        </div>
+        <!-- For invited players -->
+        <div class="row" v-else-if="game.imported">
+          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+             You are {% raw %}{{game.player.name}}{% endraw %}!
+          </span>
+          <span class="col-6 col-md-8" style="margin-top: 0.5em;">
+            Waiting for game creator to start the game...
+          </span>
+        </div>
+        <!-- Spinner -->
+        <div class="row">
+          <div class="offset-5 col-2 offset-md-5 col-md-2" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
+            <q-spinner
+              color="primary"
+              size="2em"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Game view -->
+      <div style="padding: 1em; font-size: 1.2em;" v-if="game.started">
+        <div class="row">
+          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+            Game on!
+          </span>
+        </div>
+      </div>
+
+    </q-card>
+
+  </div>
+
+  <!-- Right panel to display general game data -->
+  <div class="col-12 col-md-5 q-gutter-y-md" v-if="game.created || game.imported">
+    <q-card>
+      <q-card-section>
+
+        <!-- Bank balance -->
+        <div style="padding: 1em; font-size: 1.2em;">
+          Bank balance: {% raw %} {{game.bankBalance}} {% endraw %} sats
+        </div>
+
+        <!-- Players table -->
+        <div class="q-pa-md">
+          <q-table
+            title="Players"
+            dense
+            :data="game.playersData.rows"
+            :columns="game.playersData.columns"
+            row-key="name"
+            :rows-per-page-options="[game.maxPlayersCount]"
+            hide-bottom
+          />
+        </div>
+
+      </q-card-section>
+    </q-card>
+  </div>
+
+  <!-- Camera popup -->
+  <q-dialog v-model="camera.show">
+    <q-card class="q-pa-lg q-pt-xl">
+      <div class="text-center q-mb-lg">
+        <qrcode-stream
+          @decode="decodeQR"
+          class="rounded-borders"
+        ></qrcode-stream>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Cancel</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <!-- QR code dialog popup -->
+  <q-dialog
+    v-model="qrCodeDialog.show"
+    position="top"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card text-center">
+      <a>
+        <q-responsive :ratio="1" class="q-mx-xs">
+          <qrcode
+            :value="qrCodeDialog.data"
+            :options="{width: 400}"
+            class="rounded-borders"
+          ></qrcode>
+        </q-responsive>
+      </a>
+      <br />
+      <div class="row q-mt-lg" style="margin-left: 350px;">
+        <q-btn
+          outline
+          color="grey"
+          @click="closeBankExportQR"
+        >Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <!-- Game funding dialog popup -->
+  <q-dialog v-model="game.showFundingDialog" @hide="closeReceiveDialog">
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-tabs  v-model="fundingTab"
+               dense
+               class="text-grey"
+               active-color="primary"
+               indicator-color="primary"
+               align="justify"
+               narrow-indicator
+      >
+        <q-tab name="paylnurl" label="Pay LNURL"></q-tab>
+        <q-tab name="invoice" label="Invoice"></q-tab>
+      </q-tabs>
+      <q-tab-panels v-model="fundingTab" animated style="margin-top: 1em;">
+        <q-tab-panel name="paylnurl" class="q-card--dark">
+          <div class="text-center q-mb-lg">Fund the bank by sending sats to this payment link</div>
+          <div class="text-center q-mb-lg">
+            <a :href="game.lnurlPayLink">
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="game.lnurlPayLink"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                ></qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn outline color="grey" @click="copyText(game.lnurlPayLink)"
+            >Copy LNURL</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Close</q-btn>
+          </div>
+        </q-tab-panel>
+        <q-tab-panel name="invoice" class="q-card--dark">
+          <div v-if="game.fundingInvoice.paymentReq" class="text-center q-mb-lg">
+            Fund the bank by paying this invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
+          </div>
+          <div v-if="game.fundingInvoice.paymentReq" class="text-center q-mb-lg">
+            <a :href="'lightning:' + game.fundingInvoice.paymentReq">
+              <q-responsive :ratio="1" class="q-mx-xl">
+                <qrcode
+                  :value="game.fundingInvoice.paymentReq"
+                  :options="{width: 340}"
+                  class="rounded-borders"
+                ></qrcode>
+              </q-responsive>
+            </a>
+          </div>
+          <div class="row">
+            <div class="col-8 col-md-8">
+              <q-form @submit="createFundingInvoice()" class="q-gutter-md col-8 col-md-8">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="game.fundingInvoiceAmount"
+                  label="New invoice amount (sats)"
+                  placeholder=""
+                ></q-input>
+              </q-form>
+            </div>
+            <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
+              <q-btn @click="createFundingInvoice()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+            </div>
+          </div>
+          <div class="row q-mt-lg">
+            <q-btn v-if="game.fundingInvoice.paymentReq" outline color="grey" @click="copyText(game.fundingInvoice.paymentReq)">Copy invoice</q-btn>
+            <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
+            <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
+    </q-card>
+  </q-dialog>
+
+  <!-- Game invite link popup -->
+  <q-dialog v-model="game.showInviteQR" @hide="closeInviteQR">
+    <q-card
+      v-if="!game.inviteLink"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
+    ></q-card>
+    <q-card v-else class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <div class="text-center q-mb-lg">
+        <a :href="game.inviteLink">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="game.inviteLink"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="copyText(game.inviteLink)"
+        >Copy invite link</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+        >Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+</div>
+{% endblock %}
