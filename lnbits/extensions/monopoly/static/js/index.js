@@ -1,4 +1,4 @@
-import { newGame, playerNames } from './data.js'
+import { newGame, playerNames, dragAndDropCardSoundURI } from './data.js'
 import { claimLNURLVoucher } from './utils.js'
 
 Vue.component(VueQrcode.name, VueQrcode)
@@ -8,11 +8,11 @@ Vue.use(VueQrcodeReader)
 function checkFundingInvoicePaid(game) {
   clearInterval(game.fundingInvoice.paymentChecker)
   game.fundingInvoice.paymentChecker = setInterval(async () => {
-    await fetchInvoicePaid(game)
+    await fetchFundingInvoicePaid(game)
   }, 2000)
 }
 
-async function fetchInvoicePaid(game) {
+async function fetchFundingInvoicePaid(game) {
   const res = await LNbits.api.getPayment(game.bankData.wallets[0], game.fundingInvoice.paymentHash);
   if(res.data) {
     if (res.data.paid) {
@@ -33,6 +33,40 @@ async function fetchInvoicePaid(game) {
       )
     } else
       await fetchBankBalance(game)
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
+// Logic to check periodically if player invoice has been paid
+function checkPlayerInvoicePaid(game) {
+  clearInterval(game.playerInvoice.paymentChecker)
+  game.playerInvoice.paymentChecker = setInterval(async () => {
+    await fetchPlayerInvoicePaid(game)
+  }, 2000)
+}
+
+async function fetchPlayerInvoicePaid(game) {
+  const res = await LNbits.api.getPayment(game.player.wallets[0], game.playerInvoice.paymentHash);
+  if(res.data) {
+    if (res.data.paid) {
+      console.log("Funding invoice paid!")
+      clearInterval(game.playerInvoice.paymentChecker)
+      // Erase previous player invoice
+      game.playerInvoiceAmount = 0
+      game.playerInvoice.paymentReq = null
+      game.playerInvoice = newGame.playerInvoice
+      // Save player invoice template in local storage
+      localStorage.setItem(
+        'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.playerInvoiceAmount',
+        game.playerInvoiceAmount
+      )
+      localStorage.setItem(
+        'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.playerInvoice',
+        JSON.stringify(game.playerInvoice)
+      )
+    } else
+      await fetchPlayerBalance(game)
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
@@ -285,14 +319,14 @@ async function fetchPlayers(game) {
 }
 
 // Logic to check player balance periodically
-async function checkUserBalance(game) {
+async function checkPlayerBalance(game) {
   clearInterval(game.userBalanceChecker)
   game.userBalanceChecker = setInterval(async () => {
-    await fetchUserBalance(game)
+    await fetchPlayerBalance(game)
   }, 2000)
 }
 
-async function fetchUserBalance(game) {
+async function fetchPlayerBalance(game) {
   const balanceBefore = game.userBalance
   let res = await LNbits.api.getWallet({
     inkey: game.player.wallets[0].inkey
@@ -403,7 +437,11 @@ async function deleteGameVoucher(game) {
   }
 }
 
-
+function beep() {
+  // Convert mp3 or wav files into Data URI format: https://dopiaza.org/tools/datauri/index.php
+  const snd = new Audio(dragAndDropCardSoundURI);
+  snd.play();
+}
 
 // Logic executed when page loads
 //
@@ -438,13 +476,153 @@ if(existingGameRecords && existingGameRecords.length) {
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
+  computed: {
+    // Reactive components styling (for some reason using media-queries in monopoly.css does not work)
+    reactiveStyle () {
+      if(window.innerWidth > 768) {
+        // For desktop
+        return {
+          cardsStack: {
+            height: `25em`
+          },
+          card: (card) => {
+            let cardPosition;
+            this.game.properties[game.player.id][card.color].forEach((_card) => {
+              if(_card.id === card.id) {
+                cardPosition = _card.position;
+              }
+            });
+            return({
+              position: `absolute`,
+              zIndex: parseInt(cardPosition) + 2,
+              marginTop: (3 * (parseInt(cardPosition) + 1)).toString() + `em`
+            })
+          },
+          propertyImage: {
+            height: `auto`,
+            maxWidth: `65%`,
+            marginTop: `1em`,
+            marginLeft: `6em`
+          },
+          propertyButtons: {
+            div: {
+              marginTop: `1em`
+            },
+            buyButton: {
+              marginLeft: `12em`
+            },
+            invoiceButton: {
+              marginLeft: `2.5em`
+            },
+            upgradeButton: {
+              marginLeft: `1em`
+            },
+            sellButton: {
+              marginLeft: `12em`
+            },
+            offerButton: {
+              marginLeft: `13em`
+            },
+          },
+          propertyButtonsForGameCreator: {
+            div: {
+              marginTop: `1em`
+            },
+            invoicePurchaseButton: {
+              marginLeft: `8em`
+            },
+            invoiceUpgradeButton: {
+              marginLeft: `6.5em`
+            },
+          },
+        }
+      } else {
+        return {
+          cardsStack: {
+            height: `12em`
+          },
+          card: (card) => {
+            let cardPosition;
+            this.game.properties[game.player.id][card.color].forEach((_card) => {
+              if(_card.id === card.id) {
+                cardPosition = _card.position;
+              }
+            });
+            return({
+              position: `absolute`,
+              zIndex: parseInt(cardPosition) + 2,
+              marginTop: (1.6 * (parseInt(cardPosition) + 1)).toString() + `em`
+            })
+          },
+          propertyImage: {
+            height: `auto`,
+            maxWidth: `85%`,
+            marginTop: `2em`,
+            marginLeft: `2em`
+          },
+          propertyButtons: {
+            div: {
+              marginTop: `1em`
+            },
+            buyButton: {
+              marginLeft: `7.5em`
+            },
+            invoiceButton: {
+              marginLeft: `5.5em`
+            },
+            upgradeButton: {
+              marginLeft: `4.5em`
+            },
+            sellButton: {
+              marginLeft: `7.25em`
+            },
+            offerButton: {
+              marginLeft: `8em`
+            },
+          },
+          propertyButtonsForGameCreator: {
+            div: {
+              marginTop: `1em`
+            },
+            invoicePurchaseButton: {
+              marginLeft: `3.5em`
+            },
+            invoiceUpgradeButton: {
+              marginLeft: `2.5em`
+            },
+          },
+        }
+      }
+    },
+    // Draggable cards options
+    dragOptions() {
+      return {
+        animation: 0,
+        group: "{ name: 'cards', pull: 'false', put: true }",
+        disabled: false,
+        ghostClass: "ghost"
+      };
+    },
+  },
+  watch: {
+    // Draggable cards
+    isDragging(newValue) {
+      if (newValue) {
+        this.delayedDragging = true;
+        return;
+      }
+      this.$nextTick(() => {
+        this.delayedDragging = false;
+      });
+    }
+  },
   data: function () {
     // Start checking bank balance
     fetchBankBalance(game).then(() => {
       // If game has already been created or imported, fetch user balance, other
       // players and start checking periodically for game being started by creator
       if(game.created || game.imported) {
-        fetchUserBalance(game).then(() => {
+        fetchPlayerBalance(game).then(() => {
           fetchPlayers(game).then(() => {
             checkPlayersBalances(game).then(() => {
               console.log("Periodically fetching other players balances from database...")
@@ -454,7 +632,7 @@ new Vue({
         checkPlayers(game).then(() => {
           console.log("Periodically checking for new players...")
         })
-        checkUserBalance(game).then(() => {
+        checkPlayerBalance(game).then(() => {
           console.log("Periodically checking player balance...")
         })
       }
@@ -470,6 +648,35 @@ new Vue({
       }
     })
 
+    // Hack to copy command to pay invoice from local node
+    game.payInvoiceCommand = "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Perso/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
+
+    // Hack to display dummy properties
+    game.properties[game.player.id] = {};
+    game.properties[game.player.id]["red"] = [
+      { color: "red", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: game.player.id },
+      { color: "red", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
+      { color: "red", id: 2, imgPath: "./static/images/properties/cards/p02.png", position: 2, owner: null },
+      { color: "red", id: 3, imgPath: "./static/images/properties/cards/p03.png", position: 3, owner: null },
+    ];
+    game.properties[game.player.id]["light-blue"] = [
+      { color: "light-blue", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: "otherPlayer" },
+    ];
+    game.properties[game.player.id]["yellow"] = [
+      { color: "yellow", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: null },
+      { color: "yellow", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
+    ];
+    game.properties[game.player.id]["orange"] = [
+      { color: "orange", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: null },
+      { color: "orange", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
+      { color: "orange", id: 2, imgPath: "./static/images/properties/cards/p02.png", position: 2, owner: null },
+    ];
+    game.properties[game.player.id]["deep-blue"] = [
+      { color: "deep-blue", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: null },
+      { color: "deep-blue", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
+    ];
+    game.propertiesCount[game.player.id] = 12;
+
     return {
       game: game,
       camera: {
@@ -481,10 +688,83 @@ new Vue({
         data: null,
         show: false
       },
-      fundingTab: 'paylnurl'
+      fundingTab: 'paylnurl',
+      // data for draggable cards
+      enabled: true,
+      isDragging: false,
+      delayedDragging: false
     }
   },
   methods: {
+    // Method for draggable cards
+    onMove: function({ relatedContext, draggedContext }) {
+      const relatedElement = relatedContext.element;
+      const draggedElement = draggedContext.element;
+      // Only enable dragging on same color stack
+      const doDrag = (
+        draggedElement && draggedElement.color
+        && relatedElement && relatedElement.color
+        && (draggedElement.color === relatedElement.color)
+        && (draggedElement.id !== relatedElement.id)
+      ) === true;
+      return doDrag;
+    },
+    onStartDrag: function() {
+      this.isDragging = true;
+      this.dragStartTime = Date.now();
+    },
+    onDragged: function({ oldIndex, newIndex }, color) {
+      this.isDragging = false;
+      // Update cards positions in the stack
+      let draggedElement;
+      this.game.properties[this.game.player.id][color].forEach((card) => {
+        if(card.position === oldIndex) {
+          draggedElement = card;
+        }
+      })
+      // Dragged element position becomes newIndex
+      for(let i = 0; i < this.game.properties[this.game.player.id][color].length; i++) {
+        if(this.game.properties[this.game.player.id][color][i].id === draggedElement.id) {
+          this.game.properties[this.game.player.id][color][i].position = newIndex;
+          this.draggedProperty = this.game.properties[this.game.player.id][color][i];
+        }
+      }
+      // Other cards positions are moved by 1 up or down
+      if(newIndex > oldIndex) {
+        // Cards between oldIndex and newIndex have their position reduced by
+        // one, including related element
+        for(let i = 0; i < this.game.properties[this.game.player.id][color].length; i++) {
+          if(
+            this.game.properties[this.game.player.id][color][i].position <= newIndex
+            && this.game.properties[this.game.player.id][color][i].position > oldIndex
+            && this.game.properties[this.game.player.id][color][i].id !== draggedElement.id
+          ) {
+            this.game.properties[this.game.player.id][color][i].position -= 1;
+          }
+        }
+      } else {
+        // Cards between newIndex and oldIndex have their position increased by
+        // one, including related element
+        for(let i = 0; i < this.game.properties[this.game.player.id][color].length; i++) {
+          if(
+            this.game.properties[this.game.player.id][color][i].position >= newIndex
+            && this.game.properties[this.game.player.id][color][i].position < oldIndex
+            && this.game.properties[this.game.player.id][color][i].id !== draggedElement.id
+          ) {
+            this.game.properties[this.game.player.id][color][i].position += 1;
+          }
+        }
+      }
+      if(newIndex !== oldIndex) {
+        // Emit sound
+        beep();
+      } else if (Date.now() - this.dragStartTime < 100) {
+        // If property position was not changed and drag time is below 150ms,
+        // treat event as if it was a click on the property card (otherwise
+        // mobile taps are seen as drags)
+        this.showPropertyDetails(this.draggedProperty);
+      }
+    },
     // Logic to create a new game and a dedicated wallet for game creator (called from index.html)
     createGame: async function () {
       // Create bank wallet and dedicated player wallet for game creator
@@ -492,8 +772,8 @@ new Vue({
       // Create a static LNURL pay link to be used for funding bank
       await this.createBankPayLNURL();
       // Start checking user balance
-      await fetchUserBalance(this.game)
-      this.checkUserBalance()
+      await fetchPlayerBalance(this.game)
+      this.checkPlayerBalance()
       // Start checking bank balance
       this.checkBankBalance()
       // Start checking players
@@ -739,6 +1019,65 @@ new Vue({
         this.game.fundingStatus = 'error'
       }
     },
+    // Logic to create an invoice for player to request funds
+    createPlayerInvoice: async function () {
+      // Erase previous player invoice
+      this.game.playerInvoice.paymentReq = null
+      this.game.playerInvoice = newGame.playerInvoice
+      if(this.game.playerInvoiceAmount && this.game.playerInvoiceAmount > 0) {
+        // Generate new player invoice
+        this.game.playerInvoice.data.amount = this.game.playerInvoiceAmount
+        if (LNBITS_DENOMINATION !== 'sats') {
+          this.game.playerInvoice.data.amount = this.game.playerInvoice.data.amount * 100
+        }
+        let res = await LNbits.api.createInvoice(
+          this.game.player.wallets[0],
+          this.game.playerInvoice.data.amount,
+          this.game.playerInvoice.data.memo,
+          this.game.playerInvoice.unit,
+          this.game.playerInvoice.lnurl && this.game.playerInvoice.lnurl.callback
+        )
+        if(res.data) {
+          this.game.playerInvoice.paymentReq = res.data.payment_request
+          this.game.playerInvoice.paymentHash = res.data.payment_hash
+
+          console.log(this.game.playerInvoice.paymentReq)
+
+          // Save funding invoice in local storage
+          localStorage.setItem(
+            'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.playerInvoice',
+            JSON.stringify(this.game.playerInvoice)
+          )
+          // Once invoice has been created and saved, start checking for payments
+          this.checkPlayerInvoicePaid()
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
+      }
+    },
+    // Logic to create a static LNURL withdraw link to be used as an offer for buying a property
+    createPlayerWithdrawLNURL: async function () {
+      const voucherData = {
+        custom_url: null,
+        is_unique: true,
+        max_withdrawable: this.game.playerVoucherAmount,
+        min_withdrawable: this.game.playerVoucherAmount,
+        title: "Monopoly game voucher",
+        use_custom: false,
+        wait_time: 1,
+        uses: 1
+      }
+      // Create LNURL withdraw link
+      let res = await LNbits.api
+        .request('POST', '/withdraw/api/v1/links', game.player.wallets[0].adminkey, voucherData);
+      if(res.data) {
+        console.log("Monopoly: player withdraw LNURL created successfully")
+        this.game.playerVoucherId = res.data.id;
+        this.game.playerVoucher = res.data.lnurl;
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
     // Logic to display the bank funding dialog component
     showFundingDialog: function () {
       this.game.showFundingDialog = true
@@ -782,14 +1121,28 @@ new Vue({
     checkFundingInvoicePaid: function () {
       checkFundingInvoicePaid(this.game)
     },
+    checkPlayerInvoicePaid: function () {
+      checkPlayerInvoicePaid(this.game)
+    },
     // Called from index.html
     onGameFunded: function () {
       onGameFunded(this.game)
     },
-
+    showExplanationText: async function () {
+      this.game.showExplanationText = true
+    },
+    hideExplanationText: async function () {
+      this.game.showExplanationText = false
+    },
+    showPlayerInvoiceDialog: async function () {
+      this.game.showPlayerInvoiceDialog = true
+    },
+    closePlayerInvoiceDialog: async function () {
+      this.game.showPlayerInvoiceDialog = false
+    },
     // Functions interfaces
-    checkUserBalance: async function () {
-      await checkUserBalance(this.game)
+    checkPlayerBalance: async function () {
+      await checkPlayerBalance(this.game)
     },
     checkPlayers: async function () {
       await checkPlayers(this.game)
@@ -808,6 +1161,69 @@ new Vue({
     },
     getFundingInvoiceAmount: function () {
       return this.game.fundingInvoiceAmount
+    },
+    showPropertyDetails: function (property) {
+      this.game.showPropertyDialog = true;
+      this.game.propertyToShow = property;
+    },
+    closePropertyDialog: function () {
+      this.game.showPropertyDialog = false;
+      this.game.propertyToShow = {};
+    },
+    createNetworkFeeInvoice: async function (property) {
+      this.erasePropertyInvoices()
+
+      this.game.playerInvoiceAmount = 100; // Figure out how to calculate this amount
+      await this.createPlayerInvoice();
+      this.game.showPropertyDialog = false;
+      this.game.networkFeeInvoice = true;
+      this.game.showPropertyInvoiceDialog = true;
+    },
+    createSellInvoice: async function (property) {
+      this.erasePropertyInvoices()
+      this.game.showPropertyDialog = false;
+      this.game.sellInvoice = true;
+      this.game.showPropertyInvoiceDialog = true;
+    },
+    createUpgradeInvoice: async function (property) {
+      this.erasePropertyInvoices()
+      this.game.fundingInvoiceAmount = 30; // Figure out how to calculate this amount
+      await this.createFundingInvoice();
+      this.game.showPropertyDialog = false;
+      this.game.upgradeInvoice = true;
+      this.game.showPropertyInvoiceDialog = true;
+    },
+    createPurchaseInvoice: async function (property) {
+      this.erasePropertyInvoices()
+      this.game.fundingInvoiceAmount = 300; // Figure out how to calculate this amount
+      await this.createFundingInvoice();
+      this.game.showPropertyDialog = false;
+      this.game.purchaseInvoice = true;
+      this.game.showPropertyInvoiceDialog = true;
+    },
+    createOfferVoucher: async function (property) {
+      this.erasePropertyInvoices()
+      this.game.showPropertyDialog = false;
+      this.game.offerVoucher = true;
+      this.game.showPropertyInvoiceDialog = true;
+    },
+    closePropertyInvoiceDialog: function () {
+      this.erasePropertyInvoices()
+      this.game.showPropertyInvoiceDialog = false;
+      this.game.showPropertyDialog = true;
+    },
+    erasePropertyInvoices: function() {
+      this.game.playerInvoice.paymentReq = null;
+      this.game.playerInvoice = newGame.playerInvoice;
+      this.game.fundingInvoice.paymentReq = null;
+      this.game.fundingInvoice = newGame.fundingInvoice;
+      this.game.playerVoucherId = null;
+      this.game.playerVoucher = null;
+      this.game.networkFeeInvoice = false;
+      this.game.sellInvoice = false;
+      this.game.upgradeInvoice = false;
+      this.game.purchaseInvoice = false;
+      this.game.offerVoucher = false;
     },
 
     // Unused functions (but may be used at some point)
