@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -97,26 +97,26 @@ async def update_game_invoice(data: UpdateGameInvoiceData) -> Invoice:
     return game_updated
 
 async def pick_player_name(bank_id: str) -> str:
-        # Get available player names for game
-        available_player_names_string = await db.fetchone("SELECT available_player_names FROM monopoly.games WHERE bank_id = ?", (bank_id))
-        available_player_names = available_player_names_string[0].split(",")
-        # Pick a random index
-        picked_index = random.sample(range(0, len(available_player_names)), 1)[0]
-        # Remove picked player name from available player names for game
-        new_available_player_names_string = ""
-        for i in list(range(len(available_player_names))):
-            if (i != picked_index) :
-                new_available_player_names_string += available_player_names[i] + ","
-        new_available_player_names_string = new_available_player_names_string[slice(-1)]
-        # Update available player names for game
-        await db.execute(
-            """
-            UPDATE monopoly.games SET available_player_names = ? WHERE bank_id = ?
-            """,
-            (new_available_player_names_string, bank_id),
-        )
-        # Return picked player name
-        return available_player_names[picked_index]
+    # Get available player names for game
+    available_player_names_string = await db.fetchone("SELECT available_player_names FROM monopoly.games WHERE bank_id = ?", (bank_id))
+    available_player_names = available_player_names_string[0].split(",")
+    # Pick a random index
+    picked_index = random.sample(range(0, len(available_player_names)), 1)[0]
+    # Remove picked player name from available player names for game
+    new_available_player_names_string = ""
+    for i in list(range(len(available_player_names))):
+        if (i != picked_index) :
+            new_available_player_names_string += available_player_names[i] + ","
+    new_available_player_names_string = new_available_player_names_string[slice(-1)]
+    # Update available player names for game
+    await db.execute(
+        """
+        UPDATE monopoly.games SET available_player_names = ? WHERE bank_id = ?
+        """,
+        (new_available_player_names_string, bank_id),
+    )
+    # Return picked player name
+    return available_player_names[picked_index]
 
 async def create_player(data: CreatePlayerData) -> Player:
     await db.execute(
@@ -214,6 +214,31 @@ async def update_player_balance(data: UpdatePlayerBalance) -> Player:
     assert player_updated, "Newly updated player couldn't be retrieved"
     return player_updated
 
+async def register_property(data: Property) -> Property:
+    await db.execute(
+            """
+            INSERT INTO monopoly.properties (property_id, property_color, property_owner_id, property_mining_capacity, property_mining_income, bank_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (data.property_id, data.property_color, data.property_owner_id, data.property_mining_capacity, data.property_mining_income, data.bank_id),
+        )
+
+    property_registered = await get_property(data.bank_id, data.property_color, data.property_id)
+    assert property_registered, "Newly created property couldn't be retrieved"
+    return property_registered
+
+async def update_property_owner(data: UpdatePropertyOwner) -> Property:
+    await db.execute(
+            """
+            UPDATE monopoly.properties SET property_owner_id = ? WHERE bank_id = ? AND property_color = ? AND property_id = ?
+           """,
+           (data.new_owner, data.bank_id, data.property_color, data.property_id),
+    )
+
+    property_updated = await get_property(data.bank_id, data.property_color, data.property_id)
+    assert property_updated, "Newly updated property couldn't be retrieved"
+    return property_updated
+
 # Getters
 async def get_game(bank_id: str) -> Game:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE bank_id = ?", (bank_id,))
@@ -254,3 +279,11 @@ async def get_players_count(bank_id: str) -> int:
 async def get_max_players_count(bank_id: str) -> int:
     max_players_count = await db.fetchone("SELECT max_players_count FROM monopoly.games WHERE bank_id = ?", (bank_id))
     return max_players_count
+
+async def get_properties(bank_id: str) -> Property:
+    rows = await db.fetchall("SELECT * FROM monopoly.properties WHERE bank_id = ?", (bank_id,))
+    return[Property(**row) for row in rows]
+
+async def get_property(bank_id: str, property_color: str, property_id: int) -> Property:
+    row = await db.fetchone("SELECT * FROM monopoly.properties WHERE bank_id = ? AND property_color = ? AND property_id = ?", (bank_id, property_color, property_id))
+    return Property(**row) if row else None

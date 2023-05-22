@@ -38,3 +38,20 @@ async def m001_initial(db):
       );
     """
     )
+
+    """
+    Initial properties table.
+    """
+    await db.execute(
+      f"""
+      CREATE TABLE monopoly.properties (
+          property_id INTEGER NOT NULL,
+          property_color TEXT NOT NULL,
+          property_owner_id TEXT,
+          property_mining_capacity INTEGER,
+          property_mining_income INTEGER,
+          bank_id TEXT NOT NULL,
+          time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    """
+    )

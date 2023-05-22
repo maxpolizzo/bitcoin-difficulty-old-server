@@ -33,10 +33,13 @@ from .crud import (
     get_players,
     get_players_count,
     get_max_players_count,
-    pick_player_name
+    pick_player_name,
+    get_properties,
+    register_property,
+    update_property_owner
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -103,6 +106,16 @@ async def api_monopoly_players_update_balance(data: UpdatePlayerBalance):
     player = await update_player_balance(data)
     return player
 
+@monopoly_ext.post("/api/v1/property", status_code=HTTPStatus.CREATED)
+async def api_monopoly_property_register(data: Property):
+    property = await register_property(data)
+    return property
+
+@monopoly_ext.put("/api/v1/property/transfer-ownership", status_code=HTTPStatus.CREATED)
+async def api_monopoly_property_transfer_ownership(data: UpdatePropertyOwner):
+    property = await update_property_owner(data)
+    return property
+
 # Getters
 @monopoly_ext.get("/api/v1/games", status_code=HTTPStatus.OK)
 async def api_monopoly_games(bank_id: str):
@@ -135,6 +148,14 @@ async def api_monopoly_player_balance(player_wallet_id: str):
 @monopoly_ext.get("/api/v1/player_name", status_code=HTTPStatus.OK)
 async def api_monopoly_player_name(bank_id: str):
     return await pick_player_name(bank_id)
+
+@monopoly_ext.get("/api/v1/property", status_code=HTTPStatus.OK)
+async def api_monopoly_properties(bank_id: str, property_color: str, property_id: int):
+    return await get_property(bank_id, property_color, property_id)
+
+@monopoly_ext.get("/api/v1/properties", status_code=HTTPStatus.OK)
+async def api_monopoly_properties(bank_id: str):
+    return [property for property in await get_properties(bank_id)]
 
 @monopoly_ext.get("/api/v1/invite", status_code=HTTPStatus.OK)
 async def api_monopoly_players_invite(
