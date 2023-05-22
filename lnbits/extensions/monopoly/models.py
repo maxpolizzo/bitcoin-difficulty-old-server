@@ -115,3 +115,17 @@ class Player(BaseModel):
     player_wallet_inkey: str
     player_balance: int
     bank_id: str
+
+class Property(BaseModel):
+    property_id: int
+    property_color: str
+    property_owner_id: str
+    property_mining_capacity: int
+    property_mining_income: int
+    bank_id: str
+
+class UpdatePropertyOwner(BaseModel):
+   bank_id: str
+   property_color: str
+   property_id: int
+   new_owner: str

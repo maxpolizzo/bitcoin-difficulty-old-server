@@ -1,18 +1,20 @@
-import { newGame, playerNames, dragAndDropCardSoundURI } from './data.js'
-import { claimLNURLVoucher } from './utils.js'
+import { newGame, playerNames } from './data.js'
+import  { dragAndDropCardSoundURI } from './sounds.js'
+import  { properties } from './properties.js'
+import { claimLNURLVoucher, decodeInvoice } from './utils.js'
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
 
 // Logic to check periodically if game funding invoice has been paid
-function checkFundingInvoicePaid(game) {
+function checkFundingInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.fundingInvoice.paymentChecker)
   game.fundingInvoice.paymentChecker = setInterval(async () => {
-    await fetchFundingInvoicePaid(game)
+    await fetchFundingInvoicePaid(game, invoiceReason)
   }, 2000)
 }
 
-async function fetchFundingInvoicePaid(game) {
+async function fetchFundingInvoicePaid(game, invoiceReason = null) {
   const res = await LNbits.api.getPayment(game.bankData.wallets[0], game.fundingInvoice.paymentHash);
   if(res.data) {
     if (res.data.paid) {
@@ -31,6 +33,16 @@ async function fetchFundingInvoicePaid(game) {
         'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.fundingInvoice',
         JSON.stringify(game.fundingInvoice)
       )
+
+      if(invoiceReason) {
+        console.log(invoiceReason)
+        switch(invoiceReason.type) {
+          case "property_upgrade":
+            // update property's mining capacity
+          default:
+            console.warn("Unknown invoice reason: " + invoiceReason.type)
+        }
+      }
     } else
       await fetchBankBalance(game)
   } else {
@@ -39,14 +51,14 @@ async function fetchFundingInvoicePaid(game) {
 }
 
 // Logic to check periodically if player invoice has been paid
-function checkPlayerInvoicePaid(game) {
+function checkPlayerInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.playerInvoice.paymentChecker)
   game.playerInvoice.paymentChecker = setInterval(async () => {
     await fetchPlayerInvoicePaid(game)
   }, 2000)
 }
 
-async function fetchPlayerInvoicePaid(game) {
+async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
   const res = await LNbits.api.getPayment(game.player.wallets[0], game.playerInvoice.paymentHash);
   if(res.data) {
     if (res.data.paid) {
@@ -65,6 +77,14 @@ async function fetchPlayerInvoicePaid(game) {
         'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.playerInvoice',
         JSON.stringify(game.playerInvoice)
       )
+      if(invoiceReason) {
+        switch(invoiceReason.type) {
+          case "network_fee":
+          // update property's cumulated mining income
+          default:
+            console.warn("Unknown invoice reason: " + invoiceReason.type)
+        }
+      }
     } else
       await fetchPlayerBalance(game)
   } else {
@@ -411,6 +431,67 @@ async function fetchPlayersBalances(game) {
   }
 }
 
+// Logic to check properties ownership periodically
+async function checkProperties(game) {
+  clearInterval(game.propertiesChecker)
+  game.propertiesChecker = setInterval(async () => {
+    await fetchProperties(game)
+  }, 2000)
+}
+
+async function fetchProperties(game) {
+  let gameProperties = {};
+  let gamePropertiesCount = {};
+  let res = await LNbits.api
+    .request(
+      'GET',
+      '/monopoly/api/v1/properties?bank_id=' + game.bankData.id,
+      game.player.wallets[0].inkey
+    )
+  if(res.data) {
+    if(res.data.length) {
+      res.data.forEach((property) => {
+        if(property.property_owner_id){
+          // If property is owned
+          if(!gameProperties[property.property_owner_id]) {
+            gameProperties[property.property_owner_id] = {}
+            gameProperties[property.property_owner_id][property.property_color] = []
+          } else if(!gameProperties[property.property_owner_id][property.property_color]) {
+            gameProperties[property.property_owner_id][property.property_color] = []
+          }
+          // Update property data
+          let _property = properties[property.property_color][property.property_id];
+          _property.mining_capacity = property.property_mining_capacity
+          _property.mining_income = property.property_mining_income
+          _property.owner = property.property_owner_id
+          _property.position = gameProperties[property.property_owner_id][property.property_color].length
+          // Add property to properties owned by property_owner_id
+          gameProperties[property.property_owner_id][property.property_color].push(_property)
+          // Update properties count for property_owner_id
+          if(!gamePropertiesCount[property.property_owner_id]) {
+            gamePropertiesCount[property.property_owner_id] = 0
+          }
+          gamePropertiesCount[property.property_owner_id] += 1
+        }
+      })
+      // Update game data
+      game.properties = gameProperties;
+      game.propertiesCount = gamePropertiesCount;
+      // Save game data in local storage
+      localStorage.setItem(
+        'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.properties',
+        JSON.stringify(game.properties)
+      )
+      localStorage.setItem(
+        'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.propertiesCount',
+        JSON.stringify(game.propertiesCount)
+      )
+    }
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
 // Logic to delete game voucher once game starts
 async function deleteGameVoucher(game) {
   if(game.lnurlVoucherId) {
@@ -502,37 +583,55 @@ new Vue({
             height: `auto`,
             maxWidth: `65%`,
             marginTop: `1em`,
-            marginLeft: `6em`
+            marginLeft: `2em`
+          },
+          propertyOwnershipLabel: {
+            marginTop: `1em`
+          },
+          propertyMiningCapacityLabel: {
+            marginTop: `1em`
+          },
+          propertyMiningIncomeLabel: {
+            marginTop: `1em`
           },
           propertyButtons: {
-            div: {
+            cardButtonsGroup: {
+              marginTop: `2em`
+            },
+            bottomButtonsGroup: {
               marginTop: `1em`
             },
             buyButton: {
-              marginLeft: `12em`
+              marginTop: `2.5em`,
+              marginLeft: `-1em`
             },
             invoiceButton: {
-              marginLeft: `2.5em`
+              marginTop: `2em`,
+              marginLeft: `-1em`
             },
             upgradeButton: {
-              marginLeft: `1em`
+              marginLeft: `-1em`
             },
             sellButton: {
-              marginLeft: `12em`
+              marginLeft: `0em`
             },
             offerButton: {
-              marginLeft: `13em`
+              marginTop: `2.5em`,
+              marginLeft: `-1em`
             },
+          },
+          propertyCloseButton: {
+            marginTop: `1em`
           },
           propertyButtonsForGameCreator: {
             div: {
               marginTop: `1em`
             },
             invoicePurchaseButton: {
-              marginLeft: `8em`
+              marginLeft: `0em`
             },
             invoiceUpgradeButton: {
-              marginLeft: `6.5em`
+              marginLeft: `0em`
             },
           },
         }
@@ -557,38 +656,58 @@ new Vue({
           propertyImage: {
             height: `auto`,
             maxWidth: `85%`,
-            marginTop: `2em`,
-            marginLeft: `2em`
+            marginTop: `0.5em`,
+            marginLeft: `0em`
+          },
+          propertyOwnershipLabel: {
+            marginTop: `1em`,
+            marginLeft: `-1em`
+          },
+          propertyMiningCapacityLabel: {
+            marginTop: `1em`,
+            marginLeft: `-1em`
+          },
+          propertyMiningIncomeLabel: {
+            marginTop: `1em`,
+            marginLeft: `-1em`
           },
           propertyButtons: {
-            div: {
+            cardButtonsGroup: {
+              marginTop: `2em`
+            },
+            bottomButtonsGroup: {
               marginTop: `1em`
             },
             buyButton: {
-              marginLeft: `7.5em`
+              marginTop: `1em`,
+              marginLeft: `-2em`
             },
             invoiceButton: {
-              marginLeft: `5.5em`
+              marginLeft: `-2em`
             },
             upgradeButton: {
-              marginLeft: `4.5em`
+              marginLeft: `-2em`
             },
             sellButton: {
-              marginLeft: `7.25em`
+              marginLeft: `0em`
             },
             offerButton: {
-              marginLeft: `8em`
+              marginTop: `1em`,
+              marginLeft: `-2em`
             },
+          },
+          propertyCloseButton: {
+            marginTop: `1em`
           },
           propertyButtonsForGameCreator: {
             div: {
               marginTop: `1em`
             },
             invoicePurchaseButton: {
-              marginLeft: `3.5em`
+              marginLeft: `0em`
             },
             invoiceUpgradeButton: {
-              marginLeft: `2.5em`
+              marginLeft: `0em`
             },
           },
         }
@@ -617,6 +736,8 @@ new Vue({
     }
   },
   data: function () {
+    // Initialize game properties map
+    game.properties["for-sale"] = properties;
     // Start checking bank balance
     fetchBankBalance(game).then(() => {
       // If game has already been created or imported, fetch user balance, other
@@ -635,6 +756,9 @@ new Vue({
         checkPlayerBalance(game).then(() => {
           console.log("Periodically checking player balance...")
         })
+        checkProperties(game).then(() => {
+          console.log("Periodically checking properties ownership...")
+        })
       }
       checkBankBalance(game).then(() => {
         console.log("Periodically checking bank balance...")
@@ -652,30 +776,39 @@ new Vue({
     game.payInvoiceCommand = "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Perso/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
 
     // Hack to display dummy properties
+
     game.properties[game.player.id] = {};
-    game.properties[game.player.id]["red"] = [
-      { color: "red", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: game.player.id },
-      { color: "red", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
-      { color: "red", id: 2, imgPath: "./static/images/properties/cards/p02.png", position: 2, owner: null },
-      { color: "red", id: 3, imgPath: "./static/images/properties/cards/p03.png", position: 3, owner: null },
-    ];
-    game.properties[game.player.id]["light-blue"] = [
-      { color: "light-blue", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: "otherPlayer" },
-    ];
-    game.properties[game.player.id]["yellow"] = [
-      { color: "yellow", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: null },
-      { color: "yellow", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
-    ];
-    game.properties[game.player.id]["orange"] = [
-      { color: "orange", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: null },
-      { color: "orange", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
-      { color: "orange", id: 2, imgPath: "./static/images/properties/cards/p02.png", position: 2, owner: null },
-    ];
-    game.properties[game.player.id]["deep-blue"] = [
-      { color: "deep-blue", id: 0, imgPath: "./static/images/properties/cards/p00.png", position: 0, owner: null },
-      { color: "deep-blue", id: 1, imgPath: "./static/images/properties/cards/p01.png", position: 1, owner: null },
-    ];
-    game.propertiesCount[game.player.id] = 12;
+    game.properties[game.player.id]["red"] = properties["red"]
+    game.properties[game.player.id]["red"][0].miningCapacity = 4
+    game.properties[game.player.id]["red"][0].miningIncome = 748
+    game.properties[game.player.id]["red"][0].owner = game.player.id
+    game.properties[game.player.id]["red"][0].position = 0
+    game.properties[game.player.id]["red"][1].miningCapacity = 0
+    game.properties[game.player.id]["red"][1].miningIncome = 6
+    game.properties[game.player.id]["red"][1].owner = game.player.id
+    game.properties[game.player.id]["red"][1].position = 1
+    game.properties[game.player.id]["red"][2].miningCapacity = 1
+    game.properties[game.player.id]["red"][2].miningIncome = 52
+    game.properties[game.player.id]["red"][2].owner = game.player.id
+    game.properties[game.player.id]["red"][2].position = 2
+    game.properties[game.player.id]["blue"] = []
+    game.properties[game.player.id]["blue"].push(properties["blue"][1])
+    game.properties[game.player.id]["blue"][0].miningCapacity = 2
+    game.properties[game.player.id]["blue"][0].miningIncome = 124
+    game.properties[game.player.id]["blue"][0].owner = game.player.id
+    game.properties[game.player.id]["blue"][0].position = 0
+    game.properties[game.player.id]["yellow"] = []
+    game.properties[game.player.id]["yellow"].push(properties["yellow"][1])
+    game.properties[game.player.id]["yellow"].push(properties["yellow"][0])
+    game.properties[game.player.id]["yellow"][0].miningCapacity = 0
+    game.properties[game.player.id]["yellow"][0].miningIncome = 0
+    game.properties[game.player.id]["yellow"][0].owner = null
+    game.properties[game.player.id]["yellow"][0].position = 0
+    game.properties[game.player.id]["yellow"][1].miningCapacity = 0
+    game.properties[game.player.id]["yellow"][1].miningIncome = 2
+    game.properties[game.player.id]["yellow"][1].owner = null
+    game.properties[game.player.id]["yellow"][1].position = 1
+    game.propertiesCount[game.player.id] = 6;
 
     return {
       game: game,
@@ -981,7 +1114,7 @@ new Vue({
       }
     },
     // Logic to create an invoice to fund the bank wallet
-    createFundingInvoice: async function () {
+    createFundingInvoice: async function (invoiceReason = null) {
       // Erase previous funding invoice
       this.game.fundingInvoice.paymentReq = null
       this.game.fundingInvoice = newGame.fundingInvoice
@@ -1010,7 +1143,7 @@ new Vue({
             JSON.stringify(this.game.fundingInvoice)
           )
           // Once invoice has been created and saved, start checking for payments
-          this.checkFundingInvoicePaid()
+          this.checkFundingInvoicePaid(invoiceReason)
         } else {
           LNbits.utils.notifyApiError(res.error)
         }
@@ -1020,7 +1153,7 @@ new Vue({
       }
     },
     // Logic to create an invoice for player to request funds
-    createPlayerInvoice: async function () {
+    createPlayerInvoice: async function (invoiceReason = null) {
       // Erase previous player invoice
       this.game.playerInvoice.paymentReq = null
       this.game.playerInvoice = newGame.playerInvoice
@@ -1049,7 +1182,7 @@ new Vue({
             JSON.stringify(this.game.playerInvoice)
           )
           // Once invoice has been created and saved, start checking for payments
-          this.checkPlayerInvoicePaid()
+          this.checkPlayerInvoicePaid(invoiceReason)
         } else {
           LNbits.utils.notifyApiError(res.error)
         }
@@ -1118,11 +1251,11 @@ new Vue({
     deleteGameVoucher: async function () {
       await deleteGameVoucher(this.game)
     },
-    checkFundingInvoicePaid: function () {
-      checkFundingInvoicePaid(this.game)
+    checkFundingInvoicePaid: function (invoiceReason = null) {
+      checkFundingInvoicePaid(this.game, invoiceReason)
     },
-    checkPlayerInvoicePaid: function () {
-      checkPlayerInvoicePaid(this.game)
+    checkPlayerInvoicePaid: function (invoiceReason = null) {
+      checkPlayerInvoicePaid(this.game, invoiceReason)
     },
     // Called from index.html
     onGameFunded: function () {
@@ -1166,15 +1299,13 @@ new Vue({
       this.game.showPropertyDialog = true;
       this.game.propertyToShow = property;
     },
-    closePropertyDialog: function () {
-      this.game.showPropertyDialog = false;
-      this.game.propertyToShow = {};
-    },
     createNetworkFeeInvoice: async function (property) {
       this.erasePropertyInvoices()
-
-      this.game.playerInvoiceAmount = 100; // Figure out how to calculate this amount
-      await this.createPlayerInvoice();
+      this.game.playerInvoiceAmount = property.networkFee[property.miningCapacity]
+      await this.createPlayerInvoice({
+        type: "network_fee",
+        propertyId: property.id
+      });
       this.game.showPropertyDialog = false;
       this.game.networkFeeInvoice = true;
       this.game.showPropertyInvoiceDialog = true;
@@ -1187,7 +1318,9 @@ new Vue({
     },
     createUpgradeInvoice: async function (property) {
       this.erasePropertyInvoices()
-      this.game.fundingInvoiceAmount = 30; // Figure out how to calculate this amount
+      this.game.fundingInvoiceAmount = property.miningCapacity < 4
+        ? property.oneKwPrice
+        : property.tenKwPrice
       await this.createFundingInvoice();
       this.game.showPropertyDialog = false;
       this.game.upgradeInvoice = true;
@@ -1195,8 +1328,14 @@ new Vue({
     },
     createPurchaseInvoice: async function (property) {
       this.erasePropertyInvoices()
-      this.game.fundingInvoiceAmount = 300; // Figure out how to calculate this amount
+      this.game.fundingInvoiceAmount = property.price;
       await this.createFundingInvoice();
+      this.game.propertyPurchaseData = JSON.stringify({
+        type: "property_purchase",
+        propertyColor: property.color,
+        propertyId: property.id,
+        invoice: this.game.fundingInvoice.paymentReq,
+      })
       this.game.showPropertyDialog = false;
       this.game.purchaseInvoice = true;
       this.game.showPropertyInvoiceDialog = true;
@@ -1207,12 +1346,21 @@ new Vue({
       this.game.offerVoucher = true;
       this.game.showPropertyInvoiceDialog = true;
     },
+    closePropertyDialog: function () {
+      // this.erasePropertyInvoices()
+      this.game.showPropertyPurchaseDialog = false;
+      this.game.showPropertyInvoiceDialog = false;
+      this.game.showPropertyDialog = false;
+      this.game.propertyToShow = {};
+    },
     closePropertyInvoiceDialog: function () {
-      this.erasePropertyInvoices()
+      // this.erasePropertyInvoices()
       this.game.showPropertyInvoiceDialog = false;
       this.game.showPropertyDialog = true;
     },
     erasePropertyInvoices: function() {
+      this.game.propertyPurchaseData = null;
+      this.game.playerInvoiceAmount = null;
       this.game.playerInvoice.paymentReq = null;
       this.game.playerInvoice = newGame.playerInvoice;
       this.game.fundingInvoice.paymentReq = null;
@@ -1225,7 +1373,75 @@ new Vue({
       this.game.purchaseInvoice = false;
       this.game.offerVoucher = false;
     },
+    purchaseProperty: async function() {
+      // Pay invoice
+      console.log(this.game.propertyPurchase.invoice)
+      console.log("Purchasing property...")
+      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.propertyPurchase.invoice);
 
+      if(res.data && res.data.payment_hash) {
+          console.log("Property was purchased successfully")
+          // Check if property is already registered in  database
+        try  {
+          res = await LNbits.api
+            .request(
+              'GET',
+              'monopoly/api/v1/property?bank_id=' + this.game.bankData.id
+              + '&property_color=' + this.game.propertyPurchase.property.color
+              + '&property_id=' + this.game.propertyPurchase.property.id,
+              this.game.player.wallets[0].inkey,
+            )
+          if(res.data) {
+            console.log("PROPERTY ALREADY REGISTERED, UPDATING OWNERSHIP")
+            await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.id)
+          }
+        } catch(err) {
+            console.log(err)
+          console.log("PROPERTY NOT REGISTERED, REGISTERING")
+          await this.registerProperty(this.game.propertyPurchase.property, this.game.player.id)
+        }
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    registerProperty: async function(property, buyer) {
+      let res = await LNbits.api
+        .request(
+          'POST',
+          '/monopoly/api/v1/property',
+          this.game.player.wallets[0].inkey,
+          {
+            property_id: property.id,
+            property_color: property.color,
+            property_owner_id: buyer,
+            property_mining_capacity: 0,
+            property_mining_income: 0,
+            bank_id: this.game.bankData.id
+          }
+        )
+      if(res.data) {
+        console.log("Property registered successfully")
+        console.log(res.data)
+      }
+    },
+    transferPropertyOwnership: async function(property, buyer) {
+      let res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/property/transfer-ownership',
+          this.game.player.wallets[0].inkey,
+          {
+            bank_id: this.game.bankData.id,
+            property_color: property.color,
+            property_id:property.id,
+            new_owner: buyer
+          }
+        )
+      if(res.data) {
+        console.log("Property ownership transferred successfully")
+        console.log(res.data)
+      }
+    },
     // Unused functions (but may be used at some point)
     exportBank: function () {
       this.qrCodeDialog.data = JSON.stringify(
@@ -1260,9 +1476,20 @@ new Vue({
       this.camera.show = false
       this.parseQRData(this.camera.data)
     },
-    /*
+
     parseQRData: async function (QRData) {
       let data = JSON.parse(QRData)
+      switch(data.type) {
+        case "property_purchase":
+          this.closePropertyDialog()
+          const decodedInvoice = decodeInvoice(data.invoice);
+          this.game.showPropertyPurchaseDialog = true
+          this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
+          this.game.propertyPurchase.invoice = data.invoice
+          this.game.propertyPurchase.invoiceAmount = decodedInvoice.sat
+      }
+
+      /*
       if(
         data.id // User Id of the bank user
         && data.walletId // Wallet Id of the bank wallet
@@ -1327,7 +1554,7 @@ new Vue({
         } else {
         console.log("Monopoly: Error: could not import bank wallet")
       }
+      */
     },
-    */
   }
 })

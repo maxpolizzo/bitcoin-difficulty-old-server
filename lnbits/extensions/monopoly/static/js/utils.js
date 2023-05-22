@@ -1,3 +1,5 @@
+/* globals decode*/
+
 export async function claimLNURLVoucher (lnurl, wallet) {
   const lnurlData = await decodeLNURL(lnurl, wallet);
   return await createInvoiceFromLNURL(lnurlData, wallet);
@@ -83,4 +85,42 @@ export function onPaymentReceived(paymentChecker) {
     JSON.stringify(true)
   )
   console.log("Successfully claimed LNURL voucher")
+}
+
+export function decodeInvoice(invoiceData) {
+  let invoice
+  try {
+    invoice = decode(invoiceData)
+  } catch (error) {
+    console.log(error)
+    // LNbits.utils.notifyApiError(error)
+    return
+  }
+
+  let cleanInvoice = {
+    msat: invoice.human_readable_part.amount,
+    sat: invoice.human_readable_part.amount / 1000,
+    fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000)
+  }
+
+  _.each(invoice.data.tags, tag => {
+    if (_.isObject(tag) && _.has(tag, 'description')) {
+      if (tag.description === 'payment_hash') {
+        cleanInvoice.hash = tag.value
+      } else if (tag.description === 'description') {
+        cleanInvoice.description = tag.value
+      } else if (tag.description === 'expiry') {
+        var expireDate = new Date(
+          (invoice.data.time_stamp + tag.value) * 1000
+        )
+        cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+          expireDate,
+          'YYYY-MM-DDTHH:mm:ss.SSSZ'
+        )
+        cleanInvoice.expired = false // TODO
+      }
+    }
+  })
+
+  return(cleanInvoice);
 }
