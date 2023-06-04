@@ -497,7 +497,7 @@
           >
             <div :style="reactiveStyle.propertyButtons.buyButton">
               <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
-                Buy for {% raw %}{{game.propertyToShow.price}}{% endraw %} sats
+                Buy property
               </q-btn>
             </div>
           </div>
@@ -531,7 +531,7 @@
         :style="reactiveStyle.propertyButtons.bottomButtonsGroup"
       >
         <div :style="reactiveStyle.propertyButtons.sellButton">
-          <q-btn @click="createSellInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+          <q-btn @click="openSaleInvoiceDialog(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Sell property
           </q-btn>
         </div>
@@ -604,11 +604,12 @@
     </q-card>
   </q-dialog>
 
-
   <q-dialog v-model="game.showPropertyInvoiceDialog" @hide="game.showPropertyInvoiceDialog = false">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
+
+<!--
       <div v-if="game.playerInvoice.paymentReq">
         <div class="text-center q-mb-lg">
           Request payment by showing this invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats)
@@ -626,10 +627,11 @@
           </a>
         </div>
       </div>
+-->
 
-      <div v-if="game.purchaseInvoice">
+      <div v-if="game.purchaseInvoiceCreated">
         <div class="text-center q-mb-lg">
-          In order to purchase this property, buyer needs to scan this QR code and pay the attached invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
+          Scan this QR code and pay the attached invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats) in order to purchase this property
         </div>
 
         <div class="text-center q-mb-lg">
@@ -679,20 +681,39 @@
         </div>
       </div>
 
-      <div v-if="game.sellInvoice" class="row">
-        <div class="col-8 col-md-8">
-          <q-form @submit="createPlayerInvoice()" class="q-gutter-md col-8 col-md-8">
-            <q-input
-              filled
-              dense
-              v-model.trim="game.playerInvoiceAmount"
-              label="New invoice amount (sats)"
-              placeholder=""
-            ></q-input>
-          </q-form>
+      <div v-if="game.showSaleInvoiceDialog">
+
+        <div v-if="game.saleInvoiceCreated">
+          <div class="text-center q-mb-lg">
+            Scan this QR code and pay the attached invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats) in order to purchase this property
+          </div>
+
+          <div class="text-center q-mb-lg">
+            <q-responsive :ratio="1" class="q-mx-xl">
+              <qrcode
+                :value="game.propertySaleData"
+                :options="{width: 340}"
+                class="rounded-borders"
+              ></qrcode>
+            </q-responsive>
+          </div>
         </div>
-        <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
-          <q-btn @click="createPlayerInvoice()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+
+        <div class="row">
+          <div class="col-8 col-md-8">
+            <q-form @submit="createSaleInvoice(game.propertyToShow, game.playerInvoiceAmount)" class="q-gutter-md col-8 col-md-8">
+              <q-input
+                filled
+                dense
+                v-model.trim="game.playerInvoiceAmount"
+                label="New invoice amount (sats)"
+                placeholder=""
+              ></q-input>
+            </q-form>
+          </div>
+          <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
+            <q-btn @click="createSaleInvoice(game.propertyToShow, game.playerInvoiceAmount)" flat color="grey" class="q-ml-auto">Generate</q-btn>
+          </div>
         </div>
       </div>
 
