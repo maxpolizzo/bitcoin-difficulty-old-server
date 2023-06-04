@@ -1310,11 +1310,11 @@ new Vue({
       this.game.networkFeeInvoice = true;
       this.game.showPropertyInvoiceDialog = true;
     },
-    createSellInvoice: async function (property) {
+    openSaleInvoiceDialog: async function (property) {
       this.erasePropertyInvoices()
       this.game.showPropertyDialog = false;
-      this.game.sellInvoice = true;
       this.game.showPropertyInvoiceDialog = true;
+      this.game.showSaleInvoiceDialog = true;
     },
     createUpgradeInvoice: async function (property) {
       this.erasePropertyInvoices()
@@ -1337,8 +1337,20 @@ new Vue({
         invoice: this.game.fundingInvoice.paymentReq,
       })
       this.game.showPropertyDialog = false;
-      this.game.purchaseInvoice = true;
+      this.game.purchaseInvoiceCreated = true;
       this.game.showPropertyInvoiceDialog = true;
+    },
+    createSaleInvoice: async function (property, amount) {
+      this.erasePropertyInvoices()
+      this.game.playerInvoiceAmount = amount;
+      await this.createPlayerInvoice();
+      this.game.propertySaleData = JSON.stringify({
+        type: "property_sale",
+        propertyColor: property.color,
+        propertyId: property.id,
+        invoice: this.game.playerInvoice.paymentReq,
+      })
+      this.game.saleInvoiceCreated = true;
     },
     createOfferVoucher: async function (property) {
       this.erasePropertyInvoices()
@@ -1347,19 +1359,20 @@ new Vue({
       this.game.showPropertyInvoiceDialog = true;
     },
     closePropertyDialog: function () {
-      // this.erasePropertyInvoices()
-      this.game.showPropertyPurchaseDialog = false;
-      this.game.showPropertyInvoiceDialog = false;
       this.game.showPropertyDialog = false;
       this.game.propertyToShow = {};
     },
     closePropertyInvoiceDialog: function () {
-      // this.erasePropertyInvoices()
       this.game.showPropertyInvoiceDialog = false;
+      this.game.showSaleInvoiceDialog = false;
       this.game.showPropertyDialog = true;
+    },
+    closePropertyPurchaseDialog: function () {
+      this.game.showPropertyPurchaseDialog = false;
     },
     erasePropertyInvoices: function() {
       this.game.propertyPurchaseData = null;
+      this.game.propertySaleData = null;
       this.game.playerInvoiceAmount = null;
       this.game.playerInvoice.paymentReq = null;
       this.game.playerInvoice = newGame.playerInvoice;
@@ -1368,9 +1381,9 @@ new Vue({
       this.game.playerVoucherId = null;
       this.game.playerVoucher = null;
       this.game.networkFeeInvoice = false;
-      this.game.sellInvoice = false;
+      this.game.saleInvoiceCreated = false;
       this.game.upgradeInvoice = false;
-      this.game.purchaseInvoice = false;
+      this.game.purchaseInvoiceCreated = false;
       this.game.offerVoucher = false;
     },
     purchaseProperty: async function() {
@@ -1380,8 +1393,9 @@ new Vue({
       let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.propertyPurchase.invoice);
 
       if(res.data && res.data.payment_hash) {
-          console.log("Property was purchased successfully")
-          // Check if property is already registered in  database
+        console.log("Property was purchased successfully")
+        this.closePropertyPurchaseDialog()
+        // Check if property is already registered in  database
         try  {
           res = await LNbits.api
             .request(
@@ -1392,12 +1406,12 @@ new Vue({
               this.game.player.wallets[0].inkey,
             )
           if(res.data) {
-            console.log("PROPERTY ALREADY REGISTERED, UPDATING OWNERSHIP")
+            console.log("Property already registered, updating ownership")
             await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.id)
           }
         } catch(err) {
             console.log(err)
-          console.log("PROPERTY NOT REGISTERED, REGISTERING")
+          console.log("Property not registered, registering")
           await this.registerProperty(this.game.propertyPurchase.property, this.game.player.id)
         }
       } else {
@@ -1482,11 +1496,19 @@ new Vue({
       switch(data.type) {
         case "property_purchase":
           this.closePropertyDialog()
-          const decodedInvoice = decodeInvoice(data.invoice);
+          const purchaseInvoice = decodeInvoice(data.invoice);
           this.game.showPropertyPurchaseDialog = true
           this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
           this.game.propertyPurchase.invoice = data.invoice
-          this.game.propertyPurchase.invoiceAmount = decodedInvoice.sat
+          this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
+
+        case "property_sale":
+          this.closePropertyDialog()
+          const saleInvoice = decodeInvoice(data.invoice);
+          this.game.showPropertyPurchaseDialog = true
+          this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
+          this.game.propertyPurchase.invoice = data.invoice
+          this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
       }
 
       /*
