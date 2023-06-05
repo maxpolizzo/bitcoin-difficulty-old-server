@@ -125,7 +125,13 @@ class Property(BaseModel):
     bank_id: str
 
 class UpdatePropertyOwner(BaseModel):
-   bank_id: str
-   property_color: str
-   property_id: int
-   new_owner: str
+    bank_id: str
+    property_color: str
+    property_id: int
+    new_owner: str
+
+class UpdatePropertyIncome(BaseModel):
+    bank_id: str
+    property_color: str
+    property_id: int
+    income_increment: int

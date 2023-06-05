@@ -62,7 +62,7 @@ async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
   const res = await LNbits.api.getPayment(game.player.wallets[0], game.playerInvoice.paymentHash);
   if(res.data) {
     if (res.data.paid) {
-      console.log("Funding invoice paid!")
+      console.log("Player invoice paid!")
       clearInterval(game.playerInvoice.paymentChecker)
       // Erase previous player invoice
       game.playerInvoiceAmount = 0
@@ -1306,9 +1306,15 @@ new Vue({
         type: "network_fee",
         propertyId: property.id
       });
+      this.game.networkFeeInvoiceData = JSON.stringify({
+        type: "network_fee",
+        propertyColor: property.color,
+        propertyId: property.id,
+        invoice: this.game.playerInvoice.paymentReq,
+      })
       this.game.showPropertyDialog = false;
-      this.game.networkFeeInvoice = true;
       this.game.showPropertyInvoiceDialog = true;
+      this.game.showNetworkFeeInvoice = true;
     },
     openSaleInvoiceDialog: async function (property) {
       this.erasePropertyInvoices()
@@ -1370,6 +1376,12 @@ new Vue({
     closePropertyPurchaseDialog: function () {
       this.game.showPropertyPurchaseDialog = false;
     },
+    closeNetworkFeeInvoiceDialog: function () {
+      this.game.showNetworkFeeInvoice = false;
+    },
+    closeNetworkFeePaymentDialog: function () {
+      this.game.showNetworkFeePaymentDialog = false;
+    },
     erasePropertyInvoices: function() {
       this.game.propertyPurchaseData = null;
       this.game.propertySaleData = null;
@@ -1380,7 +1392,7 @@ new Vue({
       this.game.fundingInvoice = newGame.fundingInvoice;
       this.game.playerVoucherId = null;
       this.game.playerVoucher = null;
-      this.game.networkFeeInvoice = false;
+      this.game.networkFeeInvoiceCreated = false;
       this.game.saleInvoiceCreated = false;
       this.game.upgradeInvoice = false;
       this.game.purchaseInvoiceCreated = false;
@@ -1400,7 +1412,7 @@ new Vue({
           res = await LNbits.api
             .request(
               'GET',
-              'monopoly/api/v1/property?bank_id=' + this.game.bankData.id
+              'api/v1/property?bank_id=' + this.game.bankData.id
               + '&property_color=' + this.game.propertyPurchase.property.color
               + '&property_id=' + this.game.propertyPurchase.property.id,
               this.game.player.wallets[0].inkey,
@@ -1456,6 +1468,58 @@ new Vue({
         console.log(res.data)
       }
     },
+    payNetworkFee: async function() {
+      // Pay invoice
+      console.log(this.game.networkFeeInvoice.invoice)
+      console.log("Paying network fee...")
+      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.networkFeeInvoice.invoice);
+
+      if(res.data && res.data.payment_hash) {
+        console.log("Network fee was paid successfully")
+        this.closeNetworkFeePaymentDialog()
+        // Check if property is already registered in  database
+        try  {
+          res = await LNbits.api
+            .request(
+              'GET',
+              'api/v1/property?bank_id=' + this.game.bankData.id
+              + '&property_color=' + this.game.networkFeeInvoice.property.color
+              + '&property_id=' + this.game.networkFeeInvoice.property.id,
+              this.game.player.wallets[0].inkey,
+            )
+          if(res.data) {
+            console.log("Updating property's cumulated mining income")
+            await this.updatePropertyMiningIncome(this.game.networkFeeInvoice.property, this.game.networkFeeInvoice.invoiceAmount)
+          }
+        } catch(err) {
+          console.log(err)
+          console.log("Error: property not registered")
+          LNbits.utils.notifyApiError(err)
+        }
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    updatePropertyMiningIncome: async function(property, amount) {
+      console.log(amount)
+
+      let res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/property/update-income',
+          this.game.player.wallets[0].inkey,
+          {
+            bank_id: this.game.bankData.id,
+            property_color: property.color,
+            property_id:property.id,
+            income_increment: amount
+          }
+        )
+      if(res.data) {
+        console.log("Property's cumulated mining income updated successfully")
+        console.log(res.data)
+      }
+    },
     // Unused functions (but may be used at some point)
     exportBank: function () {
       this.qrCodeDialog.data = JSON.stringify(
@@ -1493,6 +1557,9 @@ new Vue({
 
     parseQRData: async function (QRData) {
       let data = JSON.parse(QRData)
+
+      console.log(data.type)
+
       switch(data.type) {
         case "property_purchase":
           this.closePropertyDialog()
@@ -1501,6 +1568,7 @@ new Vue({
           this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
           this.game.propertyPurchase.invoice = data.invoice
           this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
+          break
 
         case "property_sale":
           this.closePropertyDialog()
@@ -1509,6 +1577,20 @@ new Vue({
           this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
           this.game.propertyPurchase.invoice = data.invoice
           this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
+          break
+
+        case "network_fee":
+          this.closePropertyDialog()
+          const networkFeeInvoice = decodeInvoice(data.invoice);
+          this.game.showNetworkFeePaymentDialog = true
+          this.game.networkFeeInvoice.property = properties[data.propertyColor][data.propertyId]
+          this.game.networkFeeInvoice.invoice = data.invoice
+          this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
+          break
+
+        default:
+          console.log("Invalid data type")
+          break
       }
 
       /*

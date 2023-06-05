@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -233,6 +233,21 @@ async def update_property_owner(data: UpdatePropertyOwner) -> Property:
             UPDATE monopoly.properties SET property_owner_id = ? WHERE bank_id = ? AND property_color = ? AND property_id = ?
            """,
            (data.new_owner, data.bank_id, data.property_color, data.property_id),
+    )
+
+    property_updated = await get_property(data.bank_id, data.property_color, data.property_id)
+    assert property_updated, "Newly updated property couldn't be retrieved"
+    return property_updated
+
+async def update_property_income(data: UpdatePropertyIncome) -> Property:
+    property_to_update = await get_property(data.bank_id, data.property_color, data.property_id)
+    new_income = property_to_update.property_mining_income + data.income_increment
+
+    await db.execute(
+            """
+            UPDATE monopoly.properties SET property_mining_income = ? WHERE bank_id = ? AND property_color = ? AND property_id = ?
+           """,
+           (new_income, data.bank_id, data.property_color, data.property_id),
     )
 
     property_updated = await get_property(data.bank_id, data.property_color, data.property_id)
