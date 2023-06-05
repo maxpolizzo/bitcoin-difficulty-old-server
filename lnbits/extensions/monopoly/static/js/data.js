@@ -16,6 +16,7 @@ export const newGame = {
   showPropertyInvoiceDialog: false,
   showSaleInvoiceDialog: false,
   saleInvoiceCreated: false,
+  showNetworkFeeInvoice: false,
   fundingStatus: 'pending',
   fundingInvoiceAmount: "0",
   playerInvoiceAmount: "0",
@@ -92,7 +93,10 @@ export const newGame = {
   propertiesCount: {},
   propertyToShow: {},
   propertyPurchase: {},
-  propertySale: {},
+  propertyPurchaseData: null,
+  propertySaleData: null,
+  networkFeeInvoiceData: null,
+  networkFeeInvoice: {},
 }
 
 export const inviteGame = {

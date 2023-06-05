@@ -417,6 +417,7 @@
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
       <div v-if="game.propertyToShow">
+
         <q-card class="q-card--dark row" style="padding: 1em;">
 
         <div class="col-7 col-md-7">
@@ -645,6 +646,22 @@
         </div>
       </div>
 
+      <div v-if="game.showNetworkFeeInvoice">
+        <div class="text-center q-mb-lg">
+          Scan this QR code and pay the attached invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats) in order to pay network fees
+        </div>
+
+        <div class="text-center q-mb-lg">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="game.networkFeeInvoiceData"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </div>
+      </div>
+
       <div v-if="game.upgradeInvoice">
         <div class="text-center q-mb-lg">
           Request payment by showing this invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
@@ -787,6 +804,51 @@
           <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyDialog()">Close</q-btn>
         </div>
       </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showNetworkFeePaymentDialog" @hide="game.showNetworkFeePaymentDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.networkFeeInvoice.invoice">
+        <q-card class="q-card--dark row" style="padding: 1em;">
+
+          <div class="col-7 col-md-7">
+            <img
+              class="image-hover-highlight"
+              :src=game.networkFeeInvoice.property.imgPath
+              alt="property"
+              :style="reactiveStyle.propertyImage"
+            >
+          </div>
+
+          <div class="col-5 col-md-5">
+            <div
+              :style="reactiveStyle.propertyOwnershipLabel"
+            >
+              Pay {% raw %}{{game.networkFeeInvoice.invoiceAmount}}{% endraw %} sats network fee
+            </div>
+
+            <div
+              class="row"
+              :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+            >
+              <div :style="reactiveStyle.propertyButtons.invoiceButton">
+                <q-btn @click="payNetworkFee()" flat color="grey" class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+            </div>
+
+          </div>
+
+        </q-card>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closeNetworkFeePaymentDialog()">Close</q-btn>
+      </div>
+    </q-card>
   </q-dialog>
 
 
