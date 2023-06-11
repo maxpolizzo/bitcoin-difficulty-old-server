@@ -135,3 +135,8 @@ class UpdatePropertyIncome(BaseModel):
     property_color: str
     property_id: int
     income_increment: int
+
+class UpgradeProperty(BaseModel):
+    bank_id: str
+    property_color: str
+    property_id: int

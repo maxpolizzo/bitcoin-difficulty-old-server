@@ -54,7 +54,7 @@ async function fetchFundingInvoicePaid(game, invoiceReason = null) {
 function checkPlayerInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.playerInvoice.paymentChecker)
   game.playerInvoice.paymentChecker = setInterval(async () => {
-    await fetchPlayerInvoicePaid(game)
+    await fetchPlayerInvoicePaid(game, invoiceReason)
   }, 2000)
 }
 
@@ -77,7 +77,8 @@ async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
         'monopoly.game_' + game.bankData.id + '_' + game.player.wallets[0].id + '.playerInvoice',
         JSON.stringify(game.playerInvoice)
       )
-      if(invoiceReason) {
+/*
+      if(invoiceReason) { // DO WE NEED THIS??
         switch(invoiceReason.type) {
           case "network_fee":
           // update property's cumulated mining income
@@ -85,6 +86,7 @@ async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
             console.warn("Unknown invoice reason: " + invoiceReason.type)
         }
       }
+ */
     } else
       await fetchPlayerBalance(game)
   } else {
@@ -1328,8 +1330,14 @@ new Vue({
         ? property.oneKwPrice
         : property.tenKwPrice
       await this.createFundingInvoice();
+      this.game.propertyUpgradeData = JSON.stringify({
+        type: "property_upgrade",
+        propertyColor: property.color,
+        propertyId: property.id,
+        invoice: this.game.fundingInvoice.paymentReq,
+      })
       this.game.showPropertyDialog = false;
-      this.game.upgradeInvoice = true;
+      this.game.upgradeInvoiceCreated = true;
       this.game.showPropertyInvoiceDialog = true;
     },
     createPurchaseInvoice: async function (property) {
@@ -1376,6 +1384,9 @@ new Vue({
     closePropertyPurchaseDialog: function () {
       this.game.showPropertyPurchaseDialog = false;
     },
+    closePropertyUpgradeDialog: function () {
+      this.game.showPropertyUpgradeDialog = false;
+    },
     closeNetworkFeeInvoiceDialog: function () {
       this.game.showNetworkFeeInvoice = false;
     },
@@ -1405,18 +1416,21 @@ new Vue({
       let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.propertyPurchase.invoice);
 
       if(res.data && res.data.payment_hash) {
-        console.log("Property was purchased successfully")
+        console.log("Property purchase was paid successfully")
         this.closePropertyPurchaseDialog()
         // Check if property is already registered in  database
         try  {
           res = await LNbits.api
             .request(
               'GET',
-              'api/v1/property?bank_id=' + this.game.bankData.id
+              'monopoly/api/v1/property?bank_id=' + this.game.bankData.id
               + '&property_color=' + this.game.propertyPurchase.property.color
               + '&property_id=' + this.game.propertyPurchase.property.id,
               this.game.player.wallets[0].inkey,
             )
+
+          console.log(res)
+
           if(res.data) {
             console.log("Property already registered, updating ownership")
             await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.id)
@@ -1468,6 +1482,40 @@ new Vue({
         console.log(res.data)
       }
     },
+    upgradeProperty: async function() {
+      // Pay invoice
+      console.log(this.game.propertyUpgrade.invoice)
+      console.log("Upgrading property...")
+      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.propertyUpgrade.invoice);
+
+      if(res.data && res.data.payment_hash) {
+        console.log("Property upgrade was paid successfully")
+        this.closePropertyUpgradeDialog()
+
+        console.log("Updating property's mining capacity")
+        await this.upgradePropertyMiningCapacity(this.game.propertyUpgrade.property)
+
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    upgradePropertyMiningCapacity: async function(property) {
+      let res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/property/upgrade',
+          this.game.player.wallets[0].inkey,
+          {
+            bank_id: this.game.bankData.id,
+            property_color: property.color,
+            property_id:property.id
+          }
+        )
+      if(res.data) {
+        console.log("Property's mining capacity upgraded successfully")
+        console.log(res.data)
+      }
+    },
     payNetworkFee: async function() {
       // Pay invoice
       console.log(this.game.networkFeeInvoice.invoice)
@@ -1477,25 +1525,9 @@ new Vue({
       if(res.data && res.data.payment_hash) {
         console.log("Network fee was paid successfully")
         this.closeNetworkFeePaymentDialog()
-        // Check if property is already registered in  database
-        try  {
-          res = await LNbits.api
-            .request(
-              'GET',
-              'api/v1/property?bank_id=' + this.game.bankData.id
-              + '&property_color=' + this.game.networkFeeInvoice.property.color
-              + '&property_id=' + this.game.networkFeeInvoice.property.id,
-              this.game.player.wallets[0].inkey,
-            )
-          if(res.data) {
-            console.log("Updating property's cumulated mining income")
-            await this.updatePropertyMiningIncome(this.game.networkFeeInvoice.property, this.game.networkFeeInvoice.invoiceAmount)
-          }
-        } catch(err) {
-          console.log(err)
-          console.log("Error: property not registered")
-          LNbits.utils.notifyApiError(err)
-        }
+
+        console.log("Updating property's cumulated mining income")
+        await this.updatePropertyMiningIncome(this.game.networkFeeInvoice.property, this.game.networkFeeInvoice.invoiceAmount)
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -1568,6 +1600,15 @@ new Vue({
           this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
           this.game.propertyPurchase.invoice = data.invoice
           this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
+          break
+
+        case "property_upgrade":
+          this.closePropertyDialog()
+          const upgradeInvoice = decodeInvoice(data.invoice);
+          this.game.showPropertyUpgradeDialog = true
+          this.game.propertyUpgrade.property = properties[data.propertyColor][data.propertyId]
+          this.game.propertyUpgrade.invoice = data.invoice
+          this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
           break
 
         case "property_sale":
