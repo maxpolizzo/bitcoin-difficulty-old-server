@@ -38,10 +38,11 @@ from .crud import (
     register_property,
     get_property,
     update_property_owner,
-    update_property_income
+    update_property_income,
+    upgrade_property
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -116,6 +117,11 @@ async def api_monopoly_property_register(data: Property):
 @monopoly_ext.put("/api/v1/property/transfer-ownership", status_code=HTTPStatus.CREATED)
 async def api_monopoly_property_transfer_ownership(data: UpdatePropertyOwner):
     property = await update_property_owner(data)
+    return property
+
+@monopoly_ext.put("/api/v1/property/upgrade", status_code=HTTPStatus.CREATED)
+async def api_monopoly_property_upgrade(data: UpgradeProperty):
+    property = await upgrade_property(data)
     return property
 
 @monopoly_ext.put("/api/v1/property/update-income", status_code=HTTPStatus.CREATED)

@@ -662,13 +662,12 @@
         </div>
       </div>
 
-      <div v-if="game.upgradeInvoice">
+      <div v-if="game.upgradeInvoiceCreated">
         <div class="text-center q-mb-lg">
-          Request payment by showing this invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
+          Scan this QR code and pay the attached invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats) in order to upgrade property's mining capacity
         </div>
 
         <div class="text-center q-mb-lg">
-          <a :href="'lightning:' + game.fundingInvoice.paymentReq">
             <q-responsive :ratio="1" class="q-mx-xl">
               <qrcode
                 :value="game.propertyUpgradeData"
@@ -676,7 +675,6 @@
                 class="rounded-borders"
               ></qrcode>
             </q-responsive>
-          </a>
         </div>
       </div>
 
@@ -804,6 +802,51 @@
           <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyDialog()">Close</q-btn>
         </div>
       </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showPropertyUpgradeDialog" @hide="game.showPropertyUpgradeDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.propertyUpgrade.invoice">
+        <q-card class="q-card--dark row" style="padding: 1em;">
+
+          <div class="col-7 col-md-7">
+            <img
+              class="image-hover-highlight"
+              :src=game.propertyUpgrade.property.imgPath
+              alt="property"
+              :style="reactiveStyle.propertyImage"
+            >
+          </div>
+
+          <div class="col-5 col-md-5">
+            <div
+              :style="reactiveStyle.propertyOwnershipLabel"
+            >
+              Upgrade this property's mining capacity for {% raw %}{{game.propertyUpgrade.invoiceAmount}}{% endraw %} sats
+            </div>
+
+            <div
+              class="row"
+              :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+            >
+              <div :style="reactiveStyle.propertyButtons.invoiceButton">
+                <q-btn @click="upgradeProperty()" flat color="grey" class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+            </div>
+
+          </div>
+
+        </q-card>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyDialog()">Close</q-btn>
+      </div>
+    </q-card>
   </q-dialog>
 
   <q-dialog v-model="game.showNetworkFeePaymentDialog" @hide="game.showNetworkFeePaymentDialog = false">

@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -235,6 +235,26 @@ async def update_property_owner(data: UpdatePropertyOwner) -> Property:
            (data.new_owner, data.bank_id, data.property_color, data.property_id),
     )
 
+    property_updated = await get_property(data.bank_id, data.property_color, data.property_id)
+    assert property_updated, "Newly updated property couldn't be retrieved"
+    return property_updated
+
+async def upgrade_property(data: UpgradeProperty) -> Property:
+    property_to_upgrade = await get_property(data.bank_id, data.property_color, data.property_id)
+    new_mining_capacity = 0
+    if (property_to_upgrade.property_mining_capacity < 4):
+        new_mining_capacity = property_to_upgrade.property_mining_capacity + 1
+    elif(property_to_upgrade.property_mining_capacity == 4):
+        new_mining_capacity = 10
+    else:
+        new_mining_capacity = property_to_upgrade.property_mining_capacity
+
+    await db.execute(
+           """
+           UPDATE monopoly.properties SET property_mining_capacity = ? WHERE bank_id = ? AND property_color = ? AND property_id = ?
+          """,
+          (new_mining_capacity, data.bank_id, data.property_color, data.property_id),
+    )
     property_updated = await get_property(data.bank_id, data.property_color, data.property_id)
     assert property_updated, "Newly updated property couldn't be retrieved"
     return property_updated
