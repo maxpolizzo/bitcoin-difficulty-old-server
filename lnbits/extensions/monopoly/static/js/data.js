@@ -4,7 +4,7 @@ export const newGame = {
   started: false,
   created: false,
   imported: false,
-  minFunding: 1000,
+  minFunding: 20000,
   initialFunding: "0",
   initialPlayerBalance: "0",
   showFundingView: false,
