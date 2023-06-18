@@ -100,7 +100,7 @@ async function onGameFunded (game) {
   game.showFundingView = false
   game.fundingStatus = 'success'
   game.initialFunding = game.bankBalance
-  game.initialPlayerBalance = Math.floor(game.bankBalance / 12)
+  game.initialPlayerBalance = 1500 // 1500 sats initiali player balance
   // Register initial funding and initial player balance in database
   const res = await LNbits.api
     .request(
@@ -436,6 +436,7 @@ async function fetchPlayersBalances(game) {
 // Logic to check properties ownership periodically
 async function checkProperties(game) {
   clearInterval(game.propertiesChecker)
+  let updated_game;
   game.propertiesChecker = setInterval(async () => {
     await fetchProperties(game)
   }, 2000)
@@ -467,6 +468,12 @@ async function fetchProperties(game) {
           _property.mining_income = property.property_mining_income
           _property.owner = property.property_owner_id
           _property.position = gameProperties[property.property_owner_id][property.property_color].length
+          // Get property owner's name
+          Object.keys(game.players).forEach((player_id) => {
+            if(player_id === property.property_owner_id) {
+              _property.owner_name = game.players[player_id].player_wallet_name
+            }
+          });
           // Add property to properties owned by property_owner_id
           gameProperties[property.property_owner_id][property.property_color].push(_property)
           // Update properties count for property_owner_id
@@ -570,7 +577,7 @@ new Vue({
           },
           card: (card) => {
             let cardPosition;
-            this.game.properties[game.player.id][card.color].forEach((_card) => {
+            this.game.properties[game.player.wallets[0].id][card.color].forEach((_card) => {
               if(_card.id === card.id) {
                 cardPosition = _card.position;
               }
@@ -644,7 +651,7 @@ new Vue({
           },
           card: (card) => {
             let cardPosition;
-            this.game.properties[game.player.id][card.color].forEach((_card) => {
+            this.game.properties[game.player.wallets[0].id][card.color].forEach((_card) => {
               if(_card.id === card.id) {
                 cardPosition = _card.position;
               }
@@ -776,42 +783,41 @@ new Vue({
 
     // Hack to copy command to pay invoice from local node
     game.payInvoiceCommand = "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Perso/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
-
+/*
     // Hack to display dummy properties
-
-    game.properties[game.player.id] = {};
-    game.properties[game.player.id]["red"] = properties["red"]
-    game.properties[game.player.id]["red"][0].miningCapacity = 4
-    game.properties[game.player.id]["red"][0].miningIncome = 748
-    game.properties[game.player.id]["red"][0].owner = game.player.id
-    game.properties[game.player.id]["red"][0].position = 0
-    game.properties[game.player.id]["red"][1].miningCapacity = 0
-    game.properties[game.player.id]["red"][1].miningIncome = 6
-    game.properties[game.player.id]["red"][1].owner = game.player.id
-    game.properties[game.player.id]["red"][1].position = 1
-    game.properties[game.player.id]["red"][2].miningCapacity = 1
-    game.properties[game.player.id]["red"][2].miningIncome = 52
-    game.properties[game.player.id]["red"][2].owner = game.player.id
-    game.properties[game.player.id]["red"][2].position = 2
-    game.properties[game.player.id]["blue"] = []
-    game.properties[game.player.id]["blue"].push(properties["blue"][1])
-    game.properties[game.player.id]["blue"][0].miningCapacity = 2
-    game.properties[game.player.id]["blue"][0].miningIncome = 124
-    game.properties[game.player.id]["blue"][0].owner = game.player.id
-    game.properties[game.player.id]["blue"][0].position = 0
-    game.properties[game.player.id]["yellow"] = []
-    game.properties[game.player.id]["yellow"].push(properties["yellow"][1])
-    game.properties[game.player.id]["yellow"].push(properties["yellow"][0])
-    game.properties[game.player.id]["yellow"][0].miningCapacity = 0
-    game.properties[game.player.id]["yellow"][0].miningIncome = 0
-    game.properties[game.player.id]["yellow"][0].owner = null
-    game.properties[game.player.id]["yellow"][0].position = 0
-    game.properties[game.player.id]["yellow"][1].miningCapacity = 0
-    game.properties[game.player.id]["yellow"][1].miningIncome = 2
-    game.properties[game.player.id]["yellow"][1].owner = null
-    game.properties[game.player.id]["yellow"][1].position = 1
-    game.propertiesCount[game.player.id] = 6;
-
+    game.properties[game.player.wallets[0].id] = {};
+    game.properties[game.player.wallets[0].id]["66ccff"] = properties["66ccff"]
+    game.properties[game.player.wallets[0].id]["66ccff"][0].miningCapacity = 4
+    game.properties[game.player.wallets[0].id]["66ccff"][0].miningIncome = 748
+    game.properties[game.player.wallets[0].id]["66ccff"][0].owner = game.player.wallets[0].id
+    game.properties[game.player.wallets[0].id]["66ccff"][0].position = 0
+    game.properties[game.player.wallets[0].id]["66ccff"][1].miningCapacity = 0
+    game.properties[game.player.wallets[0].id]["66ccff"][1].miningIncome = 6
+    game.properties[game.player.wallets[0].id]["66ccff"][1].owner = game.player.wallets[0].id
+    game.properties[game.player.wallets[0].id]["66ccff"][1].position = 1
+    game.properties[game.player.wallets[0].id]["66ccff"][2].miningCapacity = 1
+    game.properties[game.player.wallets[0].id]["66ccff"][2].miningIncome = 52
+    game.properties[game.player.wallets[0].id]["66ccff"][2].owner = game.player.wallets[0].id
+    game.properties[game.player.wallets[0].id]["66ccff"][2].position = 2
+    game.properties[game.player.wallets[0].id]["800002"] = []
+    game.properties[game.player.wallets[0].id]["800002"].push(properties["800002"][1])
+    game.properties[game.player.wallets[0].id]["800002"][0].miningCapacity = 2
+    game.properties[game.player.wallets[0].id]["800002"][0].miningIncome = 124
+    game.properties[game.player.wallets[0].id]["800002"][0].owner = game.player.wallets[0].id
+    game.properties[game.player.wallets[0].id]["800002"][0].position = 0
+    game.properties[game.player.wallets[0].id]["fd8008"] = []
+    game.properties[game.player.wallets[0].id]["fd8008"].push(properties["fd8008"][1])
+    game.properties[game.player.wallets[0].id]["fd8008"].push(properties["fd8008"][0])
+    game.properties[game.player.wallets[0].id]["fd8008"][0].miningCapacity = 0
+    game.properties[game.player.wallets[0].id]["fd8008"][0].miningIncome = 0
+    game.properties[game.player.wallets[0].id]["fd8008"][0].owner = null
+    game.properties[game.player.wallets[0].id]["fd8008"][0].position = 0
+    game.properties[game.player.wallets[0].id]["fd8008"][1].miningCapacity = 0
+    game.properties[game.player.wallets[0].id]["fd8008"][1].miningIncome = 2
+    game.properties[game.player.wallets[0].id]["fd8008"][1].owner = null
+    game.properties[game.player.wallets[0].id]["fd8008"][1].position = 1
+    game.propertiesCount[game.player.wallets[0].id] = 6;
+*/
     return {
       game: game,
       camera: {
@@ -852,41 +858,41 @@ new Vue({
       this.isDragging = false;
       // Update cards positions in the stack
       let draggedElement;
-      this.game.properties[this.game.player.id][color].forEach((card) => {
+      this.game.properties[this.game.player.wallets[0].id][color].forEach((card) => {
         if(card.position === oldIndex) {
           draggedElement = card;
         }
       })
       // Dragged element position becomes newIndex
-      for(let i = 0; i < this.game.properties[this.game.player.id][color].length; i++) {
-        if(this.game.properties[this.game.player.id][color][i].id === draggedElement.id) {
-          this.game.properties[this.game.player.id][color][i].position = newIndex;
-          this.draggedProperty = this.game.properties[this.game.player.id][color][i];
+      for(let i = 0; i < this.game.properties[this.game.player.wallets[0].id][color].length; i++) {
+        if(this.game.properties[this.game.player.wallets[0].id][color][i].id === draggedElement.id) {
+          this.game.properties[this.game.player.wallets[0].id][color][i].position = newIndex;
+          this.draggedProperty = this.game.properties[this.game.player.wallets[0].id][color][i];
         }
       }
       // Other cards positions are moved by 1 up or down
       if(newIndex > oldIndex) {
         // Cards between oldIndex and newIndex have their position reduced by
         // one, including related element
-        for(let i = 0; i < this.game.properties[this.game.player.id][color].length; i++) {
+        for(let i = 0; i < this.game.properties[this.game.player.wallets[0].id][color].length; i++) {
           if(
-            this.game.properties[this.game.player.id][color][i].position <= newIndex
-            && this.game.properties[this.game.player.id][color][i].position > oldIndex
-            && this.game.properties[this.game.player.id][color][i].id !== draggedElement.id
+            this.game.properties[this.game.player.wallets[0].id][color][i].position <= newIndex
+            && this.game.properties[this.game.player.wallets[0].id][color][i].position > oldIndex
+            && this.game.properties[this.game.player.wallets[0].id][color][i].id !== draggedElement.id
           ) {
-            this.game.properties[this.game.player.id][color][i].position -= 1;
+            this.game.properties[this.game.player.wallets[0].id][color][i].position -= 1;
           }
         }
       } else {
         // Cards between newIndex and oldIndex have their position increased by
         // one, including related element
-        for(let i = 0; i < this.game.properties[this.game.player.id][color].length; i++) {
+        for(let i = 0; i < this.game.properties[this.game.player.wallets[0].id][color].length; i++) {
           if(
-            this.game.properties[this.game.player.id][color][i].position >= newIndex
-            && this.game.properties[this.game.player.id][color][i].position < oldIndex
-            && this.game.properties[this.game.player.id][color][i].id !== draggedElement.id
+            this.game.properties[this.game.player.wallets[0].id][color][i].position >= newIndex
+            && this.game.properties[this.game.player.wallets[0].id][color][i].position < oldIndex
+            && this.game.properties[this.game.player.wallets[0].id][color][i].id !== draggedElement.id
           ) {
-            this.game.properties[this.game.player.id][color][i].position += 1;
+            this.game.properties[this.game.player.wallets[0].id][color][i].position += 1;
           }
         }
       }
@@ -1302,8 +1308,9 @@ new Vue({
       this.game.propertyToShow = property;
     },
     createNetworkFeeInvoice: async function (property) {
+      this.game.showSaleInvoiceDialog = false;
       this.erasePropertyInvoices()
-      this.game.playerInvoiceAmount = property.networkFee[property.miningCapacity]
+      this.game.playerInvoiceAmount = property.networkFee[property.mining_capacity]
       await this.createPlayerInvoice({
         type: "network_fee",
         propertyId: property.id
@@ -1319,6 +1326,7 @@ new Vue({
       this.game.showNetworkFeeInvoice = true;
     },
     openSaleInvoiceDialog: async function (property) {
+      this.game.showNetworkFeeInvoice = false;
       this.erasePropertyInvoices()
       this.game.showPropertyDialog = false;
       this.game.showPropertyInvoiceDialog = true;
@@ -1408,6 +1416,8 @@ new Vue({
       this.game.upgradeInvoice = false;
       this.game.purchaseInvoiceCreated = false;
       this.game.offerVoucher = false;
+      this.game.upgradeInvoiceCreated = false;
+      this.game.propertyUpgradeData = null;
     },
     purchaseProperty: async function() {
       // Pay invoice
@@ -1423,7 +1433,7 @@ new Vue({
           res = await LNbits.api
             .request(
               'GET',
-              'monopoly/api/v1/property?bank_id=' + this.game.bankData.id
+              '/monopoly/api/v1/property?bank_id=' + this.game.bankData.id
               + '&property_color=' + this.game.propertyPurchase.property.color
               + '&property_id=' + this.game.propertyPurchase.property.id,
               this.game.player.wallets[0].inkey,
@@ -1433,12 +1443,15 @@ new Vue({
 
           if(res.data) {
             console.log("Property already registered, updating ownership")
-            await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.id)
+            await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
+          } else  {
+            console.log("Property not registered, registering")
+            await this.registerProperty(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
           }
         } catch(err) {
             console.log(err)
-          console.log("Property not registered, registering")
-          await this.registerProperty(this.game.propertyPurchase.property, this.game.player.id)
+            console.log("Property not registered, registering")
+            await this.registerProperty(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
         }
       } else {
         LNbits.utils.notifyApiError(res.error)
@@ -1589,10 +1602,15 @@ new Vue({
 
     parseQRData: async function (QRData) {
       let data = JSON.parse(QRData)
-
+      console.log(data)
       console.log(data.type)
 
       switch(data.type) {
+        case "property_card":
+          this.closePropertyDialog()
+          this.showPropertyDetails(properties[data.color][data["id'"]]) // TO DO: fix QR codes data (currently has key id' instead of id)
+          break
+
         case "property_purchase":
           this.closePropertyDialog()
           const purchaseInvoice = decodeInvoice(data.invoice);
