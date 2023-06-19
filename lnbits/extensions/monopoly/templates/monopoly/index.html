@@ -174,13 +174,13 @@
                   @start="onStartDrag()"
                   @end="onDragged($event, colorGroup)"
                   tag="div"
-                  :style="reactiveStyle.cardsStack"
+                  :style="reactiveStyles.cardsStack"
                 >
                   <li
                     v-for="card in game.properties[game.player.wallets[0].id][colorGroup]"
                     :id="card.id"
                     class="my-box cursor-pointer q-hoverable row col-12 col-md-12"
-                    :style="reactiveStyle.card(card)"
+                    :style="reactiveStyles.card(card)"
                     @click="showPropertyDetails(card)"
                   >
                     <img
@@ -425,38 +425,38 @@
             class="image-hover-highlight"
             :src=game.propertyToShow.imgPath
             alt="property"
-            :style="reactiveStyle.propertyImage"
+            :style="reactiveStyles.propertyImage"
           >
         </div>
 
         <div class="col-5 col-md-5">
           <div
             v-if="game.propertyToShow.owner && game.propertyToShow.owner == game.player.wallets[0].id"
-            :style="reactiveStyle.propertyOwnershipLabel"
+            :style="reactiveStyles.propertyOwnershipLabel"
           >
             You own this property
           </div>
           <div
             v-else-if="game.propertyToShow.owner && game.propertyToShow.owner != game.player.wallets[0].id"
-            :style="reactiveStyle.propertyOwnershipLabel"
+            :style="reactiveStyles.propertyOwnershipLabel"
           >
             {% raw %}{{game.propertyToShow.owner_name}}{% endraw %} owns this property
           </div>
           <div
             v-else
-            :style="reactiveStyle.propertyOwnershipLabel"
+            :style="reactiveStyles.propertyOwnershipLabel"
           >
             This property is for sale
           </div>
 
           <div
-            :style="reactiveStyle.propertyMiningCapacityLabel"
+            :style="reactiveStyles.propertyMiningCapacityLabel"
           >
             Mining capacity: {% raw %}{{game.propertyToShow.mining_capacity}}{% endraw %} kW
           </div>
 
           <div
-            :style="reactiveStyle.propertyMiningIncomeLabel"
+            :style="reactiveStyles.propertyMiningIncomeLabel"
           >
             Cumulated mining income: {% raw %}{{game.propertyToShow.mining_income}}{% endraw %} sats
           </div>
@@ -464,14 +464,14 @@
           <div
             v-if="game.propertyToShow.owner && game.propertyToShow.owner == game.player.wallets[0].id"
             class="row"
-            :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
-            <div :style="reactiveStyle.propertyButtons.invoiceButton">
+            <div :style="reactiveStyles.propertyButtons.invoiceButton">
               <q-btn @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
                 Invoice fee
               </q-btn>
             </div>
-            <div :style="reactiveStyle.propertyButtons.upgradeButton">
+            <div :style="reactiveStyles.propertyButtons.upgradeButton">
               <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
                 Upgrade miners
               </q-btn>
@@ -482,9 +482,9 @@
           <div
             v-else-if="game.propertyToShow.owner && game.propertyToShow.owner != game.player.wallets[0].id"
             class="row"
-            :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
-            <div :style="reactiveStyle.propertyButtons.offerButton">
+            <div :style="reactiveStyles.propertyButtons.offerButton">
               <q-btn @click="createOfferVoucher(game.propertyToShow)" flat color="grey" class="q-ml-auto">
                 Make offer
               </q-btn>
@@ -494,9 +494,9 @@
           <div
             v-else
             class="row"
-            :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
-            <div :style="reactiveStyle.propertyButtons.buyButton">
+            <div :style="reactiveStyles.propertyButtons.buyButton">
               <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
                 Buy property
               </q-btn>
@@ -512,14 +512,14 @@
       <div
         v-if="game.propertyToShow.owner && game.propertyToShow.owner == game.player.wallets[0].id"
          class="row"
-         :style="reactiveStyle.propertyButtons.div"
+         :style="reactiveStyles.propertyButtons.div"
       >
-        <div :style="reactiveStyle.propertyButtons.invoiceButton">
+        <div :style="reactiveStyles.propertyButtons.invoiceButton">
           <q-btn @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Invoice network fee
           </q-btn>
         </div>
-        <div :style="reactiveStyle.propertyButtons.upgradeButton">
+        <div :style="reactiveStyles.propertyButtons.upgradeButton">
           <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
             Upgrade mining capacity
           </q-btn>
@@ -529,9 +529,9 @@
       <div
         v-if="game.propertyToShow.owner && game.propertyToShow.owner == game.player.wallets[0].id"
         class="row"
-        :style="reactiveStyle.propertyButtons.bottomButtonsGroup"
+        :style="reactiveStyles.propertyButtons.bottomButtonsGroup"
       >
-        <div :style="reactiveStyle.propertyButtons.sellButton">
+        <div :style="reactiveStyles.propertyButtons.sellButton">
           <q-btn @click="openSaleInvoiceDialog(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Sell property
           </q-btn>
@@ -542,9 +542,9 @@
       <div
         v-else-if="game.propertyToShow.owner && game.propertyToShow.owner != game.player.wallets[0].id"
         class="row"
-        :style="reactiveStyle.propertyButtons.div"
+        :style="reactiveStyles.propertyButtons.div"
       >
-        <div :style="reactiveStyle.propertyButtons.offerButton">
+        <div :style="reactiveStyles.propertyButtons.offerButton">
           <q-btn @click="createOfferVoucher(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Make offer
           </q-btn>
@@ -553,11 +553,11 @@
 
       <div
         v-else class="row"
-        :style="reactiveStyle.propertyButtons.div"
+        :style="reactiveStyles.propertyButtons.div"
       >
         <div
           class="col-12 col-md-12"
-          :style="reactiveStyle.propertyButtons.buyButton"
+          :style="reactiveStyles.propertyButtons.buyButton"
         >
           <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
             Buy property
@@ -569,12 +569,12 @@
       <div
         v-if="game.created"
         class="row"
-        :style="reactiveStyle.propertyButtonsForGameCreator.div"
+        :style="reactiveStyles.propertyButtonsForGameCreator.div"
       >
         <div
           v-if="!game.propertyToShow.owner"
           class="col-12 col-md-12"
-          :style="reactiveStyle.propertyButtonsForGameCreator.invoicePurchaseButton"
+          :style="reactiveStyles.propertyButtonsForGameCreator.invoicePurchaseButton"
         >
           <q-btn @click="createPurchaseInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Invoice property purchase
@@ -583,7 +583,7 @@
         <div
           v-else
           class="col-12 col-md-12"
-          :style="reactiveStyle.propertyButtonsForGameCreator.invoiceUpgradeButton"
+          :style="reactiveStyles.propertyButtonsForGameCreator.invoiceUpgradeButton"
         >
           <q-btn @click="createUpgradeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Invoice mining capacity upgrade
@@ -596,7 +596,7 @@
           v-close-popup flat color="grey"
           class="q-ml-auto"
           @click="closePropertyDialog()"
-          :style="reactiveStyle.propertyCloseButton"
+          :style="reactiveStyles.propertyCloseButton"
         >
           Close
         </q-btn>
@@ -771,22 +771,22 @@
                 class="image-hover-highlight"
                 :src=game.propertyPurchase.property.imgPath
                 alt="property"
-                :style="reactiveStyle.propertyImage"
+                :style="reactiveStyles.propertyImage"
               >
             </div>
 
             <div class="col-5 col-md-5">
               <div
-                :style="reactiveStyle.propertyOwnershipLabel"
+                :style="reactiveStyles.propertyOwnershipLabel"
               >
                 Buy this property for {% raw %}{{game.propertyPurchase.invoiceAmount}}{% endraw %} sats
               </div>
 
               <div
                 class="row"
-                :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+                :style="reactiveStyles.propertyButtons.cardButtonsGroup"
               >
-                <div :style="reactiveStyle.propertyButtons.invoiceButton">
+                <div :style="reactiveStyles.propertyButtons.invoiceButton">
                   <q-btn @click="purchaseProperty()" flat color="grey" class="q-ml-auto">
                     Pay invoice
                   </q-btn>
@@ -816,22 +816,22 @@
               class="image-hover-highlight"
               :src=game.propertyUpgrade.property.imgPath
               alt="property"
-              :style="reactiveStyle.propertyImage"
+              :style="reactiveStyles.propertyImage"
             >
           </div>
 
           <div class="col-5 col-md-5">
             <div
-              :style="reactiveStyle.propertyOwnershipLabel"
+              :style="reactiveStyles.propertyOwnershipLabel"
             >
               Upgrade this property's mining capacity for {% raw %}{{game.propertyUpgrade.invoiceAmount}}{% endraw %} sats
             </div>
 
             <div
               class="row"
-              :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+              :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
-              <div :style="reactiveStyle.propertyButtons.invoiceButton">
+              <div :style="reactiveStyles.propertyButtons.invoiceButton">
                 <q-btn @click="upgradeProperty()" flat color="grey" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
@@ -861,22 +861,22 @@
               class="image-hover-highlight"
               :src=game.networkFeeInvoice.property.imgPath
               alt="property"
-              :style="reactiveStyle.propertyImage"
+              :style="reactiveStyles.propertyImage"
             >
           </div>
 
           <div class="col-5 col-md-5">
             <div
-              :style="reactiveStyle.propertyOwnershipLabel"
+              :style="reactiveStyles.propertyOwnershipLabel"
             >
               Pay {% raw %}{{game.networkFeeInvoice.invoiceAmount}}{% endraw %} sats network fee
             </div>
 
             <div
               class="row"
-              :style="reactiveStyle.propertyButtons.cardButtonsGroup"
+              :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
-              <div :style="reactiveStyle.propertyButtons.invoiceButton">
+              <div :style="reactiveStyles.propertyButtons.invoiceButton">
                 <q-btn @click="payNetworkFee()" flat color="grey" class="q-ml-auto">
                   Pay invoice
                 </q-btn>

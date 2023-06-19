@@ -1,5 +1,5 @@
-import { inviteGame } from './data.js'
-import { claimLNURLVoucher, checkForPayment } from './utils.js'
+import { inviteGame } from './data/data.js'
+import { claimLNURLVoucher, checkForPayment } from './helpers/utils.js'
 
 // Logic to enable the Monopoly extension
 async function enableMonopolyExtension(userId) {
