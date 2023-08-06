@@ -39,10 +39,14 @@ from .crud import (
     get_property,
     update_property_owner,
     update_property_income,
-    upgrade_property
+    upgrade_property,
+    initialize_cards_indexes,
+    update_next_card_index,
+    get_next_chance_card_index,
+    get_next_community_chest_card_index
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -129,6 +133,15 @@ async def api_monopoly_property_update_income(data: UpdatePropertyIncome):
     property = await update_property_income(data)
     return property
 
+@monopoly_ext.post("/api/v1/cards/init_cards_indexes", status_code=HTTPStatus.CREATED)
+async def api_monopoly_init_cards_indexes(data: InitCardsIndex):
+    await initialize_cards_indexes(data)
+
+@monopoly_ext.put("/api/v1/cards/update_next_card_index", status_code=HTTPStatus.CREATED)
+async def api_monopoly_update_next_card_index(data: UpdateCardIndex):
+    updated_next_card_index = await update_next_card_index(data)
+    return updated_next_card_index
+
 # Getters
 @monopoly_ext.get("/api/v1/games", status_code=HTTPStatus.OK)
 async def api_monopoly_games(bank_id: str):
@@ -169,6 +182,14 @@ async def api_monopoly_properties(bank_id: str, property_color: str, property_id
 @monopoly_ext.get("/api/v1/properties", status_code=HTTPStatus.OK)
 async def api_monopoly_properties(bank_id: str):
     return [property for property in await get_properties(bank_id)]
+
+@monopoly_ext.get("/api/v1/next_chance_card_index", status_code=HTTPStatus.OK)
+async def api_monopoly_next_chance_card_index(bank_id: str):
+    return await get_next_chance_card_index(bank_id)
+
+@monopoly_ext.get("/api/v1/next_community_chest_card_index", status_code=HTTPStatus.OK)
+async def api_monopoly_next_community_chest_card_index(bank_id: str):
+    return await get_next_community_chest_card_index(bank_id)
 
 @monopoly_ext.get("/api/v1/invite", status_code=HTTPStatus.OK)
 async def api_monopoly_players_invite(

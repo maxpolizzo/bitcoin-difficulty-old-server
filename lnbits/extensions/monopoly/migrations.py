@@ -55,3 +55,17 @@ async def m001_initial(db):
       );
     """
     )
+
+    """
+    Initial chance and community chest cards table.
+    """
+    await db.execute(
+      f"""
+      CREATE TABLE monopoly.cards (
+          bank_id TEXT NOT NULL,
+          card_type TEXT NOT NULL,
+          next_index INTEGER NOT NULL,
+          time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    """
+    )

@@ -1,4 +1,5 @@
 import { properties } from './data/properties.js'
+import { chance_cards, community_chest_cards } from './data/cards.js'
 import { newGame, playerNames } from './data/data.js'
 import { reactiveStyles } from '../css/styles.js'
 import { decodeInvoice } from './helpers/utils.js'
@@ -88,6 +89,8 @@ new Vue({
       await this.createBankAndPlayerWallet();
       // Create a static LNURL pay link to be used for funding bank
       await this.createBankPayLNURL();
+      // Initialize Chance and Community Chest cards indexes
+      await this.initializeCards()
       // Start checking user balance
       await fetchPlayerBalance(this.game)
       this.checkPlayerBalance()
@@ -277,6 +280,21 @@ new Vue({
         }
       } else {
         LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    initializeCards: async function () {
+      // Initialize chance and community chest cards indexes
+      const res = await LNbits.api
+        .request(
+          'POST',
+          '/monopoly/api/v1/cards/init_cards_indexes',
+          user.wallets[0].inkey,
+          {
+            bank_id: this.game.bankData.id
+          },
+        )
+      if(res.status == 201) {
+        console.log("Monopoly: Chance and Community Chest cards indexes initialized successfully ")
       }
     },
     // Logic to format an invite link to invite other players to the game
@@ -740,6 +758,66 @@ new Vue({
         console.log(res.data)
       }
     },
+    showChanceCard: async function() {
+      let res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/next_chance_card_index?bank_id=' + this.game.bankData.id,
+          this.game.player.wallets[0].inkey,
+        )
+      if(res.data) {
+        let chanceCard = res.data
+        console.log("Showing Chance card at index " + chanceCard.next_index.toString())
+        console.log(chance_cards[chanceCard.next_index.toString()].imgPath)
+        this.game.showChanceCard = true;
+        this.game.chanceCardToShow = chance_cards[chanceCard.next_index.toString()];
+        // Update next Chance card index
+        res = await LNbits.api
+          .request(
+            'PUT',
+            '/monopoly/api/v1/cards/update_next_card_index',
+            this.game.player.wallets[0].inkey,
+            {
+              bank_id: this.game.bankData.id,
+              card_type: "chance"
+            }
+          )
+        if(res.data) {
+          console.log("Next Chance card index updated successfully")
+          console.log(res.data)
+        }
+      }
+    },
+    showCommunityChestCard: async function() {
+      let res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/next_community_chest_card_index?bank_id=' + this.game.bankData.id,
+          this.game.player.wallets[0].inkey,
+        )
+      if(res.data) {
+        let communityChestCard = res.data
+        console.log("Showing Community Chest card at index " + communityChestCard.next_index.toString())
+        console.log(chance_cards[communityChestCard.next_index.toString()].imgPath)
+        this.game.showCommunityChestCard = true;
+        this.game.communityChestCardToShow = community_chest_cards[communityChestCard.next_index.toString()] ;;
+        // Update next Community Chest card index
+        res = await LNbits.api
+          .request(
+            'PUT',
+            '/monopoly/api/v1/cards/update_next_card_index',
+            this.game.player.wallets[0].inkey,
+            {
+              bank_id: this.game.bankData.id,
+              card_type: "community_chest"
+            }
+          )
+        if(res.data) {
+          console.log("Next Community Chest card index updated successfully")
+          console.log(res.data)
+        }
+      }
+    },
     // Unused functions (but may be used at some point)
     exportBank: function () {
       this.qrCodeDialog.data = JSON.stringify(
@@ -784,6 +862,16 @@ new Vue({
         case "property_card":
           this.closePropertyDialog()
           this.showPropertyDetails(properties[data.color][data["id'"]]) // TO DO: fix QR codes data (currently has key id' instead of id)
+          break
+
+        case "chance_card":
+          this.closePropertyDialog()
+          this.showChanceCard()
+          break
+
+        case "community_chest_card":
+          this.closePropertyDialog()
+          this.showCommunityChestCard()
           break
 
         case "property_purchase":

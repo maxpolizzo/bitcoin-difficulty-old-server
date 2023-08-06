@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, BankBalance, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -274,6 +274,58 @@ async def update_property_income(data: UpdatePropertyIncome) -> Property:
     assert property_updated, "Newly updated property couldn't be retrieved"
     return property_updated
 
+async def initialize_cards_indexes(data: InitCardsIndex):
+    await db.execute(
+        """
+        INSERT INTO monopoly.cards (bank_id, card_type, next_index)
+        VALUES (?, ?, ?)
+        """,
+        (data.bank_id, "chance", 0),
+    )
+    next_chance_card_index = await get_next_chance_card_index(data.bank_id)
+    assert next_chance_card_index, "Next chance card index couldn't be retrieved"
+
+    await db.execute(
+        """
+        INSERT INTO monopoly.cards (bank_id, card_type, next_index)
+        VALUES (?, ?, ?)
+        """,
+        (data.bank_id, "community_chest", 0),
+    )
+    next_community_chest_card_index = await get_next_community_chest_card_index(data.bank_id)
+    assert next_community_chest_card_index, "Next community chest card index couldn't be retrieved"
+
+async def update_next_card_index(data: UpdateCardIndex) -> int:
+    next_card_index = 0
+    if (data.card_type == "chance"):
+        card_index = await get_next_chance_card_index(data.bank_id)
+    elif (data.card_type == "community_chest"):
+        card_index = await get_next_community_chest_card_index(data.bank_id)
+
+    assert card_index, "Card index couldn't be retrieved"
+
+    next_card_index = card_index.next_index + 1
+
+    await db.execute(
+            """
+            UPDATE monopoly.cards SET next_index = ? WHERE bank_id= ? AND card_type = ?
+           """,
+           (next_card_index, data.bank_id, data.card_type),
+    )
+
+    updated_next_card_index = 0
+    if (data.card_type == "chance"):
+        card_index = await get_next_chance_card_index(data.bank_id)
+    elif (data.card_type == "community_chest"):
+        card_index = await get_next_community_chest_card_index(data.bank_id)
+
+    assert card_index, "Card index couldn't be retrieved after update"
+
+    updated_next_card_index = card_index.next_index
+
+    assert updated_next_card_index, "Updated next card index couldn't be retrieved"
+    return updated_next_card_index
+
 # Getters
 async def get_game(bank_id: str) -> Game:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE bank_id = ?", (bank_id,))
@@ -322,3 +374,11 @@ async def get_properties(bank_id: str) -> Property:
 async def get_property(bank_id: str, property_color: str, property_id: int) -> Property:
     row = await db.fetchone("SELECT * FROM monopoly.properties WHERE bank_id = ? AND property_color = ? AND property_id = ?", (bank_id, property_color, property_id))
     return Property(**row) if row else None
+
+async def get_next_chance_card_index(bank_id: str) -> CardIndex:
+    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE bank_id = ? AND card_type = ?", (bank_id, "chance"))
+    return CardIndex(**row) if row else None
+
+async def get_next_community_chest_card_index(bank_id: str) -> CardIndex:
+    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE bank_id = ? AND card_type = ?", (bank_id, "community_chest"))
+    return CardIndex(**row) if row else None

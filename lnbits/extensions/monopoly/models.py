@@ -140,3 +140,15 @@ class UpgradeProperty(BaseModel):
     bank_id: str
     property_color: str
     property_id: int
+
+class CardIndex(BaseModel):
+    bank_id: str
+    card_type: str
+    next_index: int
+
+class InitCardsIndex(BaseModel):
+    bank_id: str
+
+class UpdateCardIndex(BaseModel):
+    bank_id: str
+    card_type: str
