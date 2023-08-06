@@ -19,6 +19,18 @@ export function reactiveStyles(game) {
           marginTop: (3 * (parseInt(cardPosition) + 1)).toString() + `em`
         })
       },
+      chanceCardImage: {
+        height: `auto`,
+        maxWidth: `65%`,
+        marginTop: `1em`,
+        marginLeft: `2em`
+      },
+      communityChestCardImage: {
+        height: `auto`,
+        maxWidth: `65%`,
+        marginTop: `1em`,
+        marginLeft: `2em`
+      },
       propertyImage: {
         height: `auto`,
         maxWidth: `65%`,
@@ -92,6 +104,18 @@ export function reactiveStyles(game) {
           zIndex: parseInt(cardPosition) + 2,
           marginTop: (1.6 * (parseInt(cardPosition) + 1)).toString() + `em`
         })
+      },
+      chanceCardImage: {
+        height: `auto`,
+        maxWidth: `85%`,
+        marginTop: `0.5em`,
+        marginLeft: `0em`
+      },
+      communityChestCardImage: {
+        height: `auto`,
+        maxWidth: `85%`,
+        marginTop: `0.5em`,
+        marginLeft: `0em`
       },
       propertyImage: {
         height: `auto`,

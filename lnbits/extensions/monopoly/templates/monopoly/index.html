@@ -411,6 +411,55 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="game.showChanceCard" @hide="game.showChanceCard = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.chanceCardToShow">
+
+        <q-card class="q-card--dark row" style="padding: 1em;">
+
+          <div class="col-7 col-md-7">
+            <img
+              class="image-hover-highlight"
+              :src=game.chanceCardToShow.imgPath
+              alt="chance"
+              :style="reactiveStyles.chanceCardImage"
+            >
+          </div>
+
+        </q-card>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showCommunityChestCard" @hide="game.showCommunityChestCard = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.communityChestCardToShow">
+
+        <q-card class="q-card--dark row" style="padding: 1em;">
+
+          <div class="col-7 col-md-7">
+            <img
+              class="image-hover-highlight"
+              :src=game.communityChestCardToShow.imgPath
+              alt="community_chest"
+              :style="reactiveStyles.communityChestCardImage"
+            >
+          </div>
+
+        </q-card>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
 
   <q-dialog v-model="game.showPropertyDialog" @hide="game.showPropertyDialog = false">
 
