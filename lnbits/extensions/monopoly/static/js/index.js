@@ -1,11 +1,29 @@
 import { properties } from './data/properties.js'
-import { chance_cards, community_chest_cards } from './data/cards.js'
-import { newGame, playerNames } from './data/data.js'
+import {
+  chance_cards,
+  community_chest_cards
+} from './data/cards.js'
+import {
+  newGame,
+  playerNames
+} from './data/data.js'
 import { reactiveStyles } from '../css/styles.js'
-import { decodeInvoice } from './helpers/utils.js'
-import { onGameFunded, fetchPlayers } from './calls/database.js'
-import { loadGameData, initGameData } from './helpers/init.js'
-import { fetchPlayerBalance, deleteGameVoucher } from './calls/api.js'
+import {
+  decodeInvoice,
+  withdrawFromLNURL
+} from './helpers/utils.js'
+import {
+  onGameFunded,
+  fetchPlayers
+} from './calls/database.js'
+import {
+  loadGameData,
+  initGameData
+} from './helpers/init.js'
+import {
+  fetchPlayerBalance,
+  deleteInviteVoucher
+} from './calls/api.js'
 import {
   dragOptions,
   onMove,
@@ -13,13 +31,15 @@ import {
 } from './helpers/animations.js'
 import {
   checkPlayerBalance,
-  checkBankBalance,
+  checkMarketLiquidity,
   checkPlayers,
   checkPlayersBalances,
   checkFundingInvoicePaid,
-  checkPlayerInvoicePaid
+  checkPaymentsToFreeMarket,
+  checkPaymentsToPlayer,
+  checkPlayerInvoicePaid,
 } from './calls/intervals.js'
-
+import { decodeLNURL } from './helpers/utils.js'
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
@@ -36,6 +56,7 @@ new Vue({
       camera: {
         data: null,
         show: false,
+        track: null,
         camera: 'auto'
       },
       qrCodeDialog: {
@@ -71,6 +92,68 @@ new Vue({
     }
   },
   methods: {
+    // Methods for QR code scanning
+    onInitCamera: async function(promise) {
+      // Get video device (see: https://oberhofer.co/mediastreamtrack-and-its-capabilities/)
+      const constraints = {
+        video:  {
+          facingMode: 'environment', // back camera on smartphone
+        }
+      }
+      navigator.mediaDevices.getUserMedia(constraints)
+      .then((stream) => {
+        const video = document.querySelector('video');
+        video.srcObject = stream;
+        this.camera.track = stream.getVideoTracks()[0];
+        // Get device capabilities
+        video.addEventListener('loadedmetadata', (e) => {
+          window.setTimeout(() => {
+            // console.log(this.camera.track.getCapabilities());
+            const capabilities = this.camera.track.getCapabilities();
+            if(capabilities.zoom) {
+              this.camera.track.applyConstraints({
+                advanced: [{zoom: capabilities.zoom.min}]
+              })
+            }
+            if(capabilities.aspectRatio) {
+              this.camera.track.applyConstraints({
+                advanced: [{aspectRatio: 1}]
+              })
+            }
+            /*
+            if(capabilities.focusMode) {
+              this.camera.track.applyConstraints({
+                advanced: [{focusMode: "manual"}]
+              })
+            }
+            */
+            if(capabilities.focusDistance) {
+              this.camera.track.applyConstraints({
+                advanced: [{focusDistance: capabilities.focusDistance.min}]
+              })
+            }
+            /*
+            if(capabilities.torch) {
+              this.camera.track.applyConstraints({
+                advanced: [{torch: true}]
+              })
+            }
+            */
+          }, 500);
+        })
+      })
+      .catch((err) => {
+        console.error(err)
+      });
+    },
+    closeCamera: function() {
+      this.camera.show = false;
+      this.camera.track.stop();
+      this.game.gameCreatorPaymentToMarket = false;
+    },
+    onError: function(err) {
+      console.error(err)
+    },
     // Method for draggable cards
     onMove: function({ relatedContext, draggedContext }) {
       return onMove({ relatedContext, draggedContext })
@@ -85,40 +168,44 @@ new Vue({
     },
     // Logic to create a new game and a dedicated wallet for game creator (called from index.html)
     createGame: async function () {
-      // Create bank wallet and dedicated player wallet for game creator
+      // Create free market wallet and dedicated player wallet for game creator
       await this.createBankAndPlayerWallet();
-      // Create a static LNURL pay link to be used for funding bank
+      // Check for payments to free market wallet
+      this.checkPaymentsToFreeMarket();
+      // Check for payments to player wallet
+      this.checkPaymentsToPlayer();
+      // Create a static LNURL pay link to be used for funding the free market
       await this.createBankPayLNURL();
       // Initialize Chance and Community Chest cards indexes
       await this.initializeCards()
       // Start checking user balance
       await fetchPlayerBalance(this.game)
       this.checkPlayerBalance()
-      // Start checking bank balance
-      this.checkBankBalance()
+      // Start checking free market balance
+      this.checkMarketLiquidity()
       // Start checking players
       await fetchPlayers(this.game)
       this.checkPlayers()
       // Start checking players balances
       this.checkPlayersBalances()
-      // Display the view for initial bank funding
+      // Display the view for initial free market funding
       this.game.showFundingView = true;
       // Register game data in local storage
       localStorage.setItem(
-        'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.showFundingView',
+        'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.showFundingView',
         this.game.showFundingView
       )
       this.game.playersCount = 1;
       localStorage.setItem(
-        'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.playersCount',
+        'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.playersCount',
         this.game.playersCount
       )
-      // Refresh page to display newly created player wallet
-      window.location.reload();
+      // Refresh page to display newly created player wallet (not necessary?)
+      // window.location.reload();
     },
-    // Logic to create bank wallet and dedicated player wallet for game creator
+    // Logic to create free market wallet and dedicated player wallet for game creator
     createBankAndPlayerWallet: async function () {
-      // Create bank wallet
+      // Create free market wallet
       let res = await LNbits.api
         .request(
           'POST',
@@ -126,15 +213,15 @@ new Vue({
           this.g.user.wallets[0].inkey,
           {
             admin_id: this.g.user.id,
-            user_name: "Bank",
-            wallet_name: "Bank safe",
+            user_name: "Free market",
+            wallet_name: "Free market liquidity",
             email: "",
             password: ""
           }
         )
       if(res.data) {
-        this.game.bankData = res.data
-        console.log("Monopoly: Bank wallet created successfully")
+        this.game.marketData = res.data
+        console.log("Monopoly: Free market wallet created successfully")
         // Create player wallet for game creator
         await this.createPlayerWallet();
         // Register game in database
@@ -145,7 +232,7 @@ new Vue({
             this.g.user.wallets[0].inkey,
             {
               admin_wallet_id: this.game.player.wallet_id,
-              bank_id: this.game.bankData.id,
+              game_id: this.game.marketData.id,
               max_players_count: this.game.maxPlayersCount,
               available_player_names: playerNames
             }
@@ -171,20 +258,20 @@ new Vue({
           // Register new game in local storage
           let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
           if(existingGameRecords && existingGameRecords.length) {
-            existingGameRecords.push('game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id)
+            existingGameRecords.push('game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id)
           } else {
-            existingGameRecords = ['game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id]
+            existingGameRecords = ['game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id]
           }
           localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
           Object.keys(this.game).forEach((key) => {
             if(typeof(this.game[key]) == 'object'){
               localStorage.setItem(
-                'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.' + key,
+                'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.' + key,
                 JSON.stringify(this.game[key])
               )
             } else {
                 localStorage.setItem(
-                  'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.' + key,
+                  'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.' + key,
                   this.game[key]
                 )
             }
@@ -205,7 +292,7 @@ new Vue({
           '/monopoly/api/v1/player',
           this.g.user.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id,
+            game_id: this.game.marketData.id,
             user_id: this.g.user.id
           }
         )
@@ -223,7 +310,7 @@ new Vue({
           '/monopoly/api/v1/player',
           this.g.user.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id,
+            game_id: this.game.marketData.id,
             player_wallet_id: this.game.player.wallet_id
           }
         )
@@ -235,18 +322,18 @@ new Vue({
         this.game.player.wallets.push(res.data);
       }
     },
-    // Logic to create a static LNURL pay link to be used for funding bank
+    // Logic to create a static LNURL pay link to be used for funding the free market
     createBankPayLNURL: async function () {
       const payLNURLData = {
-        description: "Monopoly bank pay link",
+        description: "Monopoly free market pay link",
         min: 1,
         max: 1000000,
         comment_chars: 100,
-        success_text: "Payment to bank confirmed"
+        success_text: "Payment to free market confirmed"
       }
       // Create LNURL pay link
       let res = await LNbits.api
-        .request('POST', '/lnurlp/api/v1/links', this.game.bankData.wallets[0].adminkey, payLNURLData);
+        .request('POST', '/lnurlp/api/v1/links', this.game.marketData.wallets[0].adminkey, payLNURLData);
       if(res.data) {
         const payLinkId = res.data.id
         const payLink = res.data.lnurl
@@ -257,7 +344,7 @@ new Vue({
             '/monopoly/api/v1/games/paylink',
             this.game.player.wallets[0].inkey,
             {
-              bank_id: this.game.bankData.id,
+              game_id: this.game.marketData.id,
               pay_link_id: payLinkId,
               pay_link: payLink
             }
@@ -268,11 +355,11 @@ new Vue({
           this.game.lnurlPayLinkId = payLinkId;
           this.game.lnurlPayLink = payLink;
           localStorage.setItem(
-            'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.lnurlPayLinkId',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.lnurlPayLinkId',
             this.game.lnurlPayLinkId.toString()
           )
           localStorage.setItem(
-            'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.lnurlPayLink',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.lnurlPayLink',
             this.game.lnurlPayLink.toString()
           )
         } else {
@@ -290,7 +377,7 @@ new Vue({
           '/monopoly/api/v1/cards/init_cards_indexes',
           user.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id
+            game_id: this.game.marketData.id
           },
         )
       if(res.status == 201) {
@@ -299,22 +386,35 @@ new Vue({
     },
     // Logic to format an invite link to invite other players to the game
     formatInviteLink: async function () {
-      // Get voucher from database using bank invoice key
+      // Get voucher from database using the free market invoice key
       let res = await LNbits.api
         .request(
           'GET',
-          '/withdraw/api/v1/links/' + this.game.lnurlVoucherId,
-          this.game.bankData.wallets[0].inkey
+          '/withdraw/api/v1/links/' + this.game.inviteVoucherId,
+          this.game.marketData.wallets[0].inkey
         )
       if(res.data) {
-        return "https://" + window.location.hostname +
-          "/monopoly/api/v1/invite?game_id=" + this.game.bankData.id +
-          "&voucher=" + res.data.lnurl;
+        const inviteVoucher = res.data.lnurl;
+        res = await LNbits.api
+          .request(
+            'GET',
+            '/withdraw/api/v1/links/' + this.game.rewardVoucherId,
+            this.game.marketData.wallets[0].inkey
+          )
+        if(res.data) {
+          const rewardVoucher = res.data.lnurl;
+          return "https://" + window.location.hostname +
+            "/monopoly/api/v1/invite?game_id=" + this.game.marketData.id +
+            "&invite_voucher=" + inviteVoucher +
+            "&reward_voucher=" + rewardVoucher;
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
     },
-    // Logic to create an invoice to fund the bank wallet
+    // Logic to create an invoice to fund the free market wallet
     createFundingInvoice: async function (invoiceReason = null) {
       // Erase previous funding invoice
       this.game.fundingInvoice.paymentReq = null
@@ -326,7 +426,7 @@ new Vue({
           this.game.fundingInvoice.data.amount = this.game.fundingInvoice.data.amount * 100
         }
         let res = await LNbits.api.createInvoice(
-          this.game.bankData.wallets[0],
+          this.game.marketData.wallets[0],
           this.game.fundingInvoice.data.amount,
           this.game.fundingInvoice.data.memo,
           this.game.fundingInvoice.unit,
@@ -340,7 +440,7 @@ new Vue({
 
           // Save funding invoice in local storage
           localStorage.setItem(
-            'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.fundingInvoice',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.fundingInvoice',
             JSON.stringify(this.game.fundingInvoice)
           )
           // Once invoice has been created and saved, start checking for payments
@@ -379,7 +479,7 @@ new Vue({
 
           // Save funding invoice in local storage
           localStorage.setItem(
-            'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.playerInvoice',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.playerInvoice',
             JSON.stringify(this.game.playerInvoice)
           )
           // Once invoice has been created and saved, start checking for payments
@@ -412,7 +512,7 @@ new Vue({
         LNbits.utils.notifyApiError(res.error)
       }
     },
-    // Logic to display the bank funding dialog component
+    // Logic to display the free market funding dialog component
     showFundingDialog: function () {
       this.game.showFundingDialog = true
     },
@@ -424,7 +524,7 @@ new Vue({
     // Logic to start the game (called from index.html)
     startGame: async function () {
       // Delete game voucher now that all players joined and claimed their sats
-      await this.deleteGameVoucher()
+      await this.deleteInviteVoucher()
       // Stop checking for new players
       clearInterval(game.playersChecker)
       // Start game
@@ -436,24 +536,30 @@ new Vue({
           '/monopoly/api/v1/games/start',
           user.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id,
+            game_id: this.game.marketData.id,
             started: this.game.started
           }
         )
       if(res.data) {
         // Save game status in local storage
         localStorage.setItem(
-          'monopoly.game_' + this.game.bankData.id + '_' + this.game.player.wallets[0].id + '.started',
+          'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.started',
           this.game.started.toString()
         )
         console.log("GAME STARTED")
       }
     },
-    deleteGameVoucher: async function () {
-      await deleteGameVoucher(this.game)
+    deleteInviteVoucher: async function () {
+      await deleteInviteVoucher(this.game)
     },
     checkFundingInvoicePaid: function (invoiceReason = null) {
       checkFundingInvoicePaid(this.game, invoiceReason)
+    },
+    checkPaymentsToFreeMarket: function () {
+      checkPaymentsToFreeMarket(this.game)
+    },
+    checkPaymentsToPlayer: function () {
+      checkPaymentsToPlayer(this.game)
     },
     checkPlayerInvoicePaid: function (invoiceReason = null) {
       checkPlayerInvoicePaid(this.game, invoiceReason)
@@ -484,8 +590,8 @@ new Vue({
     checkPlayersBalances: async function () {
       await checkPlayersBalances(this.game)
     },
-    checkBankBalance: async function () {
-      await checkBankBalance(this.game)
+    checkMarketLiquidity: async function () {
+      await checkMarketLiquidity(this.game)
     },
     closeReceiveDialog: function () {
       this.game.showFundingDialog = false
@@ -519,7 +625,6 @@ new Vue({
       this.game.showNetworkFeeInvoice = true;
     },
     openSaleInvoiceDialog: async function (property) {
-      this.game.showNetworkFeeInvoice = false;
       this.erasePropertyInvoices()
       this.game.showPropertyDialog = false;
       this.game.showPropertyInvoiceDialog = true;
@@ -594,7 +699,14 @@ new Vue({
     closeNetworkFeePaymentDialog: function () {
       this.game.showNetworkFeePaymentDialog = false;
     },
+    closePayInvoiceDialog: function () {
+      this.game.showPayInvoiceDialog = false;
+      this.game.invoice = null;
+      this.game.invoiceAmount = "0";
+    },
     erasePropertyInvoices: function() {
+      this.game.showNetworkFeeInvoice = false;
+      this.game.showNetworkFeeInvoice = false;
       this.game.propertyPurchaseData = null;
       this.game.propertySaleData = null;
       this.game.playerInvoiceAmount = null;
@@ -605,12 +717,26 @@ new Vue({
       this.game.playerVoucherId = null;
       this.game.playerVoucher = null;
       this.game.networkFeeInvoiceCreated = false;
+      this.game.networkFeeInvoiceData = null;
+      this.game.networkFeeInvoice = {};
       this.game.saleInvoiceCreated = false;
       this.game.upgradeInvoice = false;
       this.game.purchaseInvoiceCreated = false;
       this.game.offerVoucher = false;
       this.game.upgradeInvoiceCreated = false;
       this.game.propertyUpgradeData = null;
+    },
+    payInvoice: async function() {
+      // Pay invoice
+      console.log(this.game.invoice)
+      console.log("Paying invoice...")
+      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.invoice);
+      if(res.data && res.data.payment_hash) {
+        console.log("Invoice paid successfully")
+        this.closePayInvoiceDialog()
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
     },
     purchaseProperty: async function() {
       // Pay invoice
@@ -626,7 +752,7 @@ new Vue({
           res = await LNbits.api
             .request(
               'GET',
-              '/monopoly/api/v1/property?bank_id=' + this.game.bankData.id
+              '/monopoly/api/v1/property?game_id=' + this.game.marketData.id
               + '&property_color=' + this.game.propertyPurchase.property.color
               + '&property_id=' + this.game.propertyPurchase.property.id,
               this.game.player.wallets[0].inkey,
@@ -662,7 +788,7 @@ new Vue({
             property_owner_id: buyer,
             property_mining_capacity: 0,
             property_mining_income: 0,
-            bank_id: this.game.bankData.id
+            game_id: this.game.marketData.id
           }
         )
       if(res.data) {
@@ -677,7 +803,7 @@ new Vue({
           '/monopoly/api/v1/property/transfer-ownership',
           this.game.player.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id,
+            game_id: this.game.marketData.id,
             property_color: property.color,
             property_id:property.id,
             new_owner: buyer
@@ -712,7 +838,7 @@ new Vue({
           '/monopoly/api/v1/property/upgrade',
           this.game.player.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id,
+            game_id: this.game.marketData.id,
             property_color: property.color,
             property_id:property.id
           }
@@ -747,7 +873,7 @@ new Vue({
           '/monopoly/api/v1/property/update-income',
           this.game.player.wallets[0].inkey,
           {
-            bank_id: this.game.bankData.id,
+            game_id: this.game.marketData.id,
             property_color: property.color,
             property_id:property.id,
             income_increment: amount
@@ -762,7 +888,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/next_chance_card_index?bank_id=' + this.game.bankData.id,
+          '/monopoly/api/v1/next_chance_card_index?game_id=' + this.game.marketData.id,
           this.game.player.wallets[0].inkey,
         )
       if(res.data) {
@@ -778,7 +904,7 @@ new Vue({
             '/monopoly/api/v1/cards/update_next_card_index',
             this.game.player.wallets[0].inkey,
             {
-              bank_id: this.game.bankData.id,
+              game_id: this.game.marketData.id,
               card_type: "chance"
             }
           )
@@ -792,13 +918,13 @@ new Vue({
       let res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/next_community_chest_card_index?bank_id=' + this.game.bankData.id,
+          '/monopoly/api/v1/next_community_chest_card_index?game_id=' + this.game.marketData.id,
           this.game.player.wallets[0].inkey,
         )
       if(res.data) {
         let communityChestCard = res.data
         console.log("Showing Community Chest card at index " + communityChestCard.next_index.toString())
-        console.log(chance_cards[communityChestCard.next_index.toString()].imgPath)
+        console.log(community_chest_cards[communityChestCard.next_index.toString()].imgPath)
         this.game.showCommunityChestCard = true;
         this.game.communityChestCardToShow = community_chest_cards[communityChestCard.next_index.toString()] ;;
         // Update next Community Chest card index
@@ -808,7 +934,7 @@ new Vue({
             '/monopoly/api/v1/cards/update_next_card_index',
             this.game.player.wallets[0].inkey,
             {
-              bank_id: this.game.bankData.id,
+              game_id: this.game.marketData.id,
               card_type: "community_chest"
             }
           )
@@ -818,112 +944,216 @@ new Vue({
         }
       }
     },
-    // Unused functions (but may be used at some point)
-    exportBank: function () {
-      this.qrCodeDialog.data = JSON.stringify(
-        {
-          id: this.game.bankData.id,
-          walletId: this.game.bankData.wallets[0].id,
-          adminKey: this.game.bankData.wallets[0].adminkey, // Passing bank wallet admin key so that all players can pay from the bank
-          inKey: this.game.bankData.wallets[0].inkey // Passing bank wallet admin key so that all players can fetch bank balance
-        }
-      )
-      this.qrCodeDialog.show = true
-    },
-    closeBankExportQR: function () {
-      this.qrCodeDialog.show = false
-    },
-    importBank: function () {
+    showUpgradeMinersPayment: function() {
+      if(this.game.created) {
+        this.game.gameCreatorPaymentToMarket = true
+      }
       this.showCamera()
+    },
+    showPropertyPurchasePayment: function(property) {
+      if(this.game.created && !property.owner) {
+        this.game.gameCreatorPaymentToMarket = true
+      }
+      this.showCamera()
+    },
+    payFine: async function(card) {
+      if(card.fineType && card.fineType === "custom") {
+        this.game.fineAmountSats = Math.floor(card.fineMultiplier * game.customFineMultiplier)
+      } else if(card.fineType && card.fineType === "pct_balance") {
+        this.game.fineAmountSats = Math.floor(card.fineMultiplier * game.userBalance)
+      } else if (card.fineType && card.fineType === "pct_most_recent_tx") {
+        this.game.fineAmountSats = Math.floor(card.fineMultiplier * 100) // Implement once tx history is implemented
+      }
+      //Get lnurl pay data
+      let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
+      // Pay fine
+      console.log("Paying fine...")
+      let res = await LNbits.api.payLnurl(
+        this.game.player.wallets[0],
+        lnurlData.callback,
+        lnurlData.description_hash,
+        this.game.fineAmountSats * 1000, // mSats
+        'Bitcoin Monopoly: fine',
+        ''
+        )
+      if(res.data && res.data.payment_hash) {
+        console.log("Fine paid successfully")
+        this.closePayFineDialog()
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    closePayFineDialog: function () {
+      this.game.showChanceCard = false;
+      this.game.chanceCardToShow = null;
+      this.game.showCommunityChestCard = false;
+      this.game.communityChestCardToShow = null;
+      this.game.fineAmountSats = 0;
+      this.game.customFineMultiplier = 0;
+      this.game.rewardAmountSats = 0;
+      this.game.customRewardMultiplier = 0;
+    },
+    claimReward: async function(card) {
+      if(card.rewardType && card.rewardType === "custom") {
+        this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * game.customRewardMultiplier)
+      } else if(card.rewardType && card.rewardType === "fixed") {
+        this.game.rewardAmountSats = Math.floor(card.rewardAmount)
+      } else if (card.rewardType && card.rewardType === "pct_total_liquidity") {
+        this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * game.initialFunding)
+      }
+      let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
+      // Claim reward
+      console.log("Claiming reward...")
+      await withdrawFromLNURL(lnurlData, this.game.player.wallets[0], this.game.rewardAmountSats, 'reward')
+      console.log("Reward claimed successfully")
+      this.closeClaimRewardDialog()
+    },
+    closeClaimRewardDialog: function () {
+      this.game.showChanceCard = false;
+      this.game.chanceCardToShow = null;
+      this.game.showCommunityChestCard = false;
+      this.game.communityChestCardToShow = null;
+      this.game.fineAmountMSats = 0;
+      this.game.customFineMultiplier = 0;
+      this.game.fineAmountSats = 0;
+      this.game.customFineMultiplier = 0;
+      this.game.rewardAmountSats = 0;
+      this.game.customRewardMultiplier = 0;
+    },
+    getLowestBalancePlayerName: function () {
+      let lowestBalance = this.game.initialFunding + 1
+      let lowestBalancePlayerName = ""
+      Object.keys(this.game.players).forEach((player_wallet_id) => {
+        if(this.game.players[player_wallet_id].player_balance < lowestBalance) {
+          lowestBalance = this.game.players[player_wallet_id].player_balance
+          lowestBalancePlayerName = this.game.players[player_wallet_id].player_wallet_name
+        }
+      })
+      if(lowestBalancePlayerName == this.game.players[this.game.player.wallets[0].id].player_wallet_name) {
+        lowestBalancePlayerName = "yourself"
+      }
+      return lowestBalancePlayerName
     },
     showCamera: function () {
       this.camera.show = true
-    },
-    closeCamera: function () {
-      this.camera.show = false
     },
     hasCamera: function () {
       navigator.permissions.query({name: 'camera'}).then(res => {
         return res.state == 'granted'
       })
     },
+    pasteData: async function () {
+      let data = await navigator.clipboard.readText()
+      this.closeCamera()
+      this.parseQRData(data)
+    },
     decodeQR: function (res) {
+      this.closeCamera()
       this.camera.data = res
-      this.camera.show = false
       this.parseQRData(this.camera.data)
     },
 
     parseQRData: async function (QRData) {
-      let data = JSON.parse(QRData)
-      console.log(data)
-      console.log(data.type)
+      // Regular lightning invoice case
+      if(QRData.slice(0, 2) == "ln") {
+        const invoice = decodeInvoice(QRData);
+        console.log(invoice)
+        console.log(invoice.sat)
+        this.game.invoiceAmount = invoice.sat.toString()
+        this.game.invoice = QRData
+        this.game.showPayInvoiceDialog = true
+      } else  {
+        // Other cases
+        let data = JSON.parse(QRData)
+        console.log(data)
+        console.log(data.type)
 
-      switch(data.type) {
-        case "property_card":
-          this.closePropertyDialog()
-          this.showPropertyDetails(properties[data.color][data["id'"]]) // TO DO: fix QR codes data (currently has key id' instead of id)
-          break
+        switch(data.type) {
+          case "property_card":
+            this.closePropertyDialog()
+            this.showPropertyDetails(properties[data.color][data["id'"]]) // TO DO: fix QR codes data (currently has key id' instead of id)
+            break
 
-        case "chance_card":
-          this.closePropertyDialog()
-          this.showChanceCard()
-          break
+          case "chance_card":
+            this.closePropertyDialog()
+            this.showChanceCard()
+            break
 
-        case "community_chest_card":
-          this.closePropertyDialog()
-          this.showCommunityChestCard()
-          break
+          case "community_chest_card":
+            this.closePropertyDialog()
+            this.showCommunityChestCard()
+            break
 
-        case "property_purchase":
-          this.closePropertyDialog()
-          const purchaseInvoice = decodeInvoice(data.invoice);
-          this.game.showPropertyPurchaseDialog = true
-          this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
-          this.game.propertyPurchase.invoice = data.invoice
-          this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
-          break
+          case "property_purchase":
+            this.closePropertyDialog()
+            const purchaseInvoice = decodeInvoice(data.invoice);
+            this.game.showPropertyPurchaseDialog = true
+            this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
+            this.game.propertyPurchase.invoice = data.invoice
+            this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
+            break
 
-        case "property_upgrade":
-          this.closePropertyDialog()
-          const upgradeInvoice = decodeInvoice(data.invoice);
-          this.game.showPropertyUpgradeDialog = true
-          this.game.propertyUpgrade.property = properties[data.propertyColor][data.propertyId]
-          this.game.propertyUpgrade.invoice = data.invoice
-          this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
-          break
+          case "property_upgrade":
+            this.closePropertyDialog()
+            const upgradeInvoice = decodeInvoice(data.invoice);
+            this.game.showPropertyUpgradeDialog = true
+            this.game.propertyUpgrade.property = properties[data.propertyColor][data.propertyId]
+            this.game.propertyUpgrade.invoice = data.invoice
+            this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
+            break
 
-        case "property_sale":
-          this.closePropertyDialog()
-          const saleInvoice = decodeInvoice(data.invoice);
-          this.game.showPropertyPurchaseDialog = true
-          this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
-          this.game.propertyPurchase.invoice = data.invoice
-          this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
-          break
+          case "property_sale":
+            this.closePropertyDialog()
+            const saleInvoice = decodeInvoice(data.invoice);
+            this.game.showPropertyPurchaseDialog = true
+            this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
+            this.game.propertyPurchase.invoice = data.invoice
+            this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
+            break
 
-        case "network_fee":
-          this.closePropertyDialog()
-          const networkFeeInvoice = decodeInvoice(data.invoice);
-          this.game.showNetworkFeePaymentDialog = true
-          this.game.networkFeeInvoice.property = properties[data.propertyColor][data.propertyId]
-          this.game.networkFeeInvoice.invoice = data.invoice
-          this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
-          break
+          case "network_fee":
+            this.closePropertyDialog()
+            const networkFeeInvoice = decodeInvoice(data.invoice);
+            this.game.showNetworkFeePaymentDialog = true
+            this.game.networkFeeInvoice.property = properties[data.propertyColor][data.propertyId]
+            this.game.networkFeeInvoice.invoice = data.invoice
+            this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
+            break
 
-        default:
-          console.log("Invalid data type")
-          break
+          default:
+            console.log("Invalid data type")
+            break
+        }
       }
+    },
+    closeQRDialog: function () {
+      this.qrCodeDialog.show = false
+    },
 
       /*
+    // Unused functions (but may be used at some point)
+    exportGame: function () {
+      this.qrCodeDialog.data = JSON.stringify(
+        {
+          id: this.game.marketData.id,
+          walletId: this.game.marketData.wallets[0].id,
+          adminKey: this.game.marketData.wallets[0].adminkey, // Passing free market wallet admin key so that all players can pay from the free market
+          inKey: this.game.marketData.wallets[0].inkey // Passing free market wallet admin key so that all players can fetch free market balance
+        }
+      )
+      this.qrCodeDialog.show = true
+    },
+    importBank: function () {
+      this.showCamera()
+    },
       if(
         data.id // User Id of the bank user
         && data.walletId // Wallet Id of the bank wallet
         && data.adminKey // Bank wallet admin key
         && data.inKey // Bank wallet invoice key
       ) {
-        this.game.bankData.id = data.id
-        this.game.bankData.wallets = [{
+        this.game.marketData.id = data.id
+        this.game.marketData.wallets = [{
           id: data.walletId,
           adminkey: data.adminKey,
           inkey: data.inKey
@@ -932,7 +1162,7 @@ new Vue({
         let res = await LNbits.api
           .request(
             'GET',
-            '/monopoly/api/v1/game_with_invoice?bank_id=' + this.game.bankData.id,
+            '/monopoly/api/v1/game_with_invoice?game_id=' + this.game.marketData.id,
             this.g.user.wallets[0].inkey
           )
           if(res.data) {
@@ -961,7 +1191,7 @@ new Vue({
                   player_wallet_id: this.g.user.wallets[0].id,
                   player_wallet_name: this.g.user.wallets[0].name,
                   player_wallet_inkey: this.g.user.wallets[0].inkey,
-                  bank_id: this.game.bankData.id
+                  game_id: this.game.marketData.id
                 }
               )
             if(res.data) {
@@ -981,6 +1211,5 @@ new Vue({
         console.log("Monopoly: Error: could not import bank wallet")
       }
       */
-    },
   }
 })

@@ -17,15 +17,16 @@ from .crud import (
     create_player_wallet,
     update_first_player_name,
     invite_player,
-    update_bank_balance,
+    update_market_liquidity,
     update_game_funding,
     start_game,
-    update_game_voucher,
+    update_invite_voucher,
+    update_reward_voucher,
     update_game_pay_link,
     update_game_invoice,
     update_player_balance,
     get_game,
-    get_bank_balance,
+    get_market_liquidity,
     get_game_started,
     get_game_with_pay_link,
     get_game_with_invoice,
@@ -46,7 +47,7 @@ from .crud import (
     get_next_community_chest_card_index
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateBankBalanceData, UpdateGameFundingData, StartGameData, UpdateGameVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -64,7 +65,7 @@ async def api_monopoly_first_player_create(data: CreateFirstPlayerData):
 @monopoly_ext.put("/api/v1/player", status_code=HTTPStatus.CREATED)
 async def api_monopoly_first_player_update(data: UpdateFirstPlayerData):
     # Create player wallet
-    player_wallet_name = await pick_player_name(data.bank_id)
+    player_wallet_name = await pick_player_name(data.game_id)
     walletData = UpdateFirstPlayerName(
         player_wallet_id=data.player_wallet_id,
         player_wallet_name=player_wallet_name
@@ -73,9 +74,9 @@ async def api_monopoly_first_player_update(data: UpdateFirstPlayerData):
     logger.info(f"Updated player name for {player_wallet_name} ({updated_wallet.id})")
     return updated_wallet
 
-@monopoly_ext.put("/api/v1/games/bank-balance", status_code=HTTPStatus.CREATED)
-async def api_monopoly_games_update_bank_balance(data: UpdateBankBalanceData):
-    balance = await update_bank_balance(data)
+@monopoly_ext.put("/api/v1/games/market-liquidity", status_code=HTTPStatus.CREATED)
+async def api_monopoly_games_update_market_liquidity(data: UpdateMarketLiquidityData):
+    balance = await update_market_liquidity(data)
     return balance
 
 @monopoly_ext.put("/api/v1/games/funding", status_code=HTTPStatus.CREATED)
@@ -88,9 +89,14 @@ async def api_monopoly_games_start_game(data: StartGameData):
     started = await start_game(data)
     return started
 
-@monopoly_ext.post("/api/v1/games/voucher", status_code=HTTPStatus.CREATED)
-async def api_monopoly_games_update_voucher(data: UpdateGameVoucherData):
-    voucher = await update_game_voucher(data)
+@monopoly_ext.post("/api/v1/games/invite_voucher", status_code=HTTPStatus.CREATED)
+async def api_monopoly_games_update_invite_voucher(data: UpdateVoucherData):
+    voucher = await update_invite_voucher(data)
+    return voucher
+
+@monopoly_ext.post("/api/v1/games/reward_voucher", status_code=HTTPStatus.CREATED)
+async def api_monopoly_games_update_reward_voucher(data: UpdateVoucherData):
+    voucher = await update_reward_voucher(data)
     return voucher
 
 @monopoly_ext.post("/api/v1/games/paylink", status_code=HTTPStatus.CREATED)
@@ -144,57 +150,58 @@ async def api_monopoly_update_next_card_index(data: UpdateCardIndex):
 
 # Getters
 @monopoly_ext.get("/api/v1/games", status_code=HTTPStatus.OK)
-async def api_monopoly_games(bank_id: str):
-    return [game for game in await get_game(bank_id)]
+async def api_monopoly_games(game_id: str):
+    return [game for game in await get_game(game_id)]
 
-@monopoly_ext.get("/api/v1/bank-balance", status_code=HTTPStatus.OK)
-async def api_monopoly_bank_balance(bank_id: str):
-    return [balance for balance in await get_bank_balance(bank_id)]
+@monopoly_ext.get("/api/v1/market-liquidity", status_code=HTTPStatus.OK)
+async def api_monopoly_market_liquidity(game_id: str):
+    return [balance for balance in await get_market_liquidity(game_id)]
 
 @monopoly_ext.get("/api/v1/game-started", status_code=HTTPStatus.OK)
-async def api_monopoly_game_started(bank_id: str):
-    return [started for started in await get_game_started(bank_id)]
+async def api_monopoly_game_started(game_id: str):
+    return [started for started in await get_game_started(game_id)]
 
 @monopoly_ext.get("/api/v1/game_with_pay_link", status_code=HTTPStatus.OK)
-async def api_monopoly_game_with_pay_link(bank_id: str):
-    return [game for game in await get_game_with_pay_link(bank_id)]
+async def api_monopoly_game_with_pay_link(game_id: str):
+    return [game for game in await get_game_with_pay_link(game_id)]
 
 @monopoly_ext.get("/api/v1/game_with_invoice", status_code=HTTPStatus.OK)
-async def api_monopoly_game_with_invoice(bank_id: str):
-    return [game for game in await get_game_with_invoice(bank_id)]
+async def api_monopoly_game_with_invoice(game_id: str):
+    return [game for game in await get_game_with_invoice(game_id)]
 
 @monopoly_ext.get("/api/v1/players", status_code=HTTPStatus.OK)
-async def api_monopoly_players(bank_id: str):
-    return [player for player in await get_players(bank_id)]
+async def api_monopoly_players(game_id: str):
+    return [player for player in await get_players(game_id)]
 
 @monopoly_ext.get("/api/v1/players/balance", status_code=HTTPStatus.OK)
 async def api_monopoly_player_balance(player_wallet_id: str):
     return await get_player_balance(player_wallet_id)
 
 @monopoly_ext.get("/api/v1/player_name", status_code=HTTPStatus.OK)
-async def api_monopoly_player_name(bank_id: str):
-    return await pick_player_name(bank_id)
+async def api_monopoly_player_name(game_id: str):
+    return await pick_player_name(game_id)
 
 @monopoly_ext.get("/api/v1/property", status_code=HTTPStatus.OK)
-async def api_monopoly_properties(bank_id: str, property_color: str, property_id: int):
-    return await get_property(bank_id, property_color, property_id)
+async def api_monopoly_properties(game_id: str, property_color: str, property_id: int):
+    return await get_property(game_id, property_color, property_id)
 
 @monopoly_ext.get("/api/v1/properties", status_code=HTTPStatus.OK)
-async def api_monopoly_properties(bank_id: str):
-    return [property for property in await get_properties(bank_id)]
+async def api_monopoly_properties(game_id: str):
+    return [property for property in await get_properties(game_id)]
 
 @monopoly_ext.get("/api/v1/next_chance_card_index", status_code=HTTPStatus.OK)
-async def api_monopoly_next_chance_card_index(bank_id: str):
-    return await get_next_chance_card_index(bank_id)
+async def api_monopoly_next_chance_card_index(game_id: str):
+    return await get_next_chance_card_index(game_id)
 
 @monopoly_ext.get("/api/v1/next_community_chest_card_index", status_code=HTTPStatus.OK)
-async def api_monopoly_next_community_chest_card_index(bank_id: str):
-    return await get_next_community_chest_card_index(bank_id)
+async def api_monopoly_next_community_chest_card_index(game_id: str):
+    return await get_next_community_chest_card_index(game_id)
 
 @monopoly_ext.get("/api/v1/invite", status_code=HTTPStatus.OK)
 async def api_monopoly_players_invite(
     game_id: str,
-    voucher: str,
+    invite_voucher: str,
+    reward_voucher: str,
     request: Request
 ):
     # Make sure all expected players have not joined yet
@@ -209,5 +216,5 @@ async def api_monopoly_players_invite(
     logger.info(f"Enabling extension: monopoly for {invited_user_name} ({invited_user_id})")
     await update_user_extension(user_id=invited_user_id, extension="monopoly", active=True)
     # Redirect
-    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_user_id + "&game_id=" + game_id +"&voucher=" + voucher
+    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_user_id + "&game_id=" + game_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
     return RedirectResponse(redirectUrl)

@@ -265,7 +265,7 @@ export const properties = {
       imgPath: "./static/images/properties/cards/bfbfbf_s00.png",
       price: 200,
       liquidationPrice: 100,
-      networkFee: [20, 50, 100, 200]
+      networkFee: [25, 50, 100, 200]
     },
     {
       id: 1,
@@ -274,7 +274,7 @@ export const properties = {
       imgPath: "./static/images/properties/cards/bfbfbf_s01.png",
       price: 200,
       liquidationPrice: 100,
-      networkFee: [20, 50, 100, 200]
+      networkFee: [25, 50, 100, 200]
     },
     {
       id: 2,
@@ -283,7 +283,7 @@ export const properties = {
       imgPath: "./static/images/properties/cards/bfbfbf_s02.png",
       price: 200,
       liquidationPrice: 100,
-      networkFee: [20, 50, 100, 200]
+      networkFee: [25, 50, 100, 200]
     },
     {
       id: 3,
@@ -292,7 +292,7 @@ export const properties = {
       imgPath: "./static/images/properties/cards/bfbfbf_s03.png",
       price: 200,
       liquidationPrice: 100,
-      networkFee: [20, 50, 100, 200]
+      networkFee: [25, 50, 100, 200]
     }
   ],
   "00FFFF": [

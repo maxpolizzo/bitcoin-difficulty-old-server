@@ -3,6 +3,15 @@ export function reactiveStyles(game) {
   if(window.innerWidth > 768) {
     // For desktop
     return {
+      welcomeText: {
+        marginTop: `0.5em`
+      },
+      initialFundingButton: {
+        marginLeft: `2em`
+      },
+      inviteButton: {
+        marginLeft: `2em`
+      },
       cardsStack: {
         height: `25em`
       },
@@ -19,17 +28,73 @@ export function reactiveStyles(game) {
           marginTop: (3 * (parseInt(cardPosition) + 1)).toString() + `em`
         })
       },
-      chanceCardImage: {
-        height: `auto`,
-        maxWidth: `65%`,
+      chanceCard: (chanceCard) => {
+        if(chanceCard.fineType) {
+          return({
+            height: `auto`,
+            maxWidth: `65%`,
+            marginTop: `1em`,
+            marginLeft: `2em`
+          })
+        } else  {
+          return({
+            height: `auto`,
+            maxWidth: `100%`,
+            marginTop: `1em`,
+            marginLeft: `6em`
+          })
+        }
+      },
+      communityChestCard: (communityChestCard) => {
+        if(communityChestCard.fineType) {
+          return({
+            height: `auto`,
+            maxWidth: `85%`,
+            marginTop: `1em`,
+            marginLeft: `2em`
+          })
+        } else if (communityChestCard.rewardType) {
+          return({
+              height: `auto`,
+              maxWidth: `85%`,
+              marginTop: `1em`,
+              marginLeft: `2em`
+          })
+        } else  {
+          return({
+            height: `auto`,
+            maxWidth: `100%`,
+            marginTop: `1em`,
+            marginLeft: `6em`
+          })
+        }
+      },
+      cardsMessage: {
+        marginTop: `1em`
+      },
+      cardsAmountForm: {
         marginTop: `1em`,
-        marginLeft: `2em`
+        marginLeft: `-2em`
+      },
+      cardsAmount: {
+        marginTop: `1em`,
+      },
+      cardsButton: {
+        marginTop: `2em`,
+        marginLeft: `0em`
       },
       communityChestCardImage: {
         height: `auto`,
         maxWidth: `65%`,
         marginTop: `1em`,
         marginLeft: `2em`
+      },
+      payInvoiceLabel: {
+        marginTop: `1em`,
+        marginLeft: `1em`
+      },
+      payInvoiceButton: {
+        marginLeft: `1em`
       },
       propertyImage: {
         height: `auto`,
@@ -89,6 +154,15 @@ export function reactiveStyles(game) {
     }
   } else {
     return {
+      welcomeText: {
+        marginTop: `1.5em`
+      },
+      initialFundingButton: {
+        marginLeft: `-1em`
+      },
+      inviteButton: {
+        marginLeft: `-1em`
+      },
       cardsStack: {
         height: `12em`
       },
@@ -105,10 +179,60 @@ export function reactiveStyles(game) {
           marginTop: (1.6 * (parseInt(cardPosition) + 1)).toString() + `em`
         })
       },
-      chanceCardImage: {
-        height: `auto`,
-        maxWidth: `85%`,
-        marginTop: `0.5em`,
+      chanceCard: (chanceCard) => {
+        if(chanceCard.fineType) {
+          return {
+            height: `auto`,
+            maxWidth: `100%`,
+            marginTop: `0.5em`,
+            marginLeft: `0em`
+          }
+        } else  {
+          return {
+            height: `auto`,
+            maxWidth: `150%`,
+            marginTop: `0.5em`,
+            marginLeft: `1.5em`
+          }
+        }
+      },
+      communityChestCard: (communityChestCard) => {
+        if(communityChestCard.fineType) {
+          return({
+            height: `auto`,
+            maxWidth: `100%`,
+            marginTop: `0.5em`,
+            marginLeft: `0em`
+          })
+        } else if (communityChestCard.rewardType) {
+          return({
+            height: `auto`,
+            maxWidth: `100%`,
+            marginTop: `0.5em`,
+            marginLeft: `0em`
+          })
+        } else  {
+          return({
+            height: `auto`,
+            maxWidth: `150%`,
+            marginTop: `0.5em`,
+            marginLeft: `1.5em`
+          })
+        }
+      },
+      cardsMessage: {
+        marginTop: `1em`,
+        marginLeft: `2em`
+      },
+      cardsAmountForm: {
+        marginTop: `1em`,
+        marginLeft: `1em`
+      },
+      cardsAmount: {
+        marginTop: `1em`,
+        marginLeft: `2em`
+      },
+      cardsButton: {
         marginLeft: `0em`
       },
       communityChestCardImage: {
@@ -116,6 +240,13 @@ export function reactiveStyles(game) {
         maxWidth: `85%`,
         marginTop: `0.5em`,
         marginLeft: `0em`
+      },
+      payInvoiceLabel: {
+        marginTop: `1em`,
+        marginLeft: `1em`
+      },
+      payInvoiceButton: {
+        marginLeft: `1em`
       },
       propertyImage: {
         height: `auto`,

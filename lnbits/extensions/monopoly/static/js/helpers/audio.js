@@ -1,7 +1,20 @@
-import {dragAndDropCardSoundURI} from '../data/sounds.js'
+import {
+  dragAndDropCardSoundURI,
+  cashRegisterSoundURI,
+  bellSoundURI
+} from '../data/sounds.js'
 
 export function playCardSound() {
-  // Convert mp3 or wav files into Data URI format: https://dopiaza.org/tools/datauri/index.php
   const snd = new Audio(dragAndDropCardSoundURI);
+  snd.play();
+}
+
+export function playPlayerPaymentReceivedSound() {
+  const snd = new Audio(bellSoundURI);
+  snd.play();
+}
+
+export function playMarketPaymentReceivedSound() {
+  const snd = new Audio(cashRegisterSoundURI);
   snd.play();
 }

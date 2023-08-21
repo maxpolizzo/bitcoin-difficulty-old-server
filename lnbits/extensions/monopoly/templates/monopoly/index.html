@@ -14,10 +14,10 @@
       <!-- Welcome view -->
       <div style="padding: 1em; font-size: 1.2em;" v-if="!game.created && !game.imported">
         <div class="row">
-          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+          <span class="col-8 col-md-8" :style="reactiveStyles.welcomeText">
              Welcome to Bitcoin Monopoly!
           </span>
-          <span class="offset-1 col-3 offset-md-1 col-md-3" style="margin-top:0.5em; font-size:1em">
+          <span class="col-3 offset-md-1 col-md-3" style="margin-top:0.5em; font-size:1em">
             <q-btn row color="primary" icon="account_balance" style="margin-left: 2em;" @click="createGame()">
               <span style="margin-left:0.25em;">Start</span>
             </q-btn>
@@ -37,10 +37,10 @@
              You are {% raw %}{{game.player.name}}{% endraw %}!
           </span>
           <span class="col-2 col-md-2" style="margin-top: 0.5em;">
-            <q-btn row color="primary" icon="qr_code_2" size="1em" style="margin-left: 2em;" v-if="game.created"@click="showFundingDialog()">
+            <q-btn row color="primary" icon="qr_code_2" size="1em" :style="reactiveStyles.initialFundingButton" v-if="game.created"@click="showFundingDialog()">
             </q-btn>
           </span>
-          <span v-if="game.bankBalance >= game.minFunding" class="col-2 col-md-2" style="margin-top: 0.5em;">
+          <span v-if="game.marketLiquidity >= game.minFunding" class="col-2 col-md-2" style="margin-top: 0.5em;">
             <q-btn row color="primary" icon="play_circle" size="1em" v-if="game.created"@click="onGameFunded()"></q-btn>
           </span>
           <span v-else class="col-2 col-md-2" style="margin-top: 0.5em;">
@@ -49,7 +49,7 @@
         </div>
         <div class="row">
           <span class="col-8 col-md-8" style="margin-top: 0.5em;">
-             Fund the bank to start playing (minimum {% raw %} {{game.minFunding}} {% endraw %} sats)...
+             Fund the game to start playing (minimum {% raw %} {{game.minFunding}} {% endraw %} sats)...
           </span>
         </div>
         <!-- Spinner -->
@@ -67,20 +67,23 @@
       <div style="padding: 1em; font-size: 1.2em;" v-if="game.fundingStatus == 'success' && !game.started">
         <!-- For game creator -->
         <div class="row" v-if="game.created">
-          <span v-if="game.playersCount < game.minPlayersCount" class="col-8 col-md-8" style="margin-top: 0.5em;">
+          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+             You are {% raw %}{{game.player.name}}{% endraw %}!
+          </span>
+          <span v-if="game.playersCount < game.minPlayersCount" class="col-7 col-md-8" style="margin-top: 0.5em;">
             Invite at least {% raw %}{{game.minPlayersCount - game.playersCount}}{% endraw %} more player to start playing
           </span>
-          <span v-else-if="game.playersCount >= game.minPlayersCount && game.playersCount < game.maxPlayersCount" class="col-8 col-md-8" style="margin-top: 0.5em;">
+          <span v-else-if="game.playersCount >= game.minPlayersCount && game.playersCount < game.maxPlayersCount" class="col-7 col-md-8" style="margin-top: 0.5em;">
             Invite up to {% raw %}{{game.maxPlayersCount - game.playersCount}}{% endraw %} more players or start playing now
           </span>
-          <span v-else class="col-8 col-md-8" style="margin-top: 0.5em;">
+          <span v-else class="col-7 col-md-8" style="margin-top: 0.5em;">
             Click the play button to start playing now
           </span>
-          <span class="col-2 col-md-2" style="margin-top: 0.5em;">
-            <q-btn  v-if="game.playersCount >= game.maxPlayersCount" disabled row icon="qr_code_2" size="1em" style="margin-left: 2em;" @click="showInviteQR"></q-btn>
-            <q-btn  v-else-if="game.lnurlVoucherId" row color="primary" icon="qr_code_2" size="1em" style="margin-left: 2em;" @click="showInviteQR"></q-btn>
+          <span class="col-2 col-md-2" style="margin-top: -1.5em;">
+            <q-btn  v-if="game.playersCount >= game.maxPlayersCount" disabled row icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
+            <q-btn  v-else-if="game.inviteVoucherId" row color="primary" icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
           </span>
-          <span class="col-2 col-md-2" style="margin-top: 0.5em;">
+          <span class="col-2 col-md-2" style="margin-top: -1.5em;">
             <q-btn v-if="game.playersCount >= game.minPlayersCount" row color="primary" icon="play_circle" size="1em" @click="startGame()"></q-btn>
             <q-btn v-else disabled row icon="play_circle" size="1em" @click="startGame()"></q-btn>
           </span>
@@ -91,7 +94,7 @@
              You are {% raw %}{{game.player.name}}{% endraw %}!
           </span>
           <span class="col-6 col-md-8" style="margin-top: 0.5em;">
-            Waiting for game creator to start the game...
+           Waiting for game creator to start the game...
           </span>
         </div>
         <!-- Spinner -->
@@ -107,8 +110,8 @@
 
       <!-- Game view -->
       <div class="row" style="padding: 1em; font-size: 1.2em;" v-if="game.started">
-          <span class="col-7 col-md-8" style="padding: 0.5em; font-size: 1.2em;">
-            Game on!
+          <span class="col-7 col-md-8" style="padding: 0.5em; font-size: 1.4em;">
+            {% raw %} {{game.player.name}} {% endraw %}
           </span>
           <span class="col-2 offset-md-1 col-md-1" style="padding: 0.5em;">
             <q-btn row color="primary" icon="qr_code_2" size="1em" @click="showPlayerInvoiceDialog"></q-btn>
@@ -142,7 +145,7 @@
       </div>
 
       <div class="col-12 col-md-12" style="padding: 0.5em; font-size: 1.75em;">
-        Your properties
+        Your properties:
       </div>
 
       <div class="row" v-if="!game.propertiesCount[game.player.wallets[0].id] || game.propertiesCount[game.player.wallets[0].id] == 0" style="padding: 0.5em;">
@@ -203,9 +206,9 @@
     <q-card>
       <q-card-section>
 
-        <!-- Bank balance -->
+        <!-- Game funding balance -->
         <div style="padding: 1em; font-size: 1.2em;">
-          Bank balance: {% raw %} {{game.bankBalance}} {% endraw %} sats
+          Free market liquidity: {% raw %} {{game.marketLiquidity}} {% endraw %} sats
         </div>
 
         <!-- Players table -->
@@ -225,16 +228,25 @@
     </q-card>
   </div>
 
-  <!-- Camera popup -->
+  <!-- QR code reader popup -->
   <q-dialog v-model="camera.show">
     <q-card class="q-pa-lg q-pt-xl">
-      <div class="text-center q-mb-lg">
+      <div v-if="!game.gameCreatorPaymentToMarket"
+        class="text-center q-mb-lg">
         <qrcode-stream
-          @decode="decodeQR"
           class="rounded-borders"
+          @init="onInitCamera"
+          @error="onError"
+          @decode="decodeQR"
+          :camera="camera.camera"
         ></qrcode-stream>
       </div>
+      <div v-else>
+        Please paste an invoice generated from the free market
+      </div>
+
       <div class="row q-mt-lg">
+        <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>
         <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Cancel</q-btn>
       </div>
     </q-card>
@@ -260,7 +272,7 @@
         <q-btn
           outline
           color="grey"
-          @click="closeBankExportQR"
+          @click="closeQRDialog"
         >Close</q-btn>
       </div>
     </q-card>
@@ -282,7 +294,7 @@
       </q-tabs>
       <q-tab-panels v-model="fundingTab" animated style="margin-top: 1em;">
         <q-tab-panel name="paylnurl" class="q-card--dark">
-          <div class="text-center q-mb-lg">Fund the bank by sending sats to this payment link</div>
+          <div class="text-center q-mb-lg">Fund the game by sending sats to this payment link</div>
           <div class="text-center q-mb-lg">
             <a :href="game.lnurlPayLink">
               <q-responsive :ratio="1" class="q-mx-xl">
@@ -303,7 +315,7 @@
         </q-tab-panel>
         <q-tab-panel name="invoice" class="q-card--dark">
           <div v-if="game.fundingInvoice.paymentReq" class="text-center q-mb-lg">
-            Fund the bank by paying this invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
+            Fund the game by paying this invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
           </div>
           <div v-if="game.fundingInvoice.paymentReq" class="text-center q-mb-lg">
             <a :href="'lightning:' + game.fundingInvoice.paymentReq">
@@ -422,11 +434,56 @@
           <div class="col-7 col-md-7">
             <img
               class="image-hover-highlight"
-              :src=game.chanceCardToShow.imgPath
+              :src="game.chanceCardToShow.imgPath"
               alt="chance"
-              :style="reactiveStyles.chanceCardImage"
+              :style="reactiveStyles.chanceCard(game.chanceCardToShow)"
             >
           </div>
+          <div
+            class="col-5 col-md-5"
+            v-if="game.chanceCardToShow.fineType"
+          >
+            <div
+             :style="reactiveStyles.cardsMessage"
+            >
+             {% raw %}{{game.chanceCardToShow.fineMessage}}{% endraw %}
+            </div>
+
+            <q-form
+              v-if="game.chanceCardToShow.fineType == 'custom'"
+              :style="reactiveStyles.cardsAmountForm"
+              class="q-gutter-md col-8 col-md-8">
+              <q-input
+                filled
+                dense
+                v-model.trim="game.customFineMultiplier"
+                :label="game.chanceCardToShow.inputLabel"
+                placeholder=""
+              ></q-input>
+            </q-form>
+
+            <div
+              v-if="game.chanceCardToShow.fineType == 'custom'"
+              :style="reactiveStyles.cardsAmount">
+              Fine amount: {% raw %}{{Math.floor(game.chanceCardToShow.fineMultiplier * game.customFineMultiplier)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.chanceCardToShow.fineType == 'pct_balance'"
+              :style="reactiveStyles.cardsAmount">
+              Fine amount: {% raw %}{{Math.floor(game.chanceCardToShow.fineMultiplier * game.userBalance)}}{% endraw %} sats
+            </div>
+
+           <div :style="reactiveStyles.cardsButton">
+             <q-btn v-if="game.chanceCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0" @click="payFine(game.chanceCardToShow)" flat color="grey" class="q-ml-auto">
+               Pay fine
+             </q-btn>
+             <q-btn v-else disabled flat color="grey" class="q-ml-auto">
+               Pay fine
+             </q-btn>
+           </div>
+         </div>
+
 
         </q-card>
       </div>
@@ -447,14 +504,120 @@
           <div class="col-7 col-md-7">
             <img
               class="image-hover-highlight"
-              :src=game.communityChestCardToShow.imgPath
+              :src="game.communityChestCardToShow.imgPath"
               alt="community_chest"
-              :style="reactiveStyles.communityChestCardImage"
+              :style="reactiveStyles.communityChestCard(game.communityChestCardToShow)"
             >
           </div>
 
+          <div
+            class="col-5 col-md-5"
+            v-if="game.communityChestCardToShow.fineType"
+          >
+            <div
+              :style="reactiveStyles.cardsMessage"
+            >
+              {% raw %}{{game.communityChestCardToShow.fineMessage}}{% endraw %}
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.fineType == 'pct_balance'"
+              :style="reactiveStyles.cardsAmount">
+              Fine amount: {% raw %}{{Math.floor(game.communityChestCardToShow.fineMultiplier * game.userBalance)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.fineType == 'pct_most_recent_tx_to_player'"
+              :style="reactiveStyles.cardsAmount">
+              Pay {% raw %}{{Math.floor(game.communityChestCardToShow.fineMultiplier * 100)}}{% endraw %} sats to {% raw %}{{getLowestBalancePlayerName()}}{% endraw %}
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.fineType == 'pct_balance'"
+              :style="reactiveStyles.cardsButton">
+              <q-btn @click="payFine(game.communityChestCardToShow)" flat color="grey" class="q-ml-auto">
+                Pay fine
+              </q-btn>
+            </div>
+          </div>
+
+
+          <div
+            class="col-5 col-md-5"
+            v-if="game.communityChestCardToShow.rewardType"
+          >
+            <div
+              style="reactiveStyles.cardsMessage"
+            >
+              {% raw %}{{game.communityChestCardToShow.rewardMessage}}{% endraw %}
+            </div>
+
+            <q-form
+              v-if="game.communityChestCardToShow.rewardType == 'custom'"
+              :style="reactiveStyles.cardsAmountForm"
+              class="q-gutter-md col-8 col-md-8">
+              <q-input
+                filled
+                dense
+                v-model.trim="game.customRewardMultiplier"
+                :label="game.communityChestCardToShow.inputLabel"
+                placeholder=""
+              ></q-input>
+            </q-form>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'custom'"
+              :style="reactiveStyles.cardsAmount">
+              Reward amount: {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * game.customRewardMultiplier)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'fixed'"
+              :style="reactiveStyles.cardsAmount">
+              Reward amount: {% raw %}{{game.communityChestCardToShow.rewardAmount}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'pct_total_liquidity'"
+              :style="reactiveStyles.cardsAmount">
+              Reward amount: {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * game.initialFunding)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'pct_players_balance_from_players'"
+              :style="reactiveStyles.cardsAmount">
+                Invoice every other player for {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * player.player_balance)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'pct_largest_transaction_from_players'"
+              :style="reactiveStyles.cardsAmount">
+                Invoice every other player for {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * 100)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'pct_total_liquidity_from_players'"
+              :style="reactiveStyles.cardsAmount">
+                Invoice every other player for {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * game.initialFunding)}}{% endraw %} sats
+            </div>
+
+            <div
+              v-if="game.communityChestCardToShow.rewardType == 'custom' || game.communityChestCardToShow.rewardType == 'fixed' || game.communityChestCardToShow.rewardType == 'pct_total_liquidity'"
+              :style="reactiveStyles.cardsButton">
+              <q-btn v-if="game.communityChestCardToShow.rewardType != 'custom' || game.customRewardMultiplier > 0" @click="claimReward(game.communityChestCardToShow)" flat color="grey" class="q-ml-auto">
+                Claim reward
+              </q-btn>
+              <q-btn v-else disabled flat color="grey" class="q-ml-auto">
+                Claim reward
+              </q-btn>
+            </div>
+          </div>
+
+
         </q-card>
       </div>
+
+
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
@@ -499,12 +662,14 @@
           </div>
 
           <div
+            v-if="game.propertyToShow.oneKwPrice"
             :style="reactiveStyles.propertyMiningCapacityLabel"
           >
             Mining capacity: {% raw %}{{game.propertyToShow.mining_capacity}}{% endraw %} kW
           </div>
 
           <div
+            v-if="game.propertyToShow.oneKwPrice"
             :style="reactiveStyles.propertyMiningIncomeLabel"
           >
             Cumulated mining income: {% raw %}{{game.propertyToShow.mining_income}}{% endraw %} sats
@@ -520,8 +685,10 @@
                 Invoice fee
               </q-btn>
             </div>
-            <div :style="reactiveStyles.propertyButtons.upgradeButton">
-              <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
+            <div
+              v-if="game.propertyToShow.oneKwPrice"
+              :style="reactiveStyles.propertyButtons.upgradeButton">
+              <q-btn @click="showUpgradeMinersPayment" flat color="grey" class="q-ml-auto">
                 Upgrade miners
               </q-btn>
             </div>
@@ -546,7 +713,7 @@
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
             <div :style="reactiveStyles.propertyButtons.buyButton">
-              <q-btn @click="showCamera" flat color="grey" class="q-ml-auto">
+              <q-btn @click="showPropertyPurchasePayment(game.propertyToShow)" flat color="grey" class="q-ml-auto">
                 Buy property
               </q-btn>
             </div>
@@ -630,7 +797,7 @@
           </q-btn>
         </div>
         <div
-          v-else
+          v-else-if="game.propertyToShow.oneKwPrice"
           class="col-12 col-md-12"
           :style="reactiveStyles.propertyButtonsForGameCreator.invoiceUpgradeButton"
         >
@@ -681,9 +848,8 @@
 
       <div v-if="game.purchaseInvoiceCreated">
         <div class="text-center q-mb-lg">
-          Scan this QR code and pay the attached invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats) in order to purchase this property
+          Property purchase invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
         </div>
-
         <div class="text-center q-mb-lg">
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode
@@ -697,9 +863,8 @@
 
       <div v-if="game.showNetworkFeeInvoice">
         <div class="text-center q-mb-lg">
-          Scan this QR code and pay the attached invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats) in order to pay network fees
+          Network fee invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats)
         </div>
-
         <div class="text-center q-mb-lg">
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode
@@ -713,9 +878,8 @@
 
       <div v-if="game.upgradeInvoiceCreated">
         <div class="text-center q-mb-lg">
-          Scan this QR code and pay the attached invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats) in order to upgrade property's mining capacity
+          Property upgrade invoice ({% raw %}{{game.fundingInvoice.data.amount}}{% endraw %} sats)
         </div>
-
         <div class="text-center q-mb-lg">
             <q-responsive :ratio="1" class="q-mx-xl">
               <qrcode
@@ -749,9 +913,8 @@
 
         <div v-if="game.saleInvoiceCreated">
           <div class="text-center q-mb-lg">
-            Scan this QR code and pay the attached invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats) in order to purchase this property
+            Property purchase invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats)
           </div>
-
           <div class="text-center q-mb-lg">
             <q-responsive :ratio="1" class="q-mx-xl">
               <qrcode
@@ -799,12 +962,52 @@
       </div>
 
       <div class="row q-mt-lg">
-        <q-btn v-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn>
+        <q-btn v-if="game.purchaseInvoiceCreated" outline color="grey" @click="copyText(game.propertyPurchaseData)">Copy invoice</q-btn>
+        <q-btn v-else-if="game.showNetworkFeeInvoice" outline color="grey" @click="copyText(game.networkFeeInvoiceData)">Copy invoice</q-btn>
+        <q-btn v-else-if="game.upgradeInvoiceCreated" outline color="grey" @click="copyText(game.propertyUpgradeData)">Copy invoice</q-btn>
+        <q-btn v-else-if="game.saleInvoiceCreated" outline color="grey" @click="copyText(game.propertySaleData)">Copy invoice</q-btn>
+        <q-btn v-else-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn>
         <q-btn v-else-if="game.fundingInvoice.paymentReq" outline color="grey" @click="copyText(game.fundingInvoice.paymentReq)">Copy invoice</q-btn>
         <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyInvoiceDialog()">Close</q-btn>
       </div>
 
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showPayInvoiceDialog" @hide="game.showPayInvoiceDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.invoice">
+        <q-card class="q-card--dark row" style="padding: 1em;">
+
+          <div class="col-12 col-md-12">
+            <div
+              :style="reactiveStyles.payInvoiceLabel"
+            >
+              Pay this {% raw %}{{game.invoiceAmount}}{% endraw %} sats invoice?
+            </div>
+
+            <div
+              class="row"
+              :style="reactiveStyles.propertyButtons.cardButtonsGroup"
+            >
+              <div :style="reactiveStyles.propertyButtons.invoiceButton">
+                <q-btn @click="payInvoice()" flat color="grey" class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+            </div>
+
+          </div>
+
+        </q-card>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyDialog()">Close</q-btn>
+      </div>
     </q-card>
   </q-dialog>
 
