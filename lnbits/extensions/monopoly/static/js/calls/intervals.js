@@ -1,5 +1,7 @@
 import {
-  fetchBankBalance,
+  fetchPaymentsToFreeMarket,
+  fetchPaymentsToPlayer,
+  fetchMarketLiquidity,
   fetchFundingInvoicePaid,
   fetchPlayerBalance,
   fetchPlayerInvoicePaid
@@ -12,6 +14,22 @@ import {
 } from './database.js'
 
 const PERIOD = 2000;
+
+// Logic to check periodically for payments to free market wallet
+export async function checkPaymentsToFreeMarket(game) {
+  clearInterval(game.freeMarketPaymentChecker)
+  game.freeMarketPaymentChecker = setInterval(async () => {
+    await fetchPaymentsToFreeMarket(game)
+  }, PERIOD)
+}
+
+// Logic to check periodically for payments to player wallet
+export async function checkPaymentsToPlayer(game) {
+  clearInterval(game.playerPaymentChecker)
+  game.playerPaymentChecker = setInterval(async () => {
+    await fetchPaymentsToPlayer(game)
+  }, PERIOD)
+}
 
 // Logic to check periodically if game funding invoice has been paid
 export function checkFundingInvoicePaid(game, invoiceReason = null) {
@@ -29,11 +47,11 @@ export function checkPlayerInvoicePaid(game, invoiceReason = null) {
   }, PERIOD)
 }
 
-// Logic to check bank balance periodically
-export async function checkBankBalance(game) {
-  clearInterval(game.bankBalanceChecker)
-  game.bankBalanceChecker = setInterval(async () => {
-    await fetchBankBalance(game)
+// Logic to check market liquidity periodically (game funding balance)
+export async function checkMarketLiquidity(game) {
+  clearInterval(game.marketLiquidityChecker)
+  game.marketLiquidityChecker = setInterval(async () => {
+    await fetchMarketLiquidity(game)
   }, PERIOD)
 }
 

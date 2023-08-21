@@ -24,11 +24,13 @@ async def invite(
     request: Request,
     user: User = Depends(check_user_exists),  # type: ignore
     game_id: str = Query(...),
-    voucher: str = Query(...),
+    invite_voucher: str = Query(...),
+    reward_voucher: str = Query(...),
 ):
     invite_vars = {
         "game_id": game_id,
-        "voucher": voucher,
+        "invite_voucher": invite_voucher,
+        "reward_voucher": reward_voucher,
     }
     return monopoly_renderer().TemplateResponse(
         "monopoly/invite.html", {"request": request, "user": user.dict(), "invite_vars": invite_vars}

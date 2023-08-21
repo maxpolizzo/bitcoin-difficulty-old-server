@@ -1,4 +1,4 @@
-import {playCardSound} from './audio.js'
+import { playCardSound } from './audio.js'
 
 // Draggable cards options
 export function dragOptions() {

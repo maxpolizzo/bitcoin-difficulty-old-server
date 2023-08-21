@@ -5,12 +5,13 @@ async def m001_initial(db):
     await db.execute(
        f"""
        CREATE TABLE monopoly.games (
-           bank_id TEXT PRIMARY KEY,
+           game_id TEXT PRIMARY KEY,
            admin_wallet_id TEXT NOT NULL,
-           bank_balance {db.big_int},
+           market_liquidity {db.big_int},
            pay_link_id TEXT,
            pay_link TEXT,
-           voucher_id TEXT,
+           invite_voucher_id TEXT,
+           reward_voucher_id TEXT,
            initial_funding {db.big_int},
            initial_player_balance {db.big_int},
            started BOOLEAN DEFAULT false,
@@ -33,7 +34,7 @@ async def m001_initial(db):
           player_wallet_name TEXT NOT NULL,
           player_wallet_inkey TEXT NOT NULL,
           player_balance {db.big_int},
-          bank_id TEXT NOT NULL,
+          game_id TEXT NOT NULL,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     """
@@ -50,7 +51,7 @@ async def m001_initial(db):
           property_owner_id TEXT,
           property_mining_capacity INTEGER,
           property_mining_income INTEGER,
-          bank_id TEXT NOT NULL,
+          game_id TEXT NOT NULL,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     """
@@ -62,7 +63,7 @@ async def m001_initial(db):
     await db.execute(
       f"""
       CREATE TABLE monopoly.cards (
-          bank_id TEXT NOT NULL,
+          game_id TEXT NOT NULL,
           card_type TEXT NOT NULL,
           next_index INTEGER NOT NULL,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

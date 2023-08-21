@@ -1,14 +1,16 @@
 import { newGame } from '../data/data.js'
 import { properties } from '../data/properties.js'
-import { fetchBankBalance, fetchPlayerBalance } from '../calls/api.js'
+import { fetchMarketLiquidity, fetchPlayerBalance } from '../calls/api.js'
 import { fetchGameStarted, fetchPlayers } from '../calls/database.js'
 import {
   checkPlayersBalances,
   checkPlayers,
   checkPlayerBalance,
   checkProperties,
-  checkBankBalance,
-  checkGameStarted
+  checkMarketLiquidity,
+  checkGameStarted,
+  checkPaymentsToFreeMarket,
+  checkPaymentsToPlayer
 } from '../calls/intervals.js'
 
 export function loadGameData() {
@@ -45,11 +47,10 @@ export function loadGameData() {
 }
 
 export function initGameData(game) {
-    // return function () {
     // Initialize game properties map
     game.properties["for-sale"] = properties;
-    // Start checking bank balance
-    fetchBankBalance(game).then(() => {
+    // Start checking game funding balance
+    fetchMarketLiquidity(game).then(() => {
       // If game has already been created or imported, fetch user balance, other
       // players and start checking periodically for game being started by creator
       if(game.created || game.imported) {
@@ -63,6 +64,9 @@ export function initGameData(game) {
         checkPlayers(game).then(() => {
           console.log("Periodically checking for new players...")
         })
+        checkPaymentsToPlayer(game).then(() => {
+          console.log("Periodically checking for payments to player wallet...")
+        })
         checkPlayerBalance(game).then(() => {
           console.log("Periodically checking player balance...")
         })
@@ -70,11 +74,14 @@ export function initGameData(game) {
           console.log("Periodically checking properties ownership...")
         })
       }
-      checkBankBalance(game).then(() => {
-        console.log("Periodically checking bank balance...")
+      checkMarketLiquidity(game).then(() => {
+        console.log("Periodically checking game funding balance...")
       })
       if(game.created) {
-        fetchGameStarted(game).then()
+        checkPaymentsToFreeMarket(game).then(() => {
+          console.log("Periodically checking for payments to free market wallet...")
+          fetchGameStarted(game).then()
+        })
       } else if(game.imported) {
         checkGameStarted(game).then(() => {
           console.log("Periodically checking if game creator started the game...")

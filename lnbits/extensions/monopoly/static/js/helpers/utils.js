@@ -1,8 +1,9 @@
 /* globals decode*/
 
-export async function claimLNURLVoucher (lnurl, wallet) {
+export async function claimInviteVoucher (lnurl, wallet) {
   const lnurlData = await decodeLNURL(lnurl, wallet);
-  return await createInvoiceFromLNURL(lnurlData, wallet);
+  const amount = lnurlData.maxWithdrawable / 1000; // mSats to sats conversion
+  return await withdrawFromLNURL(lnurlData, wallet, amount, 'invite');
 }
 
 export async function decodeLNURL(lnurl, wallet) {
@@ -29,8 +30,7 @@ export async function decodeLNURL(lnurl, wallet) {
   }
 }
 
-export async function createInvoiceFromLNURL(lnurlData, wallet) {
-  const amount = lnurlData.maxWithdrawable/1000;
+export async function withdrawFromLNURL(lnurlData, wallet, amount, type) {
   console.log("Claiming " + amount + " sats...")
   let res = await LNbits.api
     .createInvoice(
@@ -52,7 +52,7 @@ export async function createInvoiceFromLNURL(lnurlData, wallet) {
         console.log(`Invoice sent to ${lnurlData.domain}!`)
         // Store payment hash in local storage
         localStorage.setItem(
-          'monopoly.game.voucherPaymentHash',
+          'monopoly.game.' + type + 'VoucherPaymentHash',
           JSON.stringify(res.data.payment_hash)
         )
         // Check for invoice payment

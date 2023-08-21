@@ -10,7 +10,8 @@ export const newGame = {
   showFundingView: false,
   showFundingDialog: false,
   showInviteQR: false,
-  showExplanationText: true,
+  showExplanationText: false,
+  showPayInvoiceDialog: false,
   showPlayerInvoiceDialog: false,
   showPropertyDialog: false,
   showPropertyInvoiceDialog: false,
@@ -26,6 +27,8 @@ export const newGame = {
   upgradeInvoiceCreated: false,
   showNetworkFeeInvoice: false,
   fundingStatus: 'pending',
+  invoice: null,
+  invoiceAmount: "0",
   fundingInvoiceAmount: "0",
   playerInvoiceAmount: "0",
   playerVoucherId: "",
@@ -33,14 +36,16 @@ export const newGame = {
   playerVoucherAmount: 0,
   lnurlPayLinkId: "",
   lnurlPayLink: "",
-  lnurlVoucherId: "",
+  inviteVoucherId: "",
+  rewardVoucherId: "",
+  rewardVoucher: "",
   inviteLink: "",
   minPlayersCount: "2",
   maxPlayersCount: "6",
   playersCount: "0",
   userBalance: 0,
-  bankBalance: 0,
-  bankData: {},
+  marketLiquidity: 0,
+  marketData: {},
   voucherPaymentHash: "",
   paidVoucher: false,
   fundingInvoice: {
@@ -66,6 +71,12 @@ export const newGame = {
       amount: null,
       memo: 'Bitcoin Monopoly: player invoice'
     }
+  },
+  freeMarketWallet: {
+    payments: {}
+  },
+  playerWallet: {
+    payments: {}
   },
   player: {
     name: "",
@@ -107,12 +118,17 @@ export const newGame = {
   propertySaleData: null,
   networkFeeInvoiceData: null,
   networkFeeInvoice: {},
+  gameCreatorPaymentToMarket: false,
+  fineAmountSats: 0,
+  customFineMultiplier: 0,
+  rewardAmountSats: 0,
+  customRewardMultiplier: 0,
 }
 
 export const inviteGame = {
   ...newGame,
   imported: true,
-  fundingStatus: 'success', // Bank funding invoice must have been paid before players are invited
+  fundingStatus: 'success', // Game funding invoice must have been paid before players are invited
 }
 
 export const playerNames = "Satoshi Nakamoto,Nick Szabo,Hal Finney,Adam Back,Craig Wright,Michael Saylor,Jack Dorsey,Elon Musk,Nayib Bukkele,Jed McCaleb,Brian Armstrong,Tyler Winklevoss,Cameron Winklevoss,Laszlo Hanyecz,Jeremy Sturdivant,Len Sassaman,Max Keizer,Stacy Herbert"
