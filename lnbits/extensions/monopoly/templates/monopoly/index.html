@@ -107,8 +107,22 @@
           </div>
         </div>
       </div>
-
+    </q-card>
       <!-- Game view -->
+    <q-card>
+      <div class="row" style="padding: 1em; font-size: 1.2em;" v-if="game.started && game.created">
+          <span class="col-7 col-md-8" style="padding: 0.5em; font-size: 1.4em;">
+            Free market wallet
+          </span>
+        <span class="col-2 offset-md-1 col-md-1" style="padding: 0.5em;">
+            <q-btn row color="red" icon="qr_code_2" size="1em" @click="showFreeMarketInvoiceDialog"></q-btn>
+          </span>
+        <span class="col-2 col-md-1" style="padding: 0.5em; margin-left: 1em">
+            <q-btn row color="red" icon="photo_camera" size="1em" @click="showFreeMarketCamera"></q-btn>
+          </span>
+      </div>
+    </q-card>
+    <q-card>
       <div class="row" style="padding: 1em; font-size: 1.2em;" v-if="game.started">
           <span class="col-7 col-md-8" style="padding: 0.5em; font-size: 1.4em;">
             {% raw %} {{game.player.name}} {% endraw %}
@@ -242,7 +256,7 @@
         ></qrcode-stream>
       </div>
       <div v-else>
-        Please paste an invoice generated from the free market
+        Please paste an invoice
       </div>
 
       <div class="row q-mt-lg">
@@ -423,6 +437,48 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="game.showFreeMarketInvoiceDialog" @hide="closeFreeMarketInvoiceDialog">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.freeMarketInvoice.paymentReq" class="text-center q-mb-lg">
+        Request funds on behalf of the free market by showing this invoice ({% raw %}{{game.freeMarketInvoice.data.amount}}{% endraw %} sats)
+      </div>
+      <div v-if="game.freeMarketInvoice.paymentReq" class="text-center q-mb-lg">
+        <a :href="'lightning:' + game.freeMarketInvoice.paymentReq">
+          <q-responsive :ratio="1" class="q-mx-xl">
+            <qrcode
+              :value="game.freeMarketInvoice.paymentReq"
+              :options="{width: 340}"
+              class="rounded-borders"
+            ></qrcode>
+          </q-responsive>
+        </a>
+      </div>
+      <div class="row">
+        <div class="col-8 col-md-8">
+          <q-form @submit="createFreeMarketInvoice()" class="q-gutter-md col-8 col-md-8">
+            <q-input
+              filled
+              dense
+              v-model.trim="game.freeMarketInvoiceAmount"
+              label="New invoice amount (sats)"
+              placeholder=""
+            ></q-input>
+          </q-form>
+        </div>
+        <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
+          <q-btn @click="createFreeMarketInvoice()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+        </div>
+      </div>
+      <div class="row q-mt-lg">
+        <q-btn v-if="game.freeMarketInvoice.paymentReq" outline color="grey" @click="copyText(game.freeMarketInvoice.paymentReq)">Copy invoice</q-btn>
+        <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="game.showChanceCard" @hide="game.showChanceCard = false">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
@@ -547,7 +603,7 @@
             v-if="game.communityChestCardToShow.rewardType"
           >
             <div
-              style="reactiveStyles.cardsMessage"
+              :style="reactiveStyles.cardsMessage"
             >
               {% raw %}{{game.communityChestCardToShow.rewardMessage}}{% endraw %}
             </div>
@@ -586,7 +642,7 @@
             <div
               v-if="game.communityChestCardToShow.rewardType == 'pct_players_balance_from_players'"
               :style="reactiveStyles.cardsAmount">
-                Invoice every other player for {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * player.player_balance)}}{% endraw %} sats
+                Invoice every other player for 1% of their respective balance
             </div>
 
             <div
@@ -680,11 +736,43 @@
             class="row"
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
+            <div
+              v-if="game.showNetworkFeeInvoiceDialog"
+              :style="reactiveStyles.networkFeeMessage"
+            >
+              {% raw %}{{game.propertyToShow.networkFeeMessage}}{% endraw %}
+            </div>
+
+            <q-form
+              v-if="game.showNetworkFeeInvoiceDialog"
+              :style="reactiveStyles.networkFeeAmountForm"
+              class="q-gutter-md col-8 col-md-8">
+              <q-input
+                filled
+                dense
+                v-model.trim="game.customNetworkFeeInvoiceAmount"
+                label="Enter fee amount"
+                placeholder=""
+              ></q-input>
+            </q-form>
+
+            <div
+              v-if="game.customNetworkFeeMultiplier > 1"
+              style="margin-top: 5em; margin-left: -5em; margin-bottom: 1em;"
+            >
+              Network fee: {% raw %}{{game.customNetworkFeeInvoiceAmount * game.customNetworkFeeMultiplier}}{% endraw %}
+            </div>
+
             <div :style="reactiveStyles.propertyButtons.invoiceButton">
-              <q-btn @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-if="!game.playerInvoiceAmount && !game.showNetworkFeeInvoiceDialog" @click="getNetworkFeeInvoiceAmount(game.propertyToShow)" flat color="grey" class="q-ml-auto">
                 Invoice fee
               </q-btn>
+              <q-btn v-else-if="game.customNetworkFeeInvoiceAmount" @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+                Invoice fee
+              </q-btn>
+              <q-btn v-else disabled outline color="grey" @click="">Invoice fee</q-btn>
             </div>
+
             <div
               v-if="game.propertyToShow.oneKwPrice"
               :style="reactiveStyles.propertyButtons.upgradeButton">
@@ -731,7 +819,7 @@
          :style="reactiveStyles.propertyButtons.div"
       >
         <div :style="reactiveStyles.propertyButtons.invoiceButton">
-          <q-btn @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+          <q-btn @click="getNetworkFeeInvoiceAmount(game.propertyToShow)" flat color="grey" class="q-ml-auto">
             Invoice network fee
           </q-btn>
         </div>
@@ -1006,7 +1094,82 @@
       </div>
 
       <div class="row q-mt-lg">
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyDialog()">Close</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceDialog()">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showPayInvoiceOnBehalfOfFreeMarketDialog" @hide="game.showPayInvoiceOnBehalfOfFreeMarketDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <div v-if="game.invoice">
+        <q-card class="q-card--dark row" style="padding: 1em;">
+
+          <div class="col-12 col-md-12">
+            <div
+              :style="reactiveStyles.payInvoiceLabel"
+            >
+              Pay this {% raw %}{{game.invoiceAmount}}{% endraw %} sats invoice on behalf of the free market?
+            </div>
+
+            <div
+              class="row"
+              :style="reactiveStyles.propertyButtons.cardButtonsGroup"
+            >
+              <div :style="reactiveStyles.propertyButtons.invoiceButton">
+                <q-btn @click="payInvoiceOnBehalfOfFreeMarket()" flat color="grey" class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+            </div>
+
+          </div>
+
+        </q-card>
+      </div>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceOnBehalfOfFreeMarketDialog()">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showFreeBitcoinClaimDialog" @hide="game.showFreeBitcoinClaimDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <q-card class="q-card--dark row" style="padding: 1em;">
+
+        <div class="col-12 col-md-12">
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Lucky you! Someone sent you some free Bitcoin by mistake!
+          </div>
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Claim {% raw %}{{game.cumulatedFines}}{% endraw %} sats?
+          </div>
+
+          <div
+            class="row"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
+          >
+            <div :style="reactiveStyles.propertyButtons.invoiceButton">
+              <q-btn @click="claimCumulatedFines()" flat color="grey" class="q-ml-auto">
+                Claim
+              </q-btn>
+            </div>
+          </div>
+
+        </div>
+
+      </q-card>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceDialog()">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
@@ -1145,7 +1308,6 @@
       </div>
     </q-card>
   </q-dialog>
-
 
 </div>
 {% endblock %}

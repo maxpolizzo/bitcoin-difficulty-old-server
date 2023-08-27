@@ -6,6 +6,7 @@ class CreateGameData(BaseModel):
     game_id: str = Query(...)
     admin_wallet_id: str = Query(...)
     max_players_count: int
+    cumulated_fines: int
     available_player_names: str =  Query(...)
 
 class CreateFirstPlayerData(BaseModel):
@@ -152,3 +153,14 @@ class InitCardsIndex(BaseModel):
 class UpdateCardIndex(BaseModel):
     game_id: str
     card_type: str
+
+class UpdateCumulatedFines(BaseModel):
+    game_id: str
+    fine: int
+
+class CumulatedFines(BaseModel):
+    game_id: str
+    cumulated_fines: int
+
+class ResetCumulatedFines(BaseModel):
+    game_id: str

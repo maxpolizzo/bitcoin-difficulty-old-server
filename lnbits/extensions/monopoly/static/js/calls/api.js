@@ -174,6 +174,33 @@ export async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
   }
 }
 
+export async function fetchFreeMarketInvoicePaid(game, invoiceReason = null) {
+  const res = await LNbits.api.getPayment(game.marketData.wallets[0], game.freeMarketInvoice.paymentHash);
+  if(res.data) {
+    if (res.data.paid) {
+      console.log("Free market invoice paid!")
+      // Clear payment checker interval
+      clearInterval(game.freeMarketInvoice.paymentChecker)
+      // Erase previous player invoice
+      game.freeMarketInvoiceAmount = 0
+      game.freeMarketInvoice.paymentReq = null
+      game.freeMarketInvoice = newGame.freeMarketInvoice
+      // Save player invoice template in local storage
+      localStorage.setItem(
+        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.freeMarketInvoiceAmount',
+        game.freeMarketInvoiceAmount
+      )
+      localStorage.setItem(
+        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.freeMarketInvoice',
+        JSON.stringify(game.freeMarketInvoice)
+      )
+    } else
+      await fetchMarketLiquidity(game)
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
 export async function fetchPlayerBalance(game) {
   const balanceBefore = game.userBalance
   let res = await LNbits.api.getWallet({

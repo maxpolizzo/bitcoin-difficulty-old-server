@@ -302,7 +302,8 @@ export const properties = {
       name: "Renewable Energy Company",
       imgPath: "./static/images/properties/cards/00FFFF_u00.png",
       price: 150,
-      liquidationPrice: 75
+      liquidationPrice: 75,
+      networkFeeMessage: "Roll the dices and enter the result below"
     },
     {
       id: 1,
@@ -310,7 +311,8 @@ export const properties = {
       name: "Oil Field",
       imgPath: "./static/images/properties/cards/00FFFF_u01.png",
       price: 150,
-      liquidationPrice: 75
+      liquidationPrice: 75,
+      networkFeeMessage: "Roll the dices and enter the result below"
     }
   ],
   "00ff00": [
@@ -319,7 +321,8 @@ export const properties = {
       color: "00ff00",
       name: "Wrench Attack",
       imgPath: "./static/images/properties/cards/00ff00_t00.png",
-      price: 200
+      price: 200,
+      networkFeeMessage: "Invoice 200 sats or 10% ot the other player's balance, whichever is higher",
     },
     {
       id: 1,

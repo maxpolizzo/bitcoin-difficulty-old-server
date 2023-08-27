@@ -44,10 +44,13 @@ from .crud import (
     initialize_cards_indexes,
     update_next_card_index,
     get_next_chance_card_index,
-    get_next_community_chest_card_index
+    get_next_community_chest_card_index,
+    update_cumulated_fines,
+    get_cumulated_fines,
+    reset_cumulated_fines
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -148,6 +151,16 @@ async def api_monopoly_update_next_card_index(data: UpdateCardIndex):
     updated_next_card_index = await update_next_card_index(data)
     return updated_next_card_index
 
+@monopoly_ext.put("/api/v1/cards/update_cumulated_fines", status_code=HTTPStatus.CREATED)
+async def api_monopoly_update_cumulated_fines(data: UpdateCumulatedFines):
+    updated_cumulated_fines = await update_cumulated_fines(data)
+    return updated_cumulated_fines
+
+@monopoly_ext.put("/api/v1/cards/reset_cumulated_fines", status_code=HTTPStatus.CREATED)
+async def api_monopoly_reset_cumulated_fines(data: ResetCumulatedFines):
+    cumulated_fines_reset = await reset_cumulated_fines(data)
+    return cumulated_fines_reset
+
 # Getters
 @monopoly_ext.get("/api/v1/games", status_code=HTTPStatus.OK)
 async def api_monopoly_games(game_id: str):
@@ -196,6 +209,10 @@ async def api_monopoly_next_chance_card_index(game_id: str):
 @monopoly_ext.get("/api/v1/next_community_chest_card_index", status_code=HTTPStatus.OK)
 async def api_monopoly_next_community_chest_card_index(game_id: str):
     return await get_next_community_chest_card_index(game_id)
+
+@monopoly_ext.get("/api/v1/cumulated_fines", status_code=HTTPStatus.OK)
+async def api_monopoly_cumulated_fines(game_id: str):
+    return await get_cumulated_fines(game_id)
 
 @monopoly_ext.get("/api/v1/invite", status_code=HTTPStatus.OK)
 async def api_monopoly_players_invite(

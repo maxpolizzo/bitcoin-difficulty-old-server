@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, MarketLiquidity, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, MarketLiquidity, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, CumulatedFines
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -15,10 +15,10 @@ from lnbits.core.crud import (
 async def create_game(data: CreateGameData) -> Game:
     await db.execute(
         """
-        INSERT INTO monopoly.games (admin_wallet_id, game_id, max_players_count, available_player_names)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO monopoly.games (admin_wallet_id, game_id, max_players_count, cumulated_fines, available_player_names)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (data.admin_wallet_id, data.game_id, data.max_players_count, data.available_player_names),
+        (data.admin_wallet_id, data.game_id, data.max_players_count, data.cumulated_fines, data.available_player_names),
     )
 
     game_created = await get_game(data.game_id)
@@ -341,6 +341,32 @@ async def update_next_card_index(data: UpdateCardIndex) -> int:
     assert (updated_next_card_index >= 0), "Updated next card index couldn't be retrieved"
     return updated_next_card_index
 
+async def update_cumulated_fines(data: UpdateCumulatedFines) -> CumulatedFines:
+    cumulated_fines = await get_cumulated_fines(data.game_id)
+    updated_cumulated_fines = cumulated_fines.cumulated_fines + data.fine
+
+    await db.execute(
+            """
+            UPDATE monopoly.games SET cumulated_fines = ? WHERE game_id= ?
+           """,
+           (updated_cumulated_fines, data.game_id),
+    )
+    cumulated_fines_updated = await get_cumulated_fines(data.game_id)
+    assert cumulated_fines_updated, "Newly updated cumulated fines couldn't be retrieved"
+    return cumulated_fines_updated
+
+async def reset_cumulated_fines(data: ResetCumulatedFines) -> CumulatedFines:
+    await db.execute(
+            """
+            UPDATE monopoly.games SET cumulated_fines = 0 WHERE game_id= ?
+           """,
+           (data.game_id),
+    )
+    cumulated_fines_reset = await get_cumulated_fines(data.game_id)
+    assert cumulated_fines_reset, "Newly reset cumulated fines couldn't be retrieved"
+    return cumulated_fines_reset
+
+
 # Getters
 async def get_game(game_id: str) -> Game:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
@@ -397,3 +423,7 @@ async def get_next_chance_card_index(game_id: str) -> CardIndex:
 async def get_next_community_chest_card_index(game_id: str) -> CardIndex:
     row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, "community_chest"))
     return CardIndex(**row) if row else None
+
+async def get_cumulated_fines(game_id: str) -> CumulatedFines:
+    row = await db.fetchone("SELECT cumulated_fines FROM monopoly.games WHERE game_id = ?", (game_id))
+    return row

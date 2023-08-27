@@ -19,6 +19,7 @@ async def m001_initial(db):
            available_player_names TEXT NOT NULL,
            payment_req TEXT,
            payment_hash TEXT,
+           cumulated_fines {db.big_int},
            time TIMESTAMP NOT NULL DEFAULT TIMESTAMP NOT NULL DEFAULT """+ db.timestamp_now + """
        );
     """
