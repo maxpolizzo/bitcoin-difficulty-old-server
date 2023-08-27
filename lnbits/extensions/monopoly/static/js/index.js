@@ -38,6 +38,7 @@ import {
   checkPaymentsToFreeMarket,
   checkPaymentsToPlayer,
   checkPlayerInvoicePaid,
+  checkFreeMarketInvoicePaid
 } from './calls/intervals.js'
 import { decodeLNURL } from './helpers/utils.js'
 
@@ -59,6 +60,7 @@ new Vue({
         track: null,
         camera: 'auto'
       },
+      freeMarketCamera: false,
       qrCodeDialog: {
         data: null,
         show: false
@@ -150,6 +152,7 @@ new Vue({
       this.camera.show = false;
       this.camera.track.stop();
       this.game.gameCreatorPaymentToMarket = false;
+      this.freeMarketCamera = false;
     },
     onError: function(err) {
       console.error(err)
@@ -169,7 +172,7 @@ new Vue({
     // Logic to create a new game and a dedicated wallet for game creator (called from index.html)
     createGame: async function () {
       // Create free market wallet and dedicated player wallet for game creator
-      await this.createBankAndPlayerWallet();
+      await this.createFreeMarketAndPlayerWallet();
       // Check for payments to free market wallet
       this.checkPaymentsToFreeMarket();
       // Check for payments to player wallet
@@ -204,7 +207,7 @@ new Vue({
       // window.location.reload();
     },
     // Logic to create free market wallet and dedicated player wallet for game creator
-    createBankAndPlayerWallet: async function () {
+    createFreeMarketAndPlayerWallet: async function () {
       // Create free market wallet
       let res = await LNbits.api
         .request(
@@ -234,6 +237,7 @@ new Vue({
               admin_wallet_id: this.game.player.wallet_id,
               game_id: this.game.marketData.id,
               max_players_count: this.game.maxPlayersCount,
+              cumulated_fines: 0,
               available_player_names: playerNames
             }
           )
@@ -477,13 +481,50 @@ new Vue({
 
           console.log(this.game.playerInvoice.paymentReq)
 
-          // Save funding invoice in local storage
+          // Save invoice in local storage
           localStorage.setItem(
             'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.playerInvoice',
             JSON.stringify(this.game.playerInvoice)
           )
+          this.game.playerInvoiceAmount = null;
           // Once invoice has been created and saved, start checking for payments
           this.checkPlayerInvoicePaid(invoiceReason)
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
+      }
+    },
+    createFreeMarketInvoice: async function (invoiceReason = null) {
+      // Erase previous player invoice
+      this.game.freeMarketInvoice.paymentReq = null
+      this.game.freeMarketInvoice = newGame.freeMarketInvoice
+      if(this.game.freeMarketInvoiceAmount && this.game.freeMarketInvoiceAmount > 0) {
+        // Generate new free market invoice
+        this.game.freeMarketInvoice.data.amount = this.game.freeMarketInvoiceAmount
+        if (LNBITS_DENOMINATION !== 'sats') {
+          this.game.freeMarketInvoice.data.amount = this.game.freeMarketInvoice.data.amount * 100
+        }
+        let res = await LNbits.api.createInvoice(
+          this.game.marketData.wallets[0],
+          this.game.freeMarketInvoice.data.amount,
+          this.game.freeMarketInvoice.data.memo,
+          this.game.freeMarketInvoice.unit,
+          this.game.freeMarketInvoice.lnurl && this.game.freeMarketInvoice.lnurl.callback
+        )
+        if(res.data) {
+          this.game.freeMarketInvoice.paymentReq = res.data.payment_request
+          this.game.freeMarketInvoice.paymentHash = res.data.payment_hash
+
+          console.log(this.game.freeMarketInvoice.paymentReq)
+
+          // Save invoice in local storage
+          localStorage.setItem(
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.freeMarketInvoice',
+            JSON.stringify(this.game.freeMarketInvoice)
+          )
+          this.game.freeMarketInvoiceAmount = null;
+          // Once invoice has been created and saved, start checking for payments
+          this.checkFreeMarketInvoicePaid(invoiceReason)
         } else {
           LNbits.utils.notifyApiError(res.error)
         }
@@ -564,6 +605,9 @@ new Vue({
     checkPlayerInvoicePaid: function (invoiceReason = null) {
       checkPlayerInvoicePaid(this.game, invoiceReason)
     },
+    checkFreeMarketInvoicePaid: function (invoiceReason = null) {
+      checkFreeMarketInvoicePaid(this.game, invoiceReason)
+    },
     // Called from index.html
     onGameFunded: function () {
       onGameFunded(this.game)
@@ -579,6 +623,12 @@ new Vue({
     },
     closePlayerInvoiceDialog: async function () {
       this.game.showPlayerInvoiceDialog = false
+    },
+    showFreeMarketInvoiceDialog: async function () {
+      this.game.showFreeMarketInvoiceDialog = true
+    },
+    closeFreeMarketInvoiceDialog: async function () {
+      this.game.showFreeMarketInvoiceDialog = false
     },
     // Functions interfaces
     checkPlayerBalance: async function () {
@@ -606,10 +656,55 @@ new Vue({
       this.game.showPropertyDialog = true;
       this.game.propertyToShow = property;
     },
-    createNetworkFeeInvoice: async function (property) {
+    getNetworkFeeInvoiceAmount: async function (property) {
+      console.log(this.game.playerInvoiceAmount)
       this.game.showSaleInvoiceDialog = false;
       this.erasePropertyInvoices()
-      this.game.playerInvoiceAmount = property.networkFee[property.mining_capacity]
+      switch(property.color) {
+        case("bfbfbf"):
+          // Invoice network fee for mining pools
+          let miningPoolsCount = this.game.properties[this.game.player.wallets[0].id]["bfbfbf"].length;
+          this.game.playerInvoiceAmount = property.networkFee[miningPoolsCount - 1]
+          await this.createNetworkFeeInvoice(property);
+          break;
+        case("00ff00"):
+          // Invoice network fee for wrench attack
+          switch(property.id) {
+            case 0:
+              this.game.customNetworkFeeMultiplier = 1;
+              this.game.showNetworkFeeInvoiceDialog = true;
+              break;
+            case 1:
+              this.game.playerInvoiceAmount = 75;
+              await this.createNetworkFeeInvoice(property);
+              break;
+            default: throw("Wrench attack fee invoice error: unknown property id");
+          }
+          break;
+        case("00FFFF"):
+          // Invoice network fee for energy companies
+          let energyCompaniesCount = this.game.properties[this.game.player.wallets[0].id]["00FFFF"].length;
+          switch(energyCompaniesCount) {
+            case 1:
+              this.game.customNetworkFeeMultiplier = 4;
+              break;
+            case 2:
+              this.game.customNetworkFeeMultiplier = 10;
+              break;
+            default: throw("Energy company fee invoice error: invalid energy companies count");
+          }
+          this.game.showNetworkFeeInvoiceDialog = true;
+          break;
+        default:
+          // Invoice network fee for regular propertiees
+          this.game.playerInvoiceAmount = property.networkFee[property.mining_capacity];
+          await this.createNetworkFeeInvoice(property);
+      }
+    },
+    createNetworkFeeInvoice: async function(property) {
+      if(!this.game.playerInvoiceAmount) {
+        this.game.playerInvoiceAmount = this.game.customNetworkFeeInvoiceAmount * this.game.customNetworkFeeMultiplier;
+      }
       await this.createPlayerInvoice({
         type: "network_fee",
         propertyId: property.id
@@ -623,6 +718,10 @@ new Vue({
       this.game.showPropertyDialog = false;
       this.game.showPropertyInvoiceDialog = true;
       this.game.showNetworkFeeInvoice = true;
+      this.game.showNetworkFeeInvoiceDialog = false;
+      this.game.playerInvoiceAmount = null;
+      this.game.customNetworkFeeInvoiceAmount = null;
+      this.game.customNetworkFeeMultiplier = null;
     },
     openSaleInvoiceDialog: async function (property) {
       this.erasePropertyInvoices()
@@ -671,6 +770,7 @@ new Vue({
         invoice: this.game.playerInvoice.paymentReq,
       })
       this.game.saleInvoiceCreated = true;
+      this.game.playerInvoiceAmount = null;
     },
     createOfferVoucher: async function (property) {
       this.erasePropertyInvoices()
@@ -704,12 +804,19 @@ new Vue({
       this.game.invoice = null;
       this.game.invoiceAmount = "0";
     },
+    closePayInvoiceOnBehalfOfFreeMarketDialog: function () {
+      this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = false;
+      this.game.invoice = null;
+      this.game.invoiceAmount = "0";
+    },
     erasePropertyInvoices: function() {
       this.game.showNetworkFeeInvoice = false;
       this.game.showNetworkFeeInvoice = false;
       this.game.propertyPurchaseData = null;
       this.game.propertySaleData = null;
       this.game.playerInvoiceAmount = null;
+      this.game.customNetworkFeeInvoiceAmount = null;
+      this.game.customNetworkFeeMultiplier = null;
       this.game.playerInvoice.paymentReq = null;
       this.game.playerInvoice = newGame.playerInvoice;
       this.game.fundingInvoice.paymentReq = null;
@@ -734,6 +841,18 @@ new Vue({
       if(res.data && res.data.payment_hash) {
         console.log("Invoice paid successfully")
         this.closePayInvoiceDialog()
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    payInvoiceOnBehalfOfFreeMarket: async function() {
+      // Pay invoice
+      console.log(this.game.invoice)
+      console.log("Paying invoice on behalf of the free market...")
+      let res = await LNbits.api.payInvoice(this.game.marketData.wallets[0], this.game.invoice);
+      if(res.data && res.data.payment_hash) {
+        console.log("Invoice paid successfully")
+        this.closePayInvoiceOnBehalfOfFreeMarketDialog()
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -978,6 +1097,23 @@ new Vue({
         )
       if(res.data && res.data.payment_hash) {
         console.log("Fine paid successfully")
+        // Update cumulated fines in database
+        console.log("Updating cumulated fines")
+        res = await LNbits.api
+          .request(
+            'PUT',
+            '/monopoly/api/v1/cards/update_cumulated_fines',
+            this.game.player.wallets[0].inkey,
+            {
+              game_id: this.game.marketData.id,
+              fine: this.game.fineAmountSats
+            }
+          )
+        if(res.data) {
+          console.log("Cumulated fines updated successfully")
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
         this.closePayFineDialog()
       } else {
         LNbits.utils.notifyApiError(res.error)
@@ -1020,6 +1156,50 @@ new Vue({
       this.game.rewardAmountSats = 0;
       this.game.customRewardMultiplier = 0;
     },
+    showFreeBitcoinClaimDialog: async function () {
+      this.game.cumulatedFines = await this.getCumulatedFines();
+      this.game.showFreeBitcoinClaimDialog = true;
+    },
+    getCumulatedFines: async function () {
+      let res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/cumulated_fines?game_id=' + this.game.marketData.id,
+          this.game.player.wallets[0].inkey,
+        )
+      if(res.data) {
+        console.log(res.data)
+        return res.data.cumulated_fines;
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    claimCumulatedFines: async function () {
+      // Claim cumulated fines from the free market
+      let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
+      // Claim reward
+      console.log("Claiming free sats...")
+      await withdrawFromLNURL(lnurlData, this.game.player.wallets[0], this.game.cumulatedFines, 'free bitcoin')
+      console.log("Free sats claimed successfully")
+      // Reset cumulated_fines to 0 in database
+      console.log("Resetting cumulated fines")
+      let res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/cards/reset_cumulated_fines',
+          this.game.player.wallets[0].inkey,
+          {
+            game_id: this.game.marketData.id,
+          }
+        )
+      if(res.data) {
+        console.log("Cumulated fines reset successfully")
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+      this.game.cumulatedFines = 0
+      this.game.showFreeBitcoinClaimDialog = false;
+    },
     getLowestBalancePlayerName: function () {
       let lowestBalance = this.game.initialFunding + 1
       let lowestBalancePlayerName = ""
@@ -1037,6 +1217,10 @@ new Vue({
     showCamera: function () {
       this.camera.show = true
     },
+    showFreeMarketCamera: function () {
+      this.freeMarketCamera = true
+      this.camera.show = true
+    },
     hasCamera: function () {
       navigator.permissions.query({name: 'camera'}).then(res => {
         return res.state == 'granted'
@@ -1048,12 +1232,13 @@ new Vue({
       this.parseQRData(data)
     },
     decodeQR: function (res) {
+      let onBehalfOfFreeMarket = !!this.freeMarketCamera;
       this.closeCamera()
       this.camera.data = res
-      this.parseQRData(this.camera.data)
+      this.parseQRData(this.camera.data, onBehalfOfFreeMarket)
     },
 
-    parseQRData: async function (QRData) {
+    parseQRData: async function (QRData, onBehalfOfFreeMarket = false) {
       // Regular lightning invoice case
       if(QRData.slice(0, 2) == "ln") {
         const invoice = decodeInvoice(QRData);
@@ -1061,8 +1246,15 @@ new Vue({
         console.log(invoice.sat)
         this.game.invoiceAmount = invoice.sat.toString()
         this.game.invoice = QRData
-        this.game.showPayInvoiceDialog = true
+        if(onBehalfOfFreeMarket) {
+          this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
+        } else  {
+          this.game.showPayInvoiceDialog = true
+        }
       } else  {
+        if(onBehalfOfFreeMarket) {
+          throw("Invalid data type for free market")
+        }
         // Other cases
         let data = JSON.parse(QRData)
         console.log(data)
@@ -1118,6 +1310,11 @@ new Vue({
             this.game.networkFeeInvoice.property = properties[data.propertyColor][data.propertyId]
             this.game.networkFeeInvoice.invoice = data.invoice
             this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
+            break
+
+          case "free_bitcoin":
+            this.closePropertyDialog()
+            await this.showFreeBitcoinClaimDialog()
             break
 
           default:

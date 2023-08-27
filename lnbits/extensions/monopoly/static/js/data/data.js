@@ -13,15 +13,18 @@ export const newGame = {
   showExplanationText: false,
   showPayInvoiceDialog: false,
   showPlayerInvoiceDialog: false,
+  showFreeMarketInvoiceDialog: false,
   showPropertyDialog: false,
   showPropertyInvoiceDialog: false,
   showPropertyPurchaseDialog: false,
   showPropertyUpgradeDialog: false,
   showSaleInvoiceDialog: false,
+  showFreeBitcoinClaimDialog: false,
   showChanceCard: false,
   showCommunityChestCard: false,
   chanceCardToShow: "",
   communityChestCardToShow: "",
+  showNetworkFeeInvoiceDialog: false,
   saleInvoiceCreated: false,
   purchaseInvoiceCreated: false,
   upgradeInvoiceCreated: false,
@@ -31,6 +34,9 @@ export const newGame = {
   invoiceAmount: "0",
   fundingInvoiceAmount: "0",
   playerInvoiceAmount: "0",
+  freeMarketInvoiceAmount: "0",
+  customNetworkFeeInvoiceAmount: null,
+  customNetworkFeeMultiplier: null,
   playerVoucherId: "",
   playerVoucher: null,
   playerVoucherAmount: 0,
@@ -48,6 +54,7 @@ export const newGame = {
   marketData: {},
   voucherPaymentHash: "",
   paidVoucher: false,
+  cumulatedFines: 0,
   fundingInvoice: {
     paymentReq: null,
     paymentHash: null,
@@ -70,6 +77,18 @@ export const newGame = {
     data: {
       amount: null,
       memo: 'Bitcoin Monopoly: player invoice'
+    }
+  },
+  freeMarketInvoice: {
+    paymentReq: null,
+    paymentHash: null,
+    minMax: [0, 2100000000000000],
+    lnurl: null,
+    units: ['sat'],
+    unit: 'sat',
+    data: {
+      amount: null,
+      memo: 'Bitcoin Monopoly: free market invoice'
     }
   },
   freeMarketWallet: {

@@ -4,7 +4,8 @@ import {
   fetchMarketLiquidity,
   fetchFundingInvoicePaid,
   fetchPlayerBalance,
-  fetchPlayerInvoicePaid
+  fetchPlayerInvoicePaid,
+  fetchFreeMarketInvoicePaid
 } from './api.js'
 import {
   fetchGameStarted,
@@ -44,6 +45,14 @@ export function checkPlayerInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.playerInvoice.paymentChecker)
   game.playerInvoice.paymentChecker = setInterval(async () => {
     await fetchPlayerInvoicePaid(game, invoiceReason)
+  }, PERIOD)
+}
+
+// Logic to check periodically if free market invoice has been paid
+export function checkFreeMarketInvoicePaid(game, invoiceReason = null) {
+  clearInterval(game.freeMarketInvoice.paymentChecker)
+  game.freeMarketInvoice.paymentChecker = setInterval(async () => {
+    await fetchFreeMarketInvoicePaid(game, invoiceReason)
   }, PERIOD)
 }
 

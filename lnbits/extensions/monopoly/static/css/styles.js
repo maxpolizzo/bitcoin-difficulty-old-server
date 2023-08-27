@@ -96,6 +96,15 @@ export function reactiveStyles(game) {
       payInvoiceButton: {
         marginLeft: `1em`
       },
+      networkFeeMessage: {
+        marginTop: `0em`,
+      },
+      networkFeeAmountForm: {
+        marginTop: `1em`,
+      },
+      networkFeeAmount: {
+        marginLeft: `0em`
+      },
       propertyImage: {
         height: `auto`,
         maxWidth: `65%`,
@@ -124,7 +133,7 @@ export function reactiveStyles(game) {
         },
         invoiceButton: {
           marginTop: `2em`,
-          marginLeft: `-1em`
+          marginLeft: `-0.25em`
         },
         upgradeButton: {
           marginLeft: `-1em`
@@ -248,6 +257,19 @@ export function reactiveStyles(game) {
       payInvoiceButton: {
         marginLeft: `1em`
       },
+      networkFeeMessage: {
+        marginTop: `-1em`,
+        marginLeft: `-1em`
+      },
+      networkFeeAmountForm: {
+        marginTop: `0em`,
+        marginBottom: `1em`,
+        marginLeft: `-2em`
+      },
+      networkFeeAmount: {
+        marginTop: `-1em`,
+        marginLeft: `-2em`
+      },
       propertyImage: {
         height: `auto`,
         maxWidth: `85%`,
@@ -278,7 +300,7 @@ export function reactiveStyles(game) {
           marginLeft: `-2em`
         },
         invoiceButton: {
-          marginLeft: `-2em`
+          marginLeft: `-1em`
         },
         upgradeButton: {
           marginLeft: `-2em`
