@@ -22,23 +22,23 @@ export async function onGameFunded (game) {
   if(res.data) {
     // Save game data into local storage
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.showFundingDialog',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.showFundingDialog',
       JSON.stringify(game.showFundingDialog)
     )
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.showFundingView',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.showFundingView',
       JSON.stringify(game.showFundingView)
     )
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.fundingStatus',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fundingStatus',
       JSON.stringify(game.fundingStatus)
     )
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.initialFunding',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.initialFunding',
       JSON.stringify(game.initialFunding)
     )
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.initialPlayerBalance',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.initialPlayerBalance',
       JSON.stringify(game.initialPlayerBalance)
     )
     console.log("Monopoly: game has been funded")
@@ -60,7 +60,7 @@ export async function fetchGameStarted(game) {
     game.started = res.data[0][1]
     // Save game status in local storage
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.started',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.started',
       game.started.toString()
     )
     if(game.started) {
@@ -98,15 +98,15 @@ export async function fetchPlayers(game) {
       game.playersCount = playersCount
       // Save game data in  local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.playersCount',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playersCount',
         game.playersCount
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.players',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.players',
         JSON.stringify(game.players)
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.playersData',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playersData',
         JSON.stringify(game.playersData)
       )
     }
@@ -145,11 +145,11 @@ export async function fetchPlayersBalances(game) {
     if(balanceChanged) {
       // Save game data in  local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.players',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.players',
         JSON.stringify(game.players)
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.playersData',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playersData',
         JSON.stringify(game.playersData)
       )
     }
@@ -226,11 +226,11 @@ export async function fetchProperties(game) {
       game.propertiesCount = gamePropertiesCount;
       // Save game data in local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.properties',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.properties',
         JSON.stringify(game.properties)
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.propertiesCount',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.propertiesCount',
         JSON.stringify(game.propertiesCount)
       )
     }

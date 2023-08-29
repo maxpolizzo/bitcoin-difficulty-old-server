@@ -19,6 +19,16 @@ async def index(
         "monopoly/index.html", {"request": request, "user": user.dict()}
     )
 
+@monopoly_ext.get("/game", response_class=HTMLResponse)
+async def index(
+    request: Request,
+    user: User = Depends(check_user_exists),  # type: ignore
+    game_id: str = Query(...),
+):
+    return monopoly_renderer().TemplateResponse(
+        "monopoly/game.html", {"request": request, "user": user.dict(), "game_id": game_id}
+    )
+
 @monopoly_ext.get("/invite", response_class=HTMLResponse)
 async def invite(
     request: Request,

@@ -1,5 +1,5 @@
 import { inviteGame } from './data/data.js'
-import { claimInviteVoucher, checkForPayment } from './helpers/utils.js'
+import { claimInviteVoucher } from './helpers/utils.js'
 
 let game = inviteGame
 game.player.id = window.user.id;
@@ -10,60 +10,34 @@ game.player.wallets.push(window.user.wallets[0]);
 const gameId = window.invite_vars.game_id;
 const inviteVoucher = window.invite_vars.invite_voucher;
 game.rewardVoucher = window.invite_vars.reward_voucher.toString();
-
-// Check local storage for existing games
-let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
-let gameRecord
-if(existingGameRecords && existingGameRecords.length) {
-  for(let i = 0; i < existingGameRecords.length; i++) {
-    if(existingGameRecords[i] === 'game_' + gameId + '_' + game.player.wallet_id) {
-      gameRecord = existingGameRecords[i]
-      break
-    }
-  }
-}
-
-if(gameRecord) { // If game is already registered in local storage
-  // Update game object with values found in local storage
-  Object.keys(game).forEach((key) => {
-    try {
-      game[key] = JSON.parse(localStorage.getItem('monopoly.' + gameRecord + '.' + key))
-    } catch(err) {
-      game[key] = localStorage.getItem('monopoly.' + gameRecord + '.' + key)
-    }
-  })
-} else {
-  // Register new game record in local storage
-  if(existingGameRecords && existingGameRecords.length) {
-    existingGameRecords.push('game_' + gameId + '_' + game.player.wallet_id)
-  } else {
-    existingGameRecords = ['game_' + gameId + '_' + game.player.wallet_id]
-  }
-  localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
-}
 // Set game's market data
 game.marketData = {
   id: gameId,
 }
 // Fetch game data, claim invite voucher and redirect to index.html
-const paid = JSON.parse(localStorage.getItem('monopoly.game_' + gameId + '_' + game.player.wallet_id + '.paidVoucher'));
-const inviteVoucherPaymentHash = localStorage.getItem('monopoly.game_' + gameId + '_' + game.player.wallet_id + '.inviteVoucherPaymentHash');
+enableMonopolyExtension(window.user.id).then(async () => {
+  await fetchGameData(game);
+})
+const claimedVoucher = JSON.parse(localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher'));
+const inviteVoucherPaymentHash = localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherPaymentHash');
 
-enableMonopolyExtension(window.user.id).then(() => {
-  fetchGameData(game).then(() => {
-    if(!paid) {
-      if(!inviteVoucherPaymentHash) {
-        // Claim invite voucher
-        claimInviteVoucher(inviteVoucher, game.player.wallets[0]).then(() => {
-          redirect()
-        })
-      } else {
-        checkForPayment(inviteVoucherPaymentHash)
-      }
-    } else {
-      redirect()
+new Vue({
+  el: '#vue',
+  mixins: [windowMixin],
+  data: {
+    game: game,
+    inviteVoucher: inviteVoucher,
+    inviteVoucherPaymentHash: inviteVoucherPaymentHash,
+    claimedVoucher:claimedVoucher
+  },
+  methods: {
+    claimVoucher: function() {
+      // Claim invite voucher
+      claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]).then(() => {
+        redirect(this.game);
+      })
     }
-  })
+  }
 })
 
 // Logic to enable the Monopoly extension
@@ -101,32 +75,57 @@ async function fetchGameData (game) {
     try {
       if(game[key].toString() !== '[object Object]') {
         localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + window.user.wallets[0].id + '.' + key,
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + key,
           game[key].toString()
         )
       } else {
         localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + window.user.wallets[0].id + '.' + key,
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + key,
           JSON.stringify(game[key])
         )
       }
     } catch(err) {
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + window.user.wallets[0].id + '.' + key,
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + key,
         JSON.stringify(game[key])
       )
     }
   })
+  // Save game record
+  saveGameRecord(game);
+
 }
 
-function redirect() {
-  // Redirect to index.html
-  window.location.href = "https://" + window.location.hostname + "/monopoly/?usr=" + user.id;
+function saveGameRecord(game) {
+  // Check local storage for existing game records
+  let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
+  let gameRecord
+  if(existingGameRecords && existingGameRecords.length) {
+    for(let i = 0; i < existingGameRecords.length; i++) {
+      if(
+        existingGameRecords[i].split('_')[1] === game.marketData.id &&
+        existingGameRecords[i].split('_')[2] === game.player.id
+      ) {
+        gameRecord = existingGameRecords[i]
+        break
+      }
+    }
+  }
+  console.log(gameRecord)
+  if(!gameRecord) { // If game is not already registered in local storage
+    console.log("Saving game record...")
+    // Register new game record in local storage
+    game.timestamp = Date.now()
+    if(existingGameRecords && existingGameRecords.length) {
+      existingGameRecords.push('game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '_' + game.timestamp)
+    } else {
+      existingGameRecords = ['game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '_' + game.timestamp]
+    }
+    localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
+  }
 }
 
-new Vue({
-  el: '#vue',
-  mixins: [windowMixin],
-  data: {},
-  methods: {}
-})
+function redirect(game) {
+  // Redirect to game.html
+  window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
+}

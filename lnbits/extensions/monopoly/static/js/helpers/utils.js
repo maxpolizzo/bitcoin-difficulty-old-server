@@ -1,9 +1,9 @@
 /* globals decode*/
 
-export async function claimInviteVoucher (lnurl, wallet) {
+export async function claimInviteVoucher (lnurl, game, wallet) {
   const lnurlData = await decodeLNURL(lnurl, wallet);
   const amount = lnurlData.maxWithdrawable / 1000; // mSats to sats conversion
-  return await withdrawFromLNURL(lnurlData, wallet, amount, 'invite');
+  return await withdrawFromLNURL(lnurlData, game, wallet, amount, 'invite');
 }
 
 export async function decodeLNURL(lnurl, wallet) {
@@ -30,7 +30,7 @@ export async function decodeLNURL(lnurl, wallet) {
   }
 }
 
-export async function withdrawFromLNURL(lnurlData, wallet, amount, type) {
+export async function withdrawFromLNURL(lnurlData, game, wallet, amount, type) {
   console.log("Claiming " + amount + " sats...")
   let res = await LNbits.api
     .createInvoice(
@@ -52,11 +52,12 @@ export async function withdrawFromLNURL(lnurlData, wallet, amount, type) {
         console.log(`Invoice sent to ${lnurlData.domain}!`)
         // Store payment hash in local storage
         localStorage.setItem(
-          'monopoly.game.' + type + 'VoucherPaymentHash',
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + type + 'VoucherPaymentHash',
+          // 'monopoly.game.' + type + 'VoucherPaymentHash',
           JSON.stringify(res.data.payment_hash)
         )
         // Check for invoice payment
-        await checkForPayment(res.data.payment_hash, wallet)
+        await checkForPayment(res.data.payment_hash, game, wallet)
       }
     }
   } else {
@@ -64,13 +65,13 @@ export async function withdrawFromLNURL(lnurlData, wallet, amount, type) {
   }
 }
 
-export async function checkForPayment(paymentHash, wallet) {
+export async function checkForPayment(paymentHash, game, wallet) {
   let paymentChecker = setInterval(async () => {
     console.log("Checking for payment...")
     let res = await LNbits.api.getPayment(wallet, paymentHash)
     if(res.data) {
       if (res.data.paid) {
-        onPaymentReceived(paymentChecker)
+        onPaymentReceived(paymentChecker, game)
       }
     } else {
       LNbits.utils.notifyApiError(res.error)
@@ -78,10 +79,11 @@ export async function checkForPayment(paymentHash, wallet) {
   }, 5000)
 }
 
-export function onPaymentReceived(paymentChecker) {
+export function onPaymentReceived(paymentChecker, game) {
   clearInterval(paymentChecker)
   localStorage.setItem(
-    'monopoly.game.paidVoucher',
+    'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher',
+    // 'monopoly.game.paidVoucher',
     JSON.stringify(true)
   )
   console.log("Successfully claimed LNURL voucher")

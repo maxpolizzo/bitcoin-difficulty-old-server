@@ -49,7 +49,7 @@ export async function fetchPaymentsToFreeMarket(game) {
     })
     // Save payments to free market in local storage
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.freeMarketWallet',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.freeMarketWallet',
       JSON.stringify(game.freeMarketWallet)
     )
   } else {
@@ -101,7 +101,7 @@ export async function fetchPaymentsToPlayer(game) {
     })
     // Save payments to player in local storage
     localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.playerWallet',
+      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerWallet',
       JSON.stringify(game.playerWallet)
     )
   } else {
@@ -122,11 +122,11 @@ export async function fetchFundingInvoicePaid(game, invoiceReason = null) {
       game.fundingInvoice = newGame.fundingInvoice
       // Save funding invoice template in local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.fundingInvoiceAmount',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fundingInvoiceAmount',
         game.fundingInvoiceAmount
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.fundingInvoice',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fundingInvoice',
         JSON.stringify(game.fundingInvoice)
       )
       /*
@@ -160,11 +160,11 @@ export async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
       game.playerInvoice = newGame.playerInvoice
       // Save player invoice template in local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.playerInvoiceAmount',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerInvoiceAmount',
         game.playerInvoiceAmount
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.playerInvoice',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerInvoice',
         JSON.stringify(game.playerInvoice)
       )
     } else
@@ -187,11 +187,11 @@ export async function fetchFreeMarketInvoicePaid(game, invoiceReason = null) {
       game.freeMarketInvoice = newGame.freeMarketInvoice
       // Save player invoice template in local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.freeMarketInvoiceAmount',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.freeMarketInvoiceAmount',
         game.freeMarketInvoiceAmount
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.freeMarketInvoice',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.freeMarketInvoice',
         JSON.stringify(game.freeMarketInvoice)
       )
     } else
@@ -212,7 +212,7 @@ export async function fetchPlayerBalance(game) {
       game.userBalance = userBalance
       // Save user balance in local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.userBalance',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.userBalance',
         game.userBalance.toString()
       )
       // Save user balance in database
@@ -248,7 +248,7 @@ export async function fetchMarketLiquidity(game) {
         game.marketLiquidity = marketLiquidity
         // Save game funding balance in local storage
         localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.marketLiquidity',
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.marketLiquidity',
           game.marketLiquidity.toString()
         )
         // Save game funding balance in database
@@ -283,7 +283,7 @@ export async function fetchMarketLiquidity(game) {
         game.marketLiquidity = marketLiquidity
         // Save game funding balance in local storage
         localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.marketLiquidity',
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.marketLiquidity',
           game.marketLiquidity.toString()
         )
       }
@@ -333,13 +333,13 @@ export async function createRewardVoucher(game) {
       // Save lnurl voucher Id in local storage
       game.rewardVoucherId = voucherId;
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.rewardVoucherId',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.rewardVoucherId',
         game.rewardVoucherId.toString()
       )
       // Save lnurl voucher in local storage
       game.rewardVoucher = voucher;
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.rewardVoucher',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.rewardVoucher',
         game.rewardVoucher.toString()
       )
     } else {
@@ -385,11 +385,11 @@ export async function createInviteVoucher(game) {
       // Save lnurl voucher Id in local storage
       game.inviteVoucherId = voucherId;
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.inviteVoucherId',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherId',
         game.inviteVoucherId.toString()
       )
       // Claim LNURL voucher for game creator
-      await claimInviteVoucher(voucher, game.player.wallets[0]);
+      await claimInviteVoucher(voucher, game, game.player.wallets[0]);
       setTimeout(() => {
         // Refresh page to refresh game creator's player wallet balance in left panel
         window.location.reload();
@@ -415,11 +415,11 @@ export async function deleteInviteVoucher(game) {
       game.inviteVoucher = null
       // Save game data to local storage
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.inviteVoucherId',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherId',
         game.inviteVoucherId
       )
       localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.wallets[0].id + '.inviteVoucher',
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucher',
         game.inviteVoucher
       )
       console.log("LNURL voucher deleted successfully")
