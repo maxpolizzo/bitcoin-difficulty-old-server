@@ -17,6 +17,7 @@ import {
   fetchPlayers
 } from './calls/database.js'
 import {
+  fetchGameRecords,
   loadGameData,
   initGameData
 } from './helpers/init.js'
@@ -45,15 +46,25 @@ import { decodeLNURL } from './helpers/utils.js'
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
 
-const game = loadGameData();
+const savedGameRecords = fetchGameRecords()
+let game = newGame;
+// Load current game
+if(window.game_id && window.user.id && savedGameRecords.gameRecords[window.game_id][window.user.id]) {
+  console.log("Loading saved game: " + window.game_id);
+  game = loadGameData(savedGameRecords.gameRecords[window.game_id][window.user.id]);
+  game = initGameData(game);
+}
 
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data: function() {
-    const initializedGame = initGameData(game)
+    console.log()
+    // const initializedGame = initGameData(game)
     return {
-      game: initializedGame,
+      gameRecords: savedGameRecords.gameRecords,
+      gameRecordsData: savedGameRecords.gameRecordsData,
+      game: game,
       camera: {
         data: null,
         show: false,
@@ -169,6 +180,13 @@ new Vue({
       this.game = onDragged(this.game, this.dragStartTime, { oldIndex, newIndex }, color);
       this.isDragging = false;
     },
+    loadExistingGame: async function (gameId) {
+      console.log("Loading saved game: " + gameId);
+      const game = loadGameData(this.gameRecords[gameId][window.user.id]);
+      this.game = initGameData(game);
+      // Redirect to game.html
+      window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + this.game.player.id + "&game_id=" + this.game.marketData.id;
+    },
     // Logic to create a new game and a dedicated wallet for game creator (called from index.html)
     createGame: async function () {
       // Create free market wallet and dedicated player wallet for game creator
@@ -195,16 +213,16 @@ new Vue({
       this.game.showFundingView = true;
       // Register game data in local storage
       localStorage.setItem(
-        'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.showFundingView',
+        'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.showFundingView',
         this.game.showFundingView
       )
       this.game.playersCount = 1;
       localStorage.setItem(
-        'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.playersCount',
+        'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.playersCount',
         this.game.playersCount
       )
-      // Refresh page to display newly created player wallet (not necessary?)
-      // window.location.reload();
+      // Redirect to game.html
+      window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + this.game.player.id + "&game_id=" + this.game.marketData.id;
     },
     // Logic to create free market wallet and dedicated player wallet for game creator
     createFreeMarketAndPlayerWallet: async function () {
@@ -259,23 +277,24 @@ new Vue({
           )
           this.game.created = true
           this.game.fundingStatus = 'awaiting'
+          this.game.timestamp = Date.now()
           // Register new game in local storage
           let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
           if(existingGameRecords && existingGameRecords.length) {
-            existingGameRecords.push('game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id)
+            existingGameRecords.push('game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '_' + this.game.timestamp)
           } else {
-            existingGameRecords = ['game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id]
+            existingGameRecords = ['game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '_' + this.game.timestamp]
           }
           localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
           Object.keys(this.game).forEach((key) => {
             if(typeof(this.game[key]) == 'object'){
               localStorage.setItem(
-                'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.' + key,
+                'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.' + key,
                 JSON.stringify(this.game[key])
               )
             } else {
                 localStorage.setItem(
-                  'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.' + key,
+                  'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.' + key,
                   this.game[key]
                 )
             }
@@ -359,11 +378,11 @@ new Vue({
           this.game.lnurlPayLinkId = payLinkId;
           this.game.lnurlPayLink = payLink;
           localStorage.setItem(
-            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.lnurlPayLinkId',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.lnurlPayLinkId',
             this.game.lnurlPayLinkId.toString()
           )
           localStorage.setItem(
-            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.lnurlPayLink',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.lnurlPayLink',
             this.game.lnurlPayLink.toString()
           )
         } else {
@@ -444,7 +463,7 @@ new Vue({
 
           // Save funding invoice in local storage
           localStorage.setItem(
-            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.fundingInvoice',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id  + '.fundingInvoice',
             JSON.stringify(this.game.fundingInvoice)
           )
           // Once invoice has been created and saved, start checking for payments
@@ -483,7 +502,7 @@ new Vue({
 
           // Save invoice in local storage
           localStorage.setItem(
-            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.playerInvoice',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.playerInvoice',
             JSON.stringify(this.game.playerInvoice)
           )
           this.game.playerInvoiceAmount = null;
@@ -519,7 +538,7 @@ new Vue({
 
           // Save invoice in local storage
           localStorage.setItem(
-            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.freeMarketInvoice',
+            'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.freeMarketInvoice',
             JSON.stringify(this.game.freeMarketInvoice)
           )
           this.game.freeMarketInvoiceAmount = null;
@@ -584,7 +603,7 @@ new Vue({
       if(res.data) {
         // Save game status in local storage
         localStorage.setItem(
-          'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.wallets[0].id + '.started',
+          'monopoly.game_' + this.game.marketData.id + '_' + this.game.player.id + '_' + this.game.player.wallet_id + '.started',
           this.game.started.toString()
         )
         console.log("GAME STARTED")

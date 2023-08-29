@@ -1,4 +1,4 @@
-import { newGame } from '../data/data.js'
+import { newGame, gameRecordsData } from '../data/data.js'
 import { properties } from '../data/properties.js'
 import { fetchMarketLiquidity, fetchPlayerBalance } from '../calls/api.js'
 import { fetchGameStarted, fetchPlayers } from '../calls/database.js'
@@ -13,36 +13,50 @@ import {
   checkPaymentsToPlayer
 } from '../calls/intervals.js'
 
-export function loadGameData() {
-  // Logic executed when page loads
-  //
-  // Initialise game data with template
-  let game = newGame
-  // Check local storage for existing games
+export function fetchGameRecords() {
+  // Fetch existing game records in local storage
+  const gameRecords = {};
   let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
   if(existingGameRecords && existingGameRecords.length) {
-    for(let i = 0; i < window.user.wallets.length; i++) {
-      let userWalletId = window.user.wallets[i].id
-      let gameRecord
-      for(let j = 0; j < existingGameRecords.length; j++) {
-        if(existingGameRecords[j].split('_')[2] === userWalletId) {
-          gameRecord = existingGameRecords[j]
-          break
-        }
+    for(let j = 0; j < existingGameRecords.length; j++) {
+      const gameId = existingGameRecords[j].split('_')[1];
+      const userId = existingGameRecords[j].split('_')[2];
+      const userWalletId = existingGameRecords[j].split('_')[3];
+      if(!gameRecords[gameId]) {
+        gameRecords[gameId] = {};
       }
-      if(gameRecord) {
-        // Update game object with values found in local storage
-        Object.keys(game).forEach((key) => {
-          try {
-            game[key] = JSON.parse(localStorage.getItem('monopoly.' + gameRecord + '.' + key))
-          } catch(err) {
-            game[key] = localStorage.getItem('monopoly.' + gameRecord + '.' + key)
+      gameRecords[gameId][userId] = existingGameRecords[j].split('_')[0] + '_' + existingGameRecords[j].split('_')[1] + '_' + existingGameRecords[j].split('_')[2] + '_' + existingGameRecords[j].split('_')[3];
+      const dateTime = new Date(parseInt(existingGameRecords[j].split('_')[4])).toString().split('GMT')[0];
+      // Saved games for user
+      if(userId == window.user.id) {
+        gameRecordsData.rows.push(
+          {
+            gameId,
+            userId,
+            userWalletId,
+            dateTime
           }
-        })
-        break;
+        )
       }
     }
   }
+  return {gameRecords, gameRecordsData};
+}
+
+export function loadGameData(gameRecord) {
+  console.log(gameRecord)
+  const game = newGame;
+  // Update game object with values found in local storage
+  Object.keys(game).forEach((key) => {
+    if(localStorage.getItem('monopoly.' + gameRecord + '.' + key) !== null) {
+      try {
+        game[key] = JSON.parse(localStorage.getItem('monopoly.' + gameRecord + '.' + key))
+      } catch(err) {
+        game[key] = localStorage.getItem('monopoly.' + gameRecord + '.' + key)
+      }
+    }
+  })
+
   return game;
 }
 
@@ -90,7 +104,7 @@ export function initGameData(game) {
     })
 
     // Hack to copy command to pay invoice from local node
-    game.payInvoiceCommand = "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Perso/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
+    // game.payInvoiceCommand = "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Perso/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
     /*
         // Hack to display dummy properties
         game.properties[game.player.wallets[0].id] = {};
