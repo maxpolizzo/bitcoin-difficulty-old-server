@@ -160,6 +160,10 @@ export function reactiveStyles(game) {
           marginLeft: `0em`
         },
       },
+      cameraFocusSlider: {
+        marginLeft: `5em`,
+        marginTop: `3em`
+      },
     }
   } else {
     return {
@@ -326,6 +330,10 @@ export function reactiveStyles(game) {
         invoiceUpgradeButton: {
           marginLeft: `0em`
         },
+      },
+      cameraFocusSlider: {
+        marginLeft: `5em`,
+        marginTop: `3em`
       },
     }
   }

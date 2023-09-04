@@ -239,14 +239,41 @@
           class="rounded-borders"
           @init="onInitCamera"
           @error="onError"
-          @decode="decodeQR"
+          @decode=""
           :camera="camera.camera"
-        ></qrcode-stream>
+        >
+          <!--
+          <q-slider
+            :style="reactiveStyles.cameraFocusSlider"
+            v-if="camera.focus.enabled"
+            class="q-mt-xl"
+            v-model="camera.focus.sliderValue"
+            @change="onCameraFocus"
+            color="deep-orange"
+            vertical
+            reverse
+            label-always
+            markers
+            marker-labels
+            :min="1"
+            :max="10"
+          >
+          </q-slider>
+          -->
+        </qrcode-stream>
       </div>
       <div v-else>
         Please paste an invoice
       </div>
-
+      <div>
+        {% raw %}{{camera.capabilities}}{% endraw %}
+      </div>
+      <div>
+        {% raw %}{{camera.error}}{% endraw %}
+      </div>
+      <div>
+        {% raw %}{{camera.settings}}{% endraw %}
+      </div>
       <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>
         <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Cancel</q-btn>

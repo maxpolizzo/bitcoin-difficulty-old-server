@@ -69,7 +69,19 @@ new Vue({
         data: null,
         show: false,
         track: null,
-        camera: 'auto'
+        camera: 'auto',
+        capabilities: {},
+        candidateDevices: [],
+        tracksLength: 0,
+        settings: {},
+        deviceId: "",
+        error: "OK",
+        focus: {
+          enabled: true,
+          min: null,
+          max: null,
+          sliderValue: 1
+        }
       },
       freeMarketCamera: false,
       qrCodeDialog: {
@@ -80,7 +92,7 @@ new Vue({
       // data for draggable cards
       enabled: true,
       isDragging: false,
-      delayedDragging: false
+      delayedDragging: false,
     }
   },
   computed: {
@@ -106,58 +118,74 @@ new Vue({
   },
   methods: {
     // Methods for QR code scanning
-    onInitCamera: async function(promise) {
-      // Get video device (see: https://oberhofer.co/mediastreamtrack-and-its-capabilities/)
-      const constraints = {
-        video:  {
-          facingMode: 'environment', // back camera on smartphone
+    onInitCamera: async function() {
+      // Select video device (see: https://oberhofer.co/mediastreamtrack-and-its-capabilities/)
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      devices.forEach((device) => {
+        if(device.kind === "videoinput") {
+          this.camera.candidateDevices.push(device)
+        }
+      })
+      await this.selectCameraDevice(this.camera.candidateDevices.length - 1);
+    },
+    selectCameraDevice: async function(deviceIndex, retry = true) {
+      this.camera.error = null;
+      // Select last video device (usually camera with focus)
+      try {
+        let constraints;
+        if(deviceIndex >= 0 && deviceIndex < this.camera.candidateDevices.length) {
+          this.camera.deviceId = this.camera.candidateDevices[0].deviceId
+          constraints = {
+            "video":  {
+              "aspectRatio": 1,
+              "deviceId": { "exact": this.camera.deviceId }
+            }
+          }
+        } else {
+          this.camera.deviceId = "default"
+          constraints = {
+            "video":  {
+              "facingMode": { "ideal":'environment' }, // back camera on smartphone
+              "aspectRatio": 1,
+            }
+          }
+          retry = false;
+        }
+        const video = document.querySelector("video");
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        // Wait for device to load
+        video.addEventListener('loadedmetadata', (event) => {
+          this.camera.track = stream.getVideoTracks()[0];
+          this.camera.capabilities = stream.getVideoTracks()[0].getCapabilities();
+          // Apply focusMode constraint if possible
+          if(this.camera.capabilities.focusMode) {
+            let continuousFocusAvailable = false;
+            this.camera.capabilities.focusMode.forEach((focusMode) => {
+              if (focusMode == "continuous") {
+                continuousFocusAvailable = true;
+              }
+            })
+            if(continuousFocusAvailable) {
+              console.log("applying focus mode")
+              stream.getVideoTracks()[0].applyConstraints({
+                "focusMode": "continuous"
+              })
+            }
+          }
+          this.camera.settings = stream.getVideoTracks()[0].getSettings();
+        });
+      } catch(err) {
+        console.error(err)
+        this.camera.error = err
+        // Stop camera
+        if(this.camera.track) {
+          this.camera.track.stop();
+        }
+        if(retry) {
+          await this.selectCameraDevice(deviceIndex - 1, retry)
         }
       }
-      navigator.mediaDevices.getUserMedia(constraints)
-      .then((stream) => {
-        const video = document.querySelector('video');
-        video.srcObject = stream;
-        this.camera.track = stream.getVideoTracks()[0];
-        // Get device capabilities
-        video.addEventListener('loadedmetadata', (e) => {
-          window.setTimeout(() => {
-            // console.log(this.camera.track.getCapabilities());
-            const capabilities = this.camera.track.getCapabilities();
-            if(capabilities.zoom) {
-              this.camera.track.applyConstraints({
-                advanced: [{zoom: capabilities.zoom.min}]
-              })
-            }
-            if(capabilities.aspectRatio) {
-              this.camera.track.applyConstraints({
-                advanced: [{aspectRatio: 1}]
-              })
-            }
-            /*
-            if(capabilities.focusMode) {
-              this.camera.track.applyConstraints({
-                advanced: [{focusMode: "manual"}]
-              })
-            }
-            */
-            if(capabilities.focusDistance) {
-              this.camera.track.applyConstraints({
-                advanced: [{focusDistance: capabilities.focusDistance.min}]
-              })
-            }
-            /*
-            if(capabilities.torch) {
-              this.camera.track.applyConstraints({
-                advanced: [{torch: true}]
-              })
-            }
-            */
-          }, 500);
-        })
-      })
-      .catch((err) => {
-        console.error(err)
-      });
     },
     closeCamera: function() {
       this.camera.show = false;
@@ -1247,8 +1275,9 @@ new Vue({
     },
     pasteData: async function () {
       let data = await navigator.clipboard.readText()
+      let onBehalfOfFreeMarket = !!this.freeMarketCamera;
       this.closeCamera()
-      this.parseQRData(data)
+      this.parseQRData(data, onBehalfOfFreeMarket)
     },
     decodeQR: function (res) {
       let onBehalfOfFreeMarket = !!this.freeMarketCamera;
