@@ -7,10 +7,12 @@ import {
   newGame,
   playerNames
 } from './data/data.js'
+import { qrCodes } from './data/qr.js'
 import { reactiveStyles } from '../css/styles.js'
 import {
   decodeInvoice,
-  withdrawFromLNURL
+  withdrawFromLNURL,
+  createPlayerPayLNURL
 } from './helpers/utils.js'
 import {
   onGameFunded,
@@ -53,6 +55,17 @@ if(window.game_id && window.user.id && savedGameRecords.gameRecords[window.game_
   console.log("Loading saved game: " + window.game_id);
   game = loadGameData(savedGameRecords.gameRecords[window.game_id][window.user.id]);
   game = initGameData(game);
+}
+
+// If not already created, create a static LNURL pay link to be used for sending sats to player
+if((game.created || game.imported) && !game.playerPayLinkCreated) {
+  const playerPayLinkCreated = await createPlayerPayLNURL(game);
+  if(playerPayLinkCreated) {
+    game.playerPayLinkCreated = true; // Already saved in local storage
+    // No need to save payLinkId and payLink in local storage (will be fetched from database by other players)
+  } else {
+    LNbits.utils.notifyApiError("Error creating player pay link")
+  }
 }
 
 new Vue({
@@ -138,6 +151,7 @@ new Vue({
           constraints = {
             "video":  {
               "aspectRatio": 1,
+              "facingMode": { "ideal":'environment' },
               "deviceId": { "exact": this.camera.deviceId }
             }
           }
@@ -224,7 +238,9 @@ new Vue({
       // Check for payments to player wallet
       this.checkPaymentsToPlayer();
       // Create a static LNURL pay link to be used for funding the free market
-      await this.createBankPayLNURL();
+      await this.createFreeMarketPayLNURL();
+      // Create a static LNURL pay link to be used for sending sats to player
+      await this.createPlayerPayLNURL();
       // Initialize Chance and Community Chest cards indexes
       await this.initializeCards()
       // Start checking user balance
@@ -374,9 +390,9 @@ new Vue({
       }
     },
     // Logic to create a static LNURL pay link to be used for funding the free market
-    createBankPayLNURL: async function () {
+    createFreeMarketPayLNURL: async function () {
       const payLNURLData = {
-        description: "Monopoly free market pay link",
+        description: "Free market pay link",
         min: 1,
         max: 1000000,
         comment_chars: 100,
@@ -418,6 +434,16 @@ new Vue({
         }
       } else {
         LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    // Logic to create a static LNURL pay link to be used for sending sats to player
+    createPlayerPayLNURL: async function () {
+      const playerPayLinkCreated = await createPlayerPayLNURL(this.game);
+      if(playerPayLinkCreated) {
+        this.game.playerPayLinkCreated = true; // Already saved in local storage
+        // No need to save payLinkId and payLink in local storage (will be fetched from database by other players)
+      } else {
+        LNbits.utils.notifyApiError("Error creating player pay link")
       }
     },
     initializeCards: async function () {
@@ -1187,7 +1213,7 @@ new Vue({
       let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
       // Claim reward
       console.log("Claiming reward...")
-      await withdrawFromLNURL(lnurlData, this.game.player.wallets[0], this.game.rewardAmountSats, 'reward')
+      await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallets[0], this.game.rewardAmountSats, 'reward')
       console.log("Reward claimed successfully")
       this.closeClaimRewardDialog()
     },
@@ -1226,7 +1252,7 @@ new Vue({
       let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
       // Claim reward
       console.log("Claiming free sats...")
-      await withdrawFromLNURL(lnurlData, this.game.player.wallets[0], this.game.cumulatedFines, 'free bitcoin')
+      await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallets[0], this.game.cumulatedFines, 'free bitcoin')
       console.log("Free sats claimed successfully")
       // Reset cumulated_fines to 0 in database
       console.log("Resetting cumulated fines")
@@ -1371,11 +1397,102 @@ new Vue({
         }
       }
     },
+
+    parseQRData: async function (QRData, onBehalfOfFreeMarket = false) {
+      // Regular lightning invoice case
+      if(QRData.slice(0, 2) == "ln") {
+        const invoice = decodeInvoice(QRData);
+        console.log(invoice)
+        console.log(invoice.sat)
+        this.game.invoiceAmount = invoice.sat.toString()
+        this.game.invoice = QRData
+        if(onBehalfOfFreeMarket) {
+          this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
+        } else  {
+          this.game.showPayInvoiceDialog = true
+        }
+      } else  {
+        if(onBehalfOfFreeMarket) {
+          throw("Invalid data type for free market")
+        }
+        // Other cases
+        let code = JSON.parse(QRData)
+        console.log(code)
+
+        switch(code.slice(0,1)) {
+          case "p": // Property card
+            this.closePropertyDialog()
+            this.showPropertyDetails(qrCodes[code]) // TO DO: fix QR codes data (currently has key id' instead of id)
+            break
+
+          case "l": // Lightning card
+            this.closePropertyDialog()
+            this.showChanceCard()
+            break
+
+          case "c": // Community mining card
+            this.closePropertyDialog()
+            this.showCommunityChestCard()
+            break
+
+          case "b": // Property purchase
+            this.closePropertyDialog()
+            // const purchaseInvoice = decodeInvoice(data.invoice);
+            this.game.showPropertyPurchaseDialog = true
+            this.game.propertyPurchase.property = qrCodes["p" + code.slice(1,2)]
+            // this.game.propertyPurchase.invoice = data.invoice
+            // this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
+            break
+
+          case "u": // Property upgrade
+            this.closePropertyDialog()
+            // const upgradeInvoice = decodeInvoice(data.invoice);
+            this.game.showPropertyUpgradeDialog = true
+            this.game.propertyUpgrade.property = qrCodes["p" + code.slice(1,2)]
+            // this.game.propertyUpgrade.invoice = data.invoice
+            // this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
+            break
+
+          case "s": // Property sale
+            this.closePropertyDialog()
+            // const saleInvoice = decodeInvoice(data.invoice);
+            this.game.showPropertyPurchaseDialog = true
+            this.game.propertyPurchase.property = qrCodes["p" + code.slice(1,2)]
+            // this.game.propertyPurchase.invoice = data.invoice
+            // this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
+            break
+
+          case "n": // Network fee
+            this.closePropertyDialog()
+            // const networkFeeInvoice = decodeInvoice(data.invoice);
+            this.game.showNetworkFeePaymentDialog = true
+            this.game.networkFeeInvoice.property = qrCodes["p" + code.slice(1,2)]
+            // this.game.networkFeeInvoice.invoice = data.invoice
+            //this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
+            break
+
+          case "f": // Free Bitcoin
+            this.closePropertyDialog()
+            await this.showFreeBitcoinClaimDialog()
+            break
+
+          case "t": // Start
+            this.closePropertyDialog()
+            await this.showFreeBitcoinClaimDialog()
+            break
+
+          default:
+            console.log("Invalid data type")
+            break
+        }
+      }
+    },
+
     closeQRDialog: function () {
       this.qrCodeDialog.show = false
     },
 
-      /*
+    /*
     // Unused functions (but may be used at some point)
     exportGame: function () {
       this.qrCodeDialog.data = JSON.stringify(
