@@ -43,6 +43,7 @@ export const newGame = {
   playerVoucherAmount: 0,
   lnurlPayLinkId: "",
   lnurlPayLink: "",
+  playerPayLinkCreated: false,
   inviteVoucherId: "",
   rewardVoucherId: "",
   rewardVoucher: "",
@@ -197,4 +198,4 @@ export const gameRecordsData = {
   rows: []
 }
 
-export const playerNames = "Satoshi Nakamoto,Nick Szabo,Hal Finney,Adam Back,Craig Wright,Michael Saylor,Jack Dorsey,Elon Musk,Nayib Bukkele,Jed McCaleb,Brian Armstrong,Tyler Winklevoss,Cameron Winklevoss,Laszlo Hanyecz,Jeremy Sturdivant,Len Sassaman,Max Keizer,Stacy Herbert"
+export const playerNames = "Satoshi Nakamoto,Nick Szabo,Hal Finney,Adam Back,Craig Wright,Michael Saylor,Jack Dorsey,Elon Musk,Nayib Bukele,Jed McCaleb,Brian Armstrong,Tyler Winklevoss,Cameron Winklevoss,Laszlo Hanyecz,Jeremy Sturdivant,Len Sassaman,Max Keizer,Stacy Herbert"

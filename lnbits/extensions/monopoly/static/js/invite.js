@@ -71,7 +71,7 @@ async function fetchGameData (game) {
   }
   // Save game in local storage
   Object.keys(game).forEach((key) => {
-    console.log(key)
+    // console.log(key)
     try {
       if(game[key].toString() !== '[object Object]') {
         localStorage.setItem(
@@ -111,7 +111,7 @@ function saveGameRecord(game) {
       }
     }
   }
-  console.log(gameRecord)
+  // console.log(gameRecord)
   if(!gameRecord) { // If game is not already registered in local storage
     console.log("Saving game record...")
     // Register new game record in local storage

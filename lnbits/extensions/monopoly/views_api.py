@@ -47,10 +47,12 @@ from .crud import (
     get_next_community_chest_card_index,
     update_cumulated_fines,
     get_cumulated_fines,
-    reset_cumulated_fines
+    reset_cumulated_fines,
+    update_player_pay_link,
+    get_player_pay_link
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -122,6 +124,11 @@ async def api_monopoly_players_update_balance(data: UpdatePlayerBalance):
     player = await update_player_balance(data)
     return player
 
+@monopoly_ext.put("/api/v1/players/pay_link", status_code=HTTPStatus.CREATED)
+async def api_monopoly_players_update_pay_link(data: UpdatePlayerPayLink):
+    updated_player_pay_link = await update_player_pay_link(data)
+    return update_player_pay_link
+
 @monopoly_ext.post("/api/v1/property", status_code=HTTPStatus.CREATED)
 async def api_monopoly_property_register(data: Property):
     property = await register_property(data)
@@ -189,6 +196,10 @@ async def api_monopoly_players(game_id: str):
 @monopoly_ext.get("/api/v1/players/balance", status_code=HTTPStatus.OK)
 async def api_monopoly_player_balance(player_wallet_id: str):
     return await get_player_balance(player_wallet_id)
+
+@monopoly_ext.get("/api/v1/players/pay_link", status_code=HTTPStatus.OK)
+async def api_monopoly_player_pay_link(player_wallet_id: str):
+    return await get_player_pay_link(player_wallet_id)
 
 @monopoly_ext.get("/api/v1/player_name", status_code=HTTPStatus.OK)
 async def api_monopoly_player_name(game_id: str):

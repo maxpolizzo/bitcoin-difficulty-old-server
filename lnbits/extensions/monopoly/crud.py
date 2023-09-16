@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, MarketLiquidity, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, CumulatedFines
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, MarketLiquidity, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, CumulatedFines, UpdatePlayerPayLink, PlayerPayLink
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -133,10 +133,10 @@ async def pick_player_name(game_id: str) -> str:
 async def create_player(data: CreatePlayerData) -> Player:
     await db.execute(
         """
-        INSERT INTO monopoly.players (player_wallet_id, player_wallet_name, player_wallet_inkey, player_balance, game_id)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO monopoly.players (player_id, player_wallet_id, player_wallet_name, player_wallet_inkey, player_balance, game_id)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (data.player_wallet_id, data.player_wallet_name, data.player_wallet_inkey, data.player_balance, data.game_id),
+        (data.player_id, data.player_wallet_id, data.player_wallet_name, data.player_wallet_inkey, data.player_balance, data.game_id),
     )
 
     player_created = await get_player(data.player_wallet_id)
@@ -152,6 +152,7 @@ async def create_player_wallet(data: CreateFirstPlayerData) -> Wallet:
 
     player_created = await create_player(
         CreatePlayerData(
+            player_id=0,
             player_wallet_id=wallet.id,
             player_wallet_name="",
             player_wallet_inkey=wallet.inkey,
@@ -189,8 +190,12 @@ async def invite_player(game_id: str, player_name: str) -> str:
     wallet = await create_wallet(user_id=user.id, wallet_name=player_name)
     assert wallet, "Newly created wallet couldn't be retrieved"
 
+    players_count = await get_players_count(game_id)
+    assert players_count, "Players count couldn't be retrieved"
+
     player_invited = await create_player(
         CreatePlayerData(
+            player_id=players_count[0],
             player_wallet_id=wallet.id,
             player_wallet_name=wallet.name,
             player_wallet_inkey=wallet.inkey,
@@ -221,6 +226,18 @@ async def update_player_balance(data: UpdatePlayerBalance) -> Player:
            """,
            (data.player_balance, data.player_wallet_id),
     )
+
+    player_updated = await get_player(data.player_wallet_id)
+    assert player_updated, "Newly updated player couldn't be retrieved"
+    return player_updated
+
+async def update_player_pay_link(data: UpdatePlayerPayLink) -> Player:
+    await db.execute(
+                """
+                UPDATE monopoly.players SET player_pay_link_id = ?, player_pay_link = ? WHERE player_wallet_id = ?
+               """,
+               (data.player_pay_link_id, data.player_pay_link, data.player_wallet_id),
+        )
 
     player_updated = await get_player(data.player_wallet_id)
     assert player_updated, "Newly updated player couldn't be retrieved"
@@ -395,6 +412,10 @@ async def get_player(player_wallet_id: str) -> Player:
 async def get_player_balance(player_wallet_id: str) -> PlayerBalance:
     row = await db.fetchone("SELECT * FROM monopoly.players WHERE player_wallet_id = ?", (player_wallet_id,))
     return PlayerBalance(**row) if row else None
+
+async def get_player_pay_link(player_wallet_id: str) -> PlayerPayLink:
+    row = await db.fetchone("SELECT * FROM monopoly.players WHERE player_wallet_id = ?", (player_wallet_id,))
+    return PlayerPayLink(**row) if row else None
 
 async def get_players(game_id: str) -> Player:
     rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ?", (game_id,))

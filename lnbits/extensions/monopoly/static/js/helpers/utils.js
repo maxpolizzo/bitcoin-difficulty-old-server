@@ -6,6 +6,50 @@ export async function claimInviteVoucher (lnurl, game, wallet) {
   return await withdrawFromLNURL(lnurlData, game, wallet, amount, 'invite');
 }
 
+export async function createPlayerPayLNURL(game) {
+  const payLNURLData = {
+    description: game.player.name + " pay link",
+    min: 1,
+    max: 1000000,
+    comment_chars: 100,
+    success_text: "Payment to " + game.player.name + " confirmed"
+  }
+  // Create LNURL pay link
+  let res = await LNbits.api
+    .request('POST', '/lnurlp/api/v1/links', game.player.wallets[0].adminkey, payLNURLData);
+  if(res.data) {
+    const payLinkId = res.data.id
+    const payLink = res.data.lnurl
+    // Register LNURL pay link in database
+    res = await LNbits.api
+      .request(
+        'PUT',
+        '/monopoly/api/v1/players/pay_link',
+        game.player.wallets[0].inkey,
+        {
+          player_wallet_id: game.player.wallet_id,
+          player_pay_link_id: payLinkId,
+          player_pay_link: payLink
+        }
+      )
+    if(res.data) {
+      console.log(game.player.name +  " LNURL pay link created successfully " + payLink)
+      const playerPayLinkCreated = true
+      // Saving game.playerPayLinkCreated in local storage
+      localStorage.setItem(
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerPayLinkCreated',
+        playerPayLinkCreated.toString()
+      )
+      return playerPayLinkCreated;
+      // No need to save payLinkId and payLink in local storage (will be fetched from database by other players)
+    } else {
+      LNbits.utils.notifyApiError(res.error)
+    }
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
 export async function decodeLNURL(lnurl, wallet) {
   // Format LNURL request
   let request = lnurl.toLowerCase();

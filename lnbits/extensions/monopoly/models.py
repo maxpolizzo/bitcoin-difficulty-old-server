@@ -57,6 +57,7 @@ class UpdatePlayerBalance(BaseModel):
     player_balance: int
 
 class CreatePlayerData(BaseModel):
+    player_id: int
     player_wallet_id: str = Query(...)
     player_wallet_name: str = Query(...)
     player_wallet_inkey: str = Query(...)
@@ -164,3 +165,12 @@ class CumulatedFines(BaseModel):
 
 class ResetCumulatedFines(BaseModel):
     game_id: str
+
+class UpdatePlayerPayLink(BaseModel):
+    player_wallet_id: str
+    player_pay_link_id: str
+    player_pay_link: str
+
+class PlayerPayLink(BaseModel):
+    player_pay_link_id: str
+    player_pay_link: str

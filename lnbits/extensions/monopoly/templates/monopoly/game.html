@@ -239,7 +239,7 @@
           class="rounded-borders"
           @init="onInitCamera"
           @error="onError"
-          @decode=""
+          @decode="decodeQR"
           :camera="camera.camera"
         >
           <!--
@@ -264,15 +264,6 @@
       </div>
       <div v-else>
         Please paste an invoice
-      </div>
-      <div>
-        {% raw %}{{camera.capabilities}}{% endraw %}
-      </div>
-      <div>
-        {% raw %}{{camera.error}}{% endraw %}
-      </div>
-      <div>
-        {% raw %}{{camera.settings}}{% endraw %}
       </div>
       <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>

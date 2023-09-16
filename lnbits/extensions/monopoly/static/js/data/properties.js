@@ -1,6 +1,7 @@
 export const properties = {
   "800002": [
     {
+      qr: "p01",
       id: 0,
       color: "800002",
       name: "Whitepaper Avenue",
