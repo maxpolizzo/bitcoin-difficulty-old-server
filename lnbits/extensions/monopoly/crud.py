@@ -133,17 +133,17 @@ async def pick_player_name(game_id: str) -> str:
 async def create_player(data: CreatePlayerData) -> Player:
     await db.execute(
         """
-        INSERT INTO monopoly.players (player_id, player_wallet_id, player_wallet_name, player_wallet_inkey, player_balance, game_id)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO monopoly.players (player_index, player_user_id, player_wallet_id, player_wallet_name, player_wallet_inkey, player_balance, game_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (data.player_id, data.player_wallet_id, data.player_wallet_name, data.player_wallet_inkey, data.player_balance, data.game_id),
+        (data.player_index, data.player_user_id, data.player_wallet_id, data.player_wallet_name, data.player_wallet_inkey, data.player_balance, data.game_id),
     )
 
     player_created = await get_player(data.player_wallet_id)
     assert player_created, "Newly created player couldn't be retrieved"
     return player_created
 
-async def create_player_wallet(data: CreateFirstPlayerData) -> Wallet:
+async def create_player_wallet(data: CreateFirstPlayerData) -> Player:
     user = await get_user(data.user_id)
     assert user, "User couldn't be retrieved"
 
@@ -152,7 +152,8 @@ async def create_player_wallet(data: CreateFirstPlayerData) -> Wallet:
 
     player_created = await create_player(
         CreatePlayerData(
-            player_id=0,
+            player_index=1,
+            player_user_id=user.id,
             player_wallet_id=wallet.id,
             player_wallet_name="",
             player_wallet_inkey=wallet.inkey,
@@ -161,7 +162,7 @@ async def create_player_wallet(data: CreateFirstPlayerData) -> Wallet:
         )
     )
     assert player_created, "Invited player couldn't be retrieved"
-    return wallet
+    return player_created
 
 async def update_first_player_name(data: UpdateFirstPlayerName) -> Wallet:
     await update_wallet(wallet_id=data.player_wallet_id, new_name=data.player_wallet_name)
@@ -177,7 +178,7 @@ async def update_first_player_name(data: UpdateFirstPlayerName) -> Wallet:
     assert player, "Newly updated player couldn't be retrieved"
     return wallet
 
-async def invite_player(game_id: str, player_name: str) -> str:
+async def invite_player(game_id: str, player_name: str) -> Player:
     # Make sure game is registered
     game = await get_game(game_id)
     assert game, "Game couldn't be retrieved"
@@ -195,7 +196,8 @@ async def invite_player(game_id: str, player_name: str) -> str:
 
     player_invited = await create_player(
         CreatePlayerData(
-            player_id=players_count[0],
+            player_index=players_count[0] + 1,
+            player_user_id=user.id,
             player_wallet_id=wallet.id,
             player_wallet_name=wallet.name,
             player_wallet_inkey=wallet.inkey,
@@ -205,7 +207,7 @@ async def invite_player(game_id: str, player_name: str) -> str:
     )
     assert player_invited, "Invited player couldn't be retrieved"
 
-    return user.id
+    return player_invited
 
 async def update_player_name(data: UpdatePlayerName) -> Player:
     await db.execute(

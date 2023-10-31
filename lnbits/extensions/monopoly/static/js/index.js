@@ -189,6 +189,49 @@ new Vue({
           }
           this.camera.settings = stream.getVideoTracks()[0].getSettings();
         });
+        /*
+        // ChatGPT code
+        //
+        // Check if the browser supports media devices
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          // Get the list of available media devices
+          navigator.mediaDevices.enumerateDevices()
+            .then(function(devices) {
+              // Find the back camera device
+              let backCamera = devices.find(function(device) {
+                return device.kind === 'videoinput' && device.label.includes('back');
+              });
+
+              // Check if the back camera device is found
+              if (backCamera) {
+                // Get access to the back camera device
+                navigator.mediaDevices.getUserMedia({
+                  video: { deviceId: backCamera.deviceId, facingMode: { exact: 'environment' } }
+                })
+                  .then(function(stream) {
+                    // Display the video stream on a video element with autofocus enabled
+                    let videoElement = document.getElementById('video');
+                    videoElement.srcObject = stream;
+                    videoElement.play();
+                    videoElement.setAttribute('autoplay', '');
+                    videoElement.setAttribute('muted', '');
+                    videoElement.setAttribute('playsinline', '');
+                    videoElement.setAttribute('autofocus', '');
+                  })
+                  .catch(function(error) {
+                    console.error('Error accessing the back camera:', error);
+                  });
+              } else {
+                console.error('Back camera not found');
+              }
+            })
+            .catch(function(error) {
+              console.error('Error enumerating media devices:', error);
+            });
+        } else {
+          console.error('Media devices not supported');
+        }
+        */
       } catch(err) {
         console.error(err)
         this.camera.error = err
@@ -203,7 +246,10 @@ new Vue({
     },
     closeCamera: function() {
       this.camera.show = false;
-      this.camera.track.stop();
+      // Stop camera
+      if(this.camera.track) {
+        this.camera.track.stop();
+      }
       this.game.gameCreatorPaymentToMarket = false;
       this.freeMarketCamera = false;
     },
@@ -364,8 +410,9 @@ new Vue({
           }
         )
       if(res.data) {
-        this.game.player.wallet_id = res.data.id
-        console.log("Monopoly: Player wallet created successfully (" + res.data.id + ")")
+        this.game.player.wallet_id = res.data.player_wallet_id
+        this.game.player.index = res.data.player_index
+        console.log("Monopoly: Player wallet created successfully (" + res.data.id + ", " + res.data.player_wallet_id + ")")
       }
     },
     // Logic to update game creator's dedicated player wallet with random player name
@@ -532,6 +579,7 @@ new Vue({
     },
     // Logic to create an invoice for player to request funds
     createPlayerInvoice: async function (invoiceReason = null) {
+      /*
       // Erase previous player invoice
       this.game.playerInvoice.paymentReq = null
       this.game.playerInvoice = newGame.playerInvoice
@@ -566,8 +614,17 @@ new Vue({
           LNbits.utils.notifyApiError(res.error)
         }
       }
+      */
+      if(this.game.playerInvoiceAmount && this.game.playerInvoiceAmount > 0) {
+        this.game.playerInvoice = {
+          qr: "I" + this.game.player.index + this.game.playerInvoiceAmount.toString(),
+          amount: this.game.playerInvoiceAmount
+        };
+        this.game.playerInvoiceAmount = null;
+      }
     },
     createFreeMarketInvoice: async function (invoiceReason = null) {
+      /*
       // Erase previous player invoice
       this.game.freeMarketInvoice.paymentReq = null
       this.game.freeMarketInvoice = newGame.freeMarketInvoice
@@ -601,6 +658,14 @@ new Vue({
         } else {
           LNbits.utils.notifyApiError(res.error)
         }
+      }
+      */
+      if(this.game.freeMarketInvoiceAmount && this.game.freeMarketInvoiceAmount > 0) {
+        this.game.freeMarketInvoice = {
+          qr: "I0" + this.game.freeMarketInvoiceAmount.toString(),
+          amount: this.game.freeMarketInvoiceAmount
+        };
+        this.game.freeMarketInvoiceAmount = null;
       }
     },
     // Logic to create a static LNURL withdraw link to be used as an offer for buying a property
@@ -730,7 +795,6 @@ new Vue({
       this.game.propertyToShow = property;
     },
     getNetworkFeeInvoiceAmount: async function (property) {
-      console.log(this.game.playerInvoiceAmount)
       this.game.showSaleInvoiceDialog = false;
       this.erasePropertyInvoices()
       switch(property.color) {
@@ -778,6 +842,7 @@ new Vue({
       if(!this.game.playerInvoiceAmount) {
         this.game.playerInvoiceAmount = this.game.customNetworkFeeInvoiceAmount * this.game.customNetworkFeeMultiplier;
       }
+      /*
       await this.createPlayerInvoice({
         type: "network_fee",
         propertyId: property.id
@@ -788,6 +853,12 @@ new Vue({
         propertyId: property.id,
         invoice: this.game.playerInvoice.paymentReq,
       })
+      */
+      this.game.networkFeeInvoiceData = {
+        qr: "N" + property.color + property.id + this.game.playerInvoiceAmount.toString(),
+        amount: this.game.playerInvoiceAmount
+      };
+
       this.game.showPropertyDialog = false;
       this.game.showPropertyInvoiceDialog = true;
       this.game.showNetworkFeeInvoice = true;
@@ -802,6 +873,7 @@ new Vue({
       this.game.showPropertyInvoiceDialog = true;
       this.game.showSaleInvoiceDialog = true;
     },
+    /*
     createUpgradeInvoice: async function (property) {
       this.erasePropertyInvoices()
       this.game.fundingInvoiceAmount = property.miningCapacity < 4
@@ -818,6 +890,8 @@ new Vue({
       this.game.upgradeInvoiceCreated = true;
       this.game.showPropertyInvoiceDialog = true;
     },
+    */
+    /*
     createPurchaseInvoice: async function (property) {
       this.erasePropertyInvoices()
       this.game.fundingInvoiceAmount = property.price;
@@ -832,9 +906,11 @@ new Vue({
       this.game.purchaseInvoiceCreated = true;
       this.game.showPropertyInvoiceDialog = true;
     },
+    */
     createSaleInvoice: async function (property, amount) {
       this.erasePropertyInvoices()
       this.game.playerInvoiceAmount = amount;
+      /*
       await this.createPlayerInvoice();
       this.game.propertySaleData = JSON.stringify({
         type: "property_sale",
@@ -842,6 +918,11 @@ new Vue({
         propertyId: property.id,
         invoice: this.game.playerInvoice.paymentReq,
       })
+      */
+      this.game.propertySaleData = {
+        qr: "S" + property.color + property.id + this.game.playerInvoiceAmount.toString(),
+        amount: this.game.playerInvoiceAmount
+      };
       this.game.saleInvoiceCreated = true;
       this.game.playerInvoiceAmount = null;
     },
@@ -890,7 +971,6 @@ new Vue({
       this.game.playerInvoiceAmount = null;
       this.game.customNetworkFeeInvoiceAmount = null;
       this.game.customNetworkFeeMultiplier = null;
-      this.game.playerInvoice.paymentReq = null;
       this.game.playerInvoice = newGame.playerInvoice;
       this.game.fundingInvoice.paymentReq = null;
       this.game.fundingInvoice = newGame.fundingInvoice;
@@ -907,65 +987,182 @@ new Vue({
       this.game.propertyUpgradeData = null;
     },
     payInvoice: async function() {
-      // Pay invoice
-      console.log(this.game.invoice)
-      console.log("Paying invoice...")
-      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.invoice);
-      if(res.data && res.data.payment_hash) {
-        console.log("Invoice paid successfully")
-        this.closePayInvoiceDialog()
+      if(this.game.invoice.slice(0, 2) == "ln") {
+        // Pay invoice
+        console.log(this.game.invoice)
+        console.log("Paying invoice...")
+        let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.invoice);
+        if(res.data && res.data.payment_hash) {
+          console.log("Invoice paid successfully")
+          this.closePayInvoiceDialog()
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
       } else {
-        LNbits.utils.notifyApiError(res.error)
+        // Get invoice recipient's pay link
+        let invoiceRecipientPayLink;
+        if(this.game.invoiceRecipientIndex === "0") {
+          invoiceRecipientPayLink = this.game.lnurlPayLink
+        } else {
+          let res = await LNbits.api
+            .request(
+              'GET',
+              '/monopoly/api/v1/players/pay_link?player_wallet_id=' + this.game.invoiceRecipientWalletId,
+              this.game.player.wallets[0].inkey
+            )
+          if(res.data) {
+            invoiceRecipientPayLink = res.data.player_pay_link
+          } else {
+            LNbits.utils.notifyApiError(res.error)
+          }
+        }
+        //Get lnurl pay data
+        let lnurlData = await decodeLNURL(invoiceRecipientPayLink, this.game.player.wallets[0])
+        // Pay invoice to invoice recipient's pay link
+        console.log("Paying to invoice recipient's pay link...")
+        let res = await LNbits.api.payLnurl(
+          this.game.player.wallets[0],
+          lnurlData.callback,
+          lnurlData.description_hash,
+          this.game.invoiceAmount * 1000, // mSats
+          'Bitcoin Monopoly: player invoice',
+          ''
+        )
+        if(res.data && res.data.payment_hash) {
+          console.log("Player invoice was paid successfully")
+          this.closePayInvoiceDialog()
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
       }
     },
     payInvoiceOnBehalfOfFreeMarket: async function() {
-      // Pay invoice
-      console.log(this.game.invoice)
-      console.log("Paying invoice on behalf of the free market...")
-      let res = await LNbits.api.payInvoice(this.game.marketData.wallets[0], this.game.invoice);
-      if(res.data && res.data.payment_hash) {
-        console.log("Invoice paid successfully")
-        this.closePayInvoiceOnBehalfOfFreeMarketDialog()
+      if(this.game.invoice.slice(0, 2) == "ln") {
+        // Pay invoice
+        console.log(this.game.invoice)
+        console.log("Paying invoice on behalf of the free market...")
+        let res = await LNbits.api.payInvoice(this.game.marketData.wallets[0], this.game.invoice);
+        if(res.data && res.data.payment_hash) {
+          console.log("Invoice paid successfully")
+          this.closePayInvoiceOnBehalfOfFreeMarketDialog()
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
       } else {
-        LNbits.utils.notifyApiError(res.error)
+        // Get invoice recipient's pay link
+        let res = await LNbits.api
+          .request(
+            'GET',
+            '/monopoly/api/v1/players/pay_link?player_wallet_id=' + this.game.invoiceRecipientWalletId,
+            this.game.player.wallets[0].inkey
+          )
+        if(res.data) {
+          let invoiceRecipientPayLink = res.data.player_pay_link
+          //Get lnurl pay data
+          let lnurlData = await decodeLNURL(invoiceRecipientPayLink, this.game.marketData.wallets[0])
+          // Pay invoice to invoice recipient's pay link
+          console.log("Paying to invoice recipient's pay link on behalf of the free market...")
+          res = await LNbits.api.payLnurl(
+            this.game.marketData.wallets[0],
+            lnurlData.callback,
+            lnurlData.description_hash,
+            this.game.invoiceAmount * 1000, // mSats
+            'Bitcoin Monopoly: player invoice',
+            ''
+          )
+          if(res.data && res.data.payment_hash) {
+            console.log("Player invoice was paid successfully")
+            this.closePayInvoiceOnBehalfOfFreeMarketDialog()
+          } else {
+            LNbits.utils.notifyApiError(res.error)
+          }
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
       }
     },
     purchaseProperty: async function() {
-      // Pay invoice
-      console.log(this.game.propertyPurchase.invoice)
       console.log("Purchasing property...")
-      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.propertyPurchase.invoice);
-
-      if(res.data && res.data.payment_hash) {
-        console.log("Property purchase was paid successfully")
-        this.closePropertyPurchaseDialog()
-        // Check if property is already registered in  database
-        try  {
+      // Check if property is already registered in  database
+      try {
+        let res = await LNbits.api
+          .request(
+            'GET',
+            '/monopoly/api/v1/property?game_id=' + this.game.marketData.id
+            + '&property_color=' + this.game.propertyPurchase.property.color
+            + '&property_id=' + this.game.propertyPurchase.property.id,
+            this.game.player.wallets[0].inkey,
+          )
+        if(res.data) {
+          console.log("Property already registered...")
+          // Get property owner Id
+          let propertyOwnerId;
+          Object.keys(this.game.properties).forEach((ownerId) => {
+            if(this.game.properties[ownerId][this.game.propertyPurchase.property.color]) {
+              this.game.properties[ownerId][this.game.propertyPurchase.property.color].forEach((property) => {
+                if(property.id ===  this.game.propertyPurchase.property.id) {
+                  propertyOwnerId = property.owner;
+                }
+              });
+            }
+          });
+          // Get property owner's pay link
           res = await LNbits.api
             .request(
               'GET',
-              '/monopoly/api/v1/property?game_id=' + this.game.marketData.id
-              + '&property_color=' + this.game.propertyPurchase.property.color
-              + '&property_id=' + this.game.propertyPurchase.property.id,
-              this.game.player.wallets[0].inkey,
+              '/monopoly/api/v1/players/pay_link?player_wallet_id=' + propertyOwnerId,
+              this.game.player.wallets[0].inkey
             )
-
-          console.log(res)
-
           if(res.data) {
-            console.log("Property already registered, updating ownership")
-            await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
-          } else  {
-            console.log("Property not registered, registering")
-            await this.registerProperty(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
+            let propertyOwnerPayLink = res.data.player_pay_link
+            //Get lnurl pay data
+            let lnurlData = await decodeLNURL(propertyOwnerPayLink, this.game.player.wallets[0])
+            // Pay network fee to property owner's pay link
+            console.log("Paying property purchase to property owner's pay link...")
+            res = await LNbits.api.payLnurl(
+              this.game.player.wallets[0],
+              lnurlData.callback,
+              lnurlData.description_hash,
+              this.game.propertyPurchase.property.price * 1000, // mSats
+              'Bitcoin Monopoly: property purchase',
+              ''
+            )
+            if(res.data && res.data.payment_hash) {
+              console.log("Property purchase was paid successfully")
+              console.log("Updating property ownership")
+              await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
+              this.closePropertyPurchaseDialog()
+            } else {
+              LNbits.utils.notifyApiError(res.error)
+            }
+          } else {
+            LNbits.utils.notifyApiError(res.error)
           }
-        } catch(err) {
-            console.log(err)
-            console.log("Property not registered, registering")
+        } else {
+          console.log("Property is not yet registered...")
+          //Get lnurl pay data
+          let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
+          // Pay property purchase to free market pay link
+          console.log("Paying property purchase to free market pay link...")
+          res = await LNbits.api.payLnurl(
+            this.game.player.wallets[0],
+            lnurlData.callback,
+            lnurlData.description_hash,
+            this.game.propertyPurchase.property.price * 1000, // mSats
+            'Bitcoin Monopoly: property purchase',
+            ''
+          )
+          if(res.data && res.data.payment_hash) {
+            console.log("Property purchase was paid successfully")
+            console.log("Registering property")
             await this.registerProperty(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
+            this.closePropertyPurchaseDialog()
+          } else {
+            LNbits.utils.notifyApiError(res.error)
+          }
         }
-      } else {
-        LNbits.utils.notifyApiError(res.error)
+      } catch(err) {
+          LNbits.utils.notifyApiError(err)
       }
     },
     registerProperty: async function(property, buyer) {
@@ -1007,11 +1204,19 @@ new Vue({
       }
     },
     upgradeProperty: async function() {
-      // Pay invoice
-      console.log(this.game.propertyUpgrade.invoice)
+      //Get lnurl pay data
+      let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
       console.log("Upgrading property...")
-      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.propertyUpgrade.invoice);
-
+      // Pay property upgrade to free market pay link
+      console.log("Paying property upgrade to free market pay link...")
+      let res = await LNbits.api.payLnurl(
+        this.game.player.wallets[0],
+        lnurlData.callback,
+        lnurlData.description_hash,
+        this.game.propertyUpgrade.price * 1000, // mSats
+        'Bitcoin Monopoly: property upgrade',
+        ''
+      )
       if(res.data && res.data.payment_hash) {
         console.log("Property upgrade was paid successfully")
         this.closePropertyUpgradeDialog()
@@ -1041,17 +1246,48 @@ new Vue({
       }
     },
     payNetworkFee: async function() {
-      // Pay invoice
-      console.log(this.game.networkFeeInvoice.invoice)
       console.log("Paying network fee...")
-      let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.networkFeeInvoice.invoice);
+      // Get property owner Id
+      let propertyOwnerId;
+      Object.keys(this.game.properties).forEach((ownerId) => {
+        if(this.game.properties[ownerId][this.game.networkFeeInvoice.property.color]) {
+          this.game.properties[ownerId][this.game.networkFeeInvoice.property.color].forEach((property) => {
+            if(property.id ===  this.game.networkFeeInvoice.property.id) {
+              propertyOwnerId = property.owner;
+            }
+          });
+        }
+      });
+      // Get property owner's pay link
+      let res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/players/pay_link?player_wallet_id=' + propertyOwnerId,
+          this.game.player.wallets[0].inkey
+        )
+      if(res.data) {
+        let propertyOwnerPayLink = res.data.player_pay_link
+        //Get lnurl pay data
+        let lnurlData = await decodeLNURL(propertyOwnerPayLink, this.game.player.wallets[0])
+        // Pay network fee to property owner's pay link
+        console.log("Paying network fee to property owner's pay link...")
+        res = await LNbits.api.payLnurl(
+          this.game.player.wallets[0],
+          lnurlData.callback,
+          lnurlData.description_hash,
+          this.game.networkFeeInvoice.invoiceAmount * 1000, // mSats
+          'Bitcoin Monopoly: network fee',
+          ''
+        )
+        if(res.data && res.data.payment_hash) {
+          console.log("Network fee was paid successfully")
+          this.closeNetworkFeePaymentDialog()
 
-      if(res.data && res.data.payment_hash) {
-        console.log("Network fee was paid successfully")
-        this.closeNetworkFeePaymentDialog()
-
-        console.log("Updating property's cumulated mining income")
-        await this.updatePropertyMiningIncome(this.game.networkFeeInvoice.property, this.game.networkFeeInvoice.invoiceAmount)
+          console.log("Updating property's cumulated mining income")
+          await this.updatePropertyMiningIncome(this.game.networkFeeInvoice.property, this.game.networkFeeInvoice.invoiceAmount)
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -1136,17 +1372,28 @@ new Vue({
         }
       }
     },
-    showUpgradeMinersPayment: function() {
+    showUpgradeMinersPayment: function(property) {
       if(this.game.created) {
         this.game.gameCreatorPaymentToMarket = true
       }
-      this.showCamera()
+      this.game.showPropertyUpgradeDialog = true
+      this.game.propertyUpgrade.property = property
+
+      this.game.propertyUpgrade.price = property.miningCapacity < 4
+        ? property.oneKwPrice
+        : property.tenKwPrice
+
+      this.game.showPropertyDialog = false;
+
+      // this.showCamera()
     },
     showPropertyPurchasePayment: function(property) {
       if(this.game.created && !property.owner) {
         this.game.gameCreatorPaymentToMarket = true
       }
-      this.showCamera()
+      this.game.showPropertyPurchaseDialog = true
+      this.game.propertyPurchase.property = property
+      // this.showCamera()
     },
     payFine: async function(card) {
       if(card.fineType && card.fineType === "custom") {
@@ -1233,6 +1480,9 @@ new Vue({
       this.game.cumulatedFines = await this.getCumulatedFines();
       this.game.showFreeBitcoinClaimDialog = true;
     },
+    showStartClaimDialog: async function () {
+      this.game.showStartClaimDialog = true;
+    },
     getCumulatedFines: async function () {
       let res = await LNbits.api
         .request(
@@ -1273,6 +1523,15 @@ new Vue({
       this.game.cumulatedFines = 0
       this.game.showFreeBitcoinClaimDialog = false;
     },
+    claimStartAmount: async function () {
+      // Claim cumulated fines from the free market
+      let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
+      // Claim reward
+      console.log("Claiming start bonus...")
+      await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallets[0], this.game.startClaimAmount, 'start bonus')
+      console.log("Start bonus claimed successfully")
+      this.game.showStartClaimDialog = false;
+    },
     getLowestBalancePlayerName: function () {
       let lowestBalance = this.game.initialFunding + 1
       let lowestBalancePlayerName = ""
@@ -1306,98 +1565,104 @@ new Vue({
       this.parseQRData(data, onBehalfOfFreeMarket)
     },
     decodeQR: function (res) {
+      console.log("DECODE QR")
       let onBehalfOfFreeMarket = !!this.freeMarketCamera;
       this.closeCamera()
       this.camera.data = res
-      this.parseQRData(this.camera.data, onBehalfOfFreeMarket)
-    },
 
-    parseQRData: async function (QRData, onBehalfOfFreeMarket = false) {
-      // Regular lightning invoice case
-      if(QRData.slice(0, 2) == "ln") {
-        const invoice = decodeInvoice(QRData);
-        console.log(invoice)
-        console.log(invoice.sat)
-        this.game.invoiceAmount = invoice.sat.toString()
-        this.game.invoice = QRData
-        if(onBehalfOfFreeMarket) {
-          this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
-        } else  {
-          this.game.showPayInvoiceDialog = true
-        }
-      } else  {
-        if(onBehalfOfFreeMarket) {
-          throw("Invalid data type for free market")
-        }
-        // Other cases
-        let data = JSON.parse(QRData)
-        console.log(data)
-        console.log(data.type)
+      console.log(this.camera.data)
 
-        switch(data.type) {
-          case "property_card":
-            this.closePropertyDialog()
-            this.showPropertyDetails(properties[data.color][data["id'"]]) // TO DO: fix QR codes data (currently has key id' instead of id)
-            break
-
-          case "chance_card":
-            this.closePropertyDialog()
-            this.showChanceCard()
-            break
-
-          case "community_chest_card":
-            this.closePropertyDialog()
-            this.showCommunityChestCard()
-            break
-
-          case "property_purchase":
-            this.closePropertyDialog()
-            const purchaseInvoice = decodeInvoice(data.invoice);
-            this.game.showPropertyPurchaseDialog = true
-            this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
-            this.game.propertyPurchase.invoice = data.invoice
-            this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
-            break
-
-          case "property_upgrade":
-            this.closePropertyDialog()
-            const upgradeInvoice = decodeInvoice(data.invoice);
-            this.game.showPropertyUpgradeDialog = true
-            this.game.propertyUpgrade.property = properties[data.propertyColor][data.propertyId]
-            this.game.propertyUpgrade.invoice = data.invoice
-            this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
-            break
-
-          case "property_sale":
-            this.closePropertyDialog()
-            const saleInvoice = decodeInvoice(data.invoice);
-            this.game.showPropertyPurchaseDialog = true
-            this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
-            this.game.propertyPurchase.invoice = data.invoice
-            this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
-            break
-
-          case "network_fee":
-            this.closePropertyDialog()
-            const networkFeeInvoice = decodeInvoice(data.invoice);
-            this.game.showNetworkFeePaymentDialog = true
-            this.game.networkFeeInvoice.property = properties[data.propertyColor][data.propertyId]
-            this.game.networkFeeInvoice.invoice = data.invoice
-            this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
-            break
-
-          case "free_bitcoin":
-            this.closePropertyDialog()
-            await this.showFreeBitcoinClaimDialog()
-            break
-
-          default:
-            console.log("Invalid data type")
-            break
-        }
+      if(this.camera.data) {
+        this.parseQRData(this.camera.data, onBehalfOfFreeMarket)
       }
     },
+    /*
+        parseQRData: async function (QRData, onBehalfOfFreeMarket = false) {
+          // Regular lightning invoice case
+          if(QRData.slice(0, 2) == "ln") {
+            const invoice = decodeInvoice(QRData);
+            console.log(invoice)
+            console.log(invoice.sat)
+            this.game.invoiceAmount = invoice.sat.toString()
+            this.game.invoice = QRData
+            if(onBehalfOfFreeMarket) {
+              this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
+            } else  {
+              this.game.showPayInvoiceDialog = true
+            }
+          } else  {
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
+            // Other cases
+            let data = JSON.parse(QRData)
+            console.log(data)
+            console.log(data.type)
 
+            switch(data.type) {
+              case "property_card":
+                this.closePropertyDialog()
+                this.showPropertyDetails(properties[data.color][data["id'"]]) // TO DO: fix QR codes data (currently has key id' instead of id)
+                break
+
+              case "chance_card":
+                this.closePropertyDialog()
+                this.showChanceCard()
+                break
+
+              case "community_chest_card":
+                this.closePropertyDialog()
+                this.showCommunityChestCard()
+                break
+
+              case "property_purchase":
+                this.closePropertyDialog()
+                const purchaseInvoice = decodeInvoice(data.invoice);
+                this.game.showPropertyPurchaseDialog = true
+                this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
+                this.game.propertyPurchase.invoice = data.invoice
+                this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
+                break
+
+              case "property_upgrade":
+                this.closePropertyDialog()
+                const upgradeInvoice = decodeInvoice(data.invoice);
+                this.game.showPropertyUpgradeDialog = true
+                this.game.propertyUpgrade.property = properties[data.propertyColor][data.propertyId]
+                this.game.propertyUpgrade.invoice = data.invoice
+                this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
+                break
+
+              case "property_sale":
+                this.closePropertyDialog()
+                const saleInvoice = decodeInvoice(data.invoice);
+                this.game.showPropertyPurchaseDialog = true
+                this.game.propertyPurchase.property = properties[data.propertyColor][data.propertyId]
+                this.game.propertyPurchase.invoice = data.invoice
+                this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
+                break
+
+              case "network_fee":
+                this.closePropertyDialog()
+                const networkFeeInvoice = decodeInvoice(data.invoice);
+                this.game.showNetworkFeePaymentDialog = true
+                this.game.networkFeeInvoice.property = properties[data.propertyColor][data.propertyId]
+                this.game.networkFeeInvoice.invoice = data.invoice
+                this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
+                break
+
+              case "free_bitcoin":
+                this.closePropertyDialog()
+                await this.showFreeBitcoinClaimDialog()
+                break
+
+              default:
+                console.log("Invalid data type")
+                break
+            }
+          }
+        },
+    */
     parseQRData: async function (QRData, onBehalfOfFreeMarket = false) {
       // Regular lightning invoice case
       if(QRData.slice(0, 2) == "ln") {
@@ -1412,73 +1677,113 @@ new Vue({
           this.game.showPayInvoiceDialog = true
         }
       } else  {
-        if(onBehalfOfFreeMarket) {
-          throw("Invalid data type for free market")
-        }
-        // Other cases
-        let code = JSON.parse(QRData)
-        console.log(code)
 
-        switch(code.slice(0,1)) {
-          case "p": // Property card
-            this.closePropertyDialog()
-            this.showPropertyDetails(qrCodes[code]) // TO DO: fix QR codes data (currently has key id' instead of id)
+        console.log(QRData)
+
+        switch(QRData.slice(0,1)) {
+          case "I": // Player invoice
+            this.game.invoice = QRData
+            this.game.invoiceRecipientIndex = QRData.slice(1,2)
+            this.game.invoiceAmount = QRData.slice(2)
+            // Get invoice recipient's name and wallet _id
+            if(this.game.invoiceRecipientIndex === "0") {
+              this.game.invoiceRecipientName = "the free market"
+            } else {
+              Object.keys(this.game.players).forEach((player_wallet_id) => {
+                if(this.game.players[player_wallet_id].player_index === this.game.invoiceRecipientIndex) {
+                  this.game.invoiceRecipientWalletId = player_wallet_id
+                  this.game.invoiceRecipientName = this.game.players[player_wallet_id].player_wallet_name
+                }
+              })
+            }
+            if(onBehalfOfFreeMarket) {
+              this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
+            } else  {
+              this.game.showPayInvoiceDialog = true
+            }
             break
 
-          case "l": // Lightning card
+          case "P": // Property card
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.closePropertyDialog()
+            this.showPropertyDetails(qrCodes[QRData])
+            break
+
+          case "L": // Lightning card
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.showChanceCard()
             break
 
-          case "c": // Community mining card
-            this.closePropertyDialog()
+          case "M": // Community mining card
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.showCommunityChestCard()
             break
-
-          case "b": // Property purchase
+/*
+          case "B": // Property purchase
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.closePropertyDialog()
             // const purchaseInvoice = decodeInvoice(data.invoice);
             this.game.showPropertyPurchaseDialog = true
-            this.game.propertyPurchase.property = qrCodes["p" + code.slice(1,2)]
+            this.game.propertyPurchase.property = qrCodes["p" + QRData.slice(1,2)]
             // this.game.propertyPurchase.invoice = data.invoice
             // this.game.propertyPurchase.invoiceAmount = purchaseInvoice.sat
             break
 
-          case "u": // Property upgrade
+          case "U": // Property upgrade
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.closePropertyDialog()
             // const upgradeInvoice = decodeInvoice(data.invoice);
             this.game.showPropertyUpgradeDialog = true
-            this.game.propertyUpgrade.property = qrCodes["p" + code.slice(1,2)]
+            this.game.propertyUpgrade.property = qrCodes["p" + QRData.slice(1,2)]
             // this.game.propertyUpgrade.invoice = data.invoice
             // this.game.propertyUpgrade.invoiceAmount = upgradeInvoice.sat
             break
-
-          case "s": // Property sale
+*/
+          case "S": // Property sale
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.closePropertyDialog()
             // const saleInvoice = decodeInvoice(data.invoice);
             this.game.showPropertyPurchaseDialog = true
-            this.game.propertyPurchase.property = qrCodes["p" + code.slice(1,2)]
+            this.game.propertyPurchase.property = properties[QRData.slice(1,7)][QRData.slice(7,8)]
+            this.game.propertyPurchase.property.price = QRData.slice(8)
             // this.game.propertyPurchase.invoice = data.invoice
             // this.game.propertyPurchase.invoiceAmount = saleInvoice.sat
             break
 
-          case "n": // Network fee
+          case "N": // Network fee
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             this.closePropertyDialog()
-            // const networkFeeInvoice = decodeInvoice(data.invoice);
+            this.game.networkFeeInvoice.property = properties[QRData.slice(1,7)][QRData.slice(7,8)]
+            this.game.networkFeeInvoice.invoiceAmount = QRData.slice(8)
             this.game.showNetworkFeePaymentDialog = true
-            this.game.networkFeeInvoice.property = qrCodes["p" + code.slice(1,2)]
-            // this.game.networkFeeInvoice.invoice = data.invoice
-            //this.game.networkFeeInvoice.invoiceAmount = networkFeeInvoice.sat
             break
 
-          case "f": // Free Bitcoin
-            this.closePropertyDialog()
+          case "F": // Free Bitcoin
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
             await this.showFreeBitcoinClaimDialog()
             break
 
-          case "t": // Start
-            this.closePropertyDialog()
-            await this.showFreeBitcoinClaimDialog()
+          case "T": // Start
+            if(onBehalfOfFreeMarket) {
+              throw("Invalid data type for free market")
+            }
+            await this.showStartClaimDialog()
             break
 
           default:

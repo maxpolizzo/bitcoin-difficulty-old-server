@@ -31,7 +31,8 @@ async def m001_initial(db):
     await db.execute(
       f"""
       CREATE TABLE monopoly.players (
-          player_id INTEGER NOT NULL,
+          player_index INTEGER NOT NULL,
+          player_user_id TEXT NOT NULL,
           player_wallet_id TEXT NOT NULL,
           player_wallet_name TEXT NOT NULL,
           player_wallet_inkey TEXT NOT NULL,

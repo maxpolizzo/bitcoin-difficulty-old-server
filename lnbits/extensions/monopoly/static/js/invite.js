@@ -7,6 +7,7 @@ game.player.wallet_id = window.user.wallets[0].id
 game.player.name = window.user.wallets[0].name;
 game.player.wallets.push(window.user.wallets[0]);
 // Get game invite data
+game.player.index = window.invite_vars.player_index;
 const gameId = window.invite_vars.game_id;
 const inviteVoucher = window.invite_vars.invite_voucher;
 game.rewardVoucher = window.invite_vars.reward_voucher.toString();

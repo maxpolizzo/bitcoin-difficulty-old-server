@@ -6,6 +6,7 @@ export const newGame = {
   imported: false,
   timestamp: null,
   minFunding: 20000,
+  startClaimAmount: 200,
   initialFunding: "0",
   initialPlayerBalance: "0",
   showFundingView: false,
@@ -21,6 +22,7 @@ export const newGame = {
   showPropertyUpgradeDialog: false,
   showSaleInvoiceDialog: false,
   showFreeBitcoinClaimDialog: false,
+  showStartClaimDialog: false,
   showChanceCard: false,
   showCommunityChestCard: false,
   chanceCardToShow: "",
@@ -32,6 +34,7 @@ export const newGame = {
   showNetworkFeeInvoice: false,
   fundingStatus: 'pending',
   invoice: null,
+  invoiceRecipientIndex: null,
   invoiceAmount: "0",
   fundingInvoiceAmount: "0",
   playerInvoiceAmount: "0",
@@ -70,28 +73,12 @@ export const newGame = {
     }
   },
   playerInvoice: {
-    paymentReq: null,
-    paymentHash: null,
-    minMax: [0, 2100000000000000],
-    lnurl: null,
-    units: ['sat'],
-    unit: 'sat',
-    data: {
-      amount: null,
-      memo: 'Bitcoin Monopoly: player invoice'
-    }
+    qr: null,
+    amount: null
   },
   freeMarketInvoice: {
-    paymentReq: null,
-    paymentHash: null,
-    minMax: [0, 2100000000000000],
-    lnurl: null,
-    units: ['sat'],
-    unit: 'sat',
-    data: {
-      amount: null,
-      memo: 'Bitcoin Monopoly: free market invoice'
-    }
+    qr: null,
+    amount: null
   },
   freeMarketWallet: {
     payments: {}
@@ -100,9 +87,10 @@ export const newGame = {
     payments: {}
   },
   player: {
-    name: "",
-    id: "",
-    wallet_id: "",
+    index: "", // Monopoly database player index
+    name: "", // Monopoly database player name
+    id: "", // LNBits user_id
+    wallet_id: "", // LNBits wallet_id
     wallets: []
   },
   players: {},
