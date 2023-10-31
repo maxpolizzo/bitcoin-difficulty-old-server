@@ -57,7 +57,8 @@ class UpdatePlayerBalance(BaseModel):
     player_balance: int
 
 class CreatePlayerData(BaseModel):
-    player_id: int
+    player_index: int
+    player_user_id: str = Query(...)
     player_wallet_id: str = Query(...)
     player_wallet_name: str = Query(...)
     player_wallet_inkey: str = Query(...)
@@ -112,6 +113,8 @@ class GameWithInvoice(BaseModel):
     payment_hash : str = Query(...)
 
 class Player(BaseModel):
+    player_index: str
+    player_user_id: str
     player_wallet_id: str
     player_wallet_name: str
     player_wallet_inkey: str

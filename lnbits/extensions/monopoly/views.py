@@ -33,11 +33,13 @@ async def index(
 async def invite(
     request: Request,
     user: User = Depends(check_user_exists),  # type: ignore
+    player_index: str = Query(...),
     game_id: str = Query(...),
     invite_voucher: str = Query(...),
     reward_voucher: str = Query(...),
 ):
     invite_vars = {
+        "player_index": player_index,
         "game_id": game_id,
         "invite_voucher": invite_voucher,
         "reward_voucher": reward_voucher,

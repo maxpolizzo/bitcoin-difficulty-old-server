@@ -405,19 +405,19 @@
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-    <div v-if="game.playerInvoice.paymentReq" class="text-center q-mb-lg">
-      Request funds by showing this invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats)
+    <div v-if="game.playerInvoice.qr" class="text-center q-mb-lg">
+      Request funds by showing this invoice ({% raw %}{{game.playerInvoice.amount}}{% endraw %} sats)
     </div>
-    <div v-if="game.playerInvoice.paymentReq" class="text-center q-mb-lg">
-      <a :href="'lightning:' + game.playerInvoice.paymentReq">
+    <div v-if="game.playerInvoice.qr" class="text-center q-mb-lg">
+      <!--a :href="'lightning:' + game.playerInvoice.paymentReq"-->
         <q-responsive :ratio="1" class="q-mx-xl">
           <qrcode
-            :value="game.playerInvoice.paymentReq"
+            :value="game.playerInvoice.qr"
             :options="{width: 340}"
             class="rounded-borders"
           ></qrcode>
         </q-responsive>
-      </a>
+      <!--/a-->
     </div>
     <div class="row">
       <div class="col-8 col-md-8">
@@ -436,8 +436,8 @@
       </div>
     </div>
     <div class="row q-mt-lg">
-      <q-btn v-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn>
-      <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
+      <!--q-btn v-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn-->
+      <q-btn disabled outline color="grey" @click="">Copy invoice</q-btn>
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
     </div>
     </q-card>
@@ -447,19 +447,19 @@
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.freeMarketInvoice.paymentReq" class="text-center q-mb-lg">
-        Request funds on behalf of the free market by showing this invoice ({% raw %}{{game.freeMarketInvoice.data.amount}}{% endraw %} sats)
+      <div v-if="game.freeMarketInvoice.qr" class="text-center q-mb-lg">
+        Request funds on behalf of the free market by showing this invoice ({% raw %}{{game.freeMarketInvoice.amount}}{% endraw %} sats)
       </div>
-      <div v-if="game.freeMarketInvoice.paymentReq" class="text-center q-mb-lg">
-        <a :href="'lightning:' + game.freeMarketInvoice.paymentReq">
+      <div v-if="game.freeMarketInvoice.qr" class="text-center q-mb-lg">
+        <!--a :href="'lightning:' + game.freeMarketInvoice.paymentReq"-->
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode
-              :value="game.freeMarketInvoice.paymentReq"
+              :value="game.freeMarketInvoice.qr"
               :options="{width: 340}"
               class="rounded-borders"
             ></qrcode>
           </q-responsive>
-        </a>
+        <!--/a-->
       </div>
       <div class="row">
         <div class="col-8 col-md-8">
@@ -478,8 +478,8 @@
         </div>
       </div>
       <div class="row q-mt-lg">
-        <q-btn v-if="game.freeMarketInvoice.paymentReq" outline color="grey" @click="copyText(game.freeMarketInvoice.paymentReq)">Copy invoice</q-btn>
-        <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
+        <!--q-btn v-if="game.freeMarketInvoice.paymentReq" outline color="grey" @click="copyText(game.freeMarketInvoice.paymentReq)">Copy invoice</q-btn-->
+        <q-btn disabled outline color="grey" @click="">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -782,7 +782,7 @@
             <div
               v-if="game.propertyToShow.oneKwPrice"
               :style="reactiveStyles.propertyButtons.upgradeButton">
-              <q-btn @click="showUpgradeMinersPayment" flat color="grey" class="q-ml-auto">
+              <q-btn @click="showUpgradeMinersPayment(game.propertyToShow)" flat color="grey" class="q-ml-auto">
                 Upgrade miners
               </q-btn>
             </div>
@@ -957,12 +957,12 @@
 
       <div v-if="game.showNetworkFeeInvoice">
         <div class="text-center q-mb-lg">
-          Network fee invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats)
+          Network fee invoice ({% raw %}{{game.networkFeeInvoiceData.amount}}{% endraw %} sats)
         </div>
         <div class="text-center q-mb-lg">
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode
-              :value="game.networkFeeInvoiceData"
+              :value="game.networkFeeInvoiceData.qr"
               :options="{width: 340}"
               class="rounded-borders"
             ></qrcode>
@@ -1007,12 +1007,12 @@
 
         <div v-if="game.saleInvoiceCreated">
           <div class="text-center q-mb-lg">
-            Property purchase invoice ({% raw %}{{game.playerInvoice.data.amount}}{% endraw %} sats)
+            Property purchase invoice ({% raw %}{{game.propertySaleData.amount}}{% endraw %} sats)
           </div>
           <div class="text-center q-mb-lg">
             <q-responsive :ratio="1" class="q-mx-xl">
               <qrcode
-                :value="game.propertySaleData"
+                :value="game.propertySaleData.qr"
                 :options="{width: 340}"
                 class="rounded-borders"
               ></qrcode>
@@ -1060,7 +1060,7 @@
         <q-btn v-else-if="game.showNetworkFeeInvoice" outline color="grey" @click="copyText(game.networkFeeInvoiceData)">Copy invoice</q-btn>
         <q-btn v-else-if="game.upgradeInvoiceCreated" outline color="grey" @click="copyText(game.propertyUpgradeData)">Copy invoice</q-btn>
         <q-btn v-else-if="game.saleInvoiceCreated" outline color="grey" @click="copyText(game.propertySaleData)">Copy invoice</q-btn>
-        <q-btn v-else-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn>
+        <!-- q-btn v-else-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn-->
         <q-btn v-else-if="game.fundingInvoice.paymentReq" outline color="grey" @click="copyText(game.fundingInvoice.paymentReq)">Copy invoice</q-btn>
         <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyInvoiceDialog()">Close</q-btn>
@@ -1077,9 +1077,11 @@
         <q-card class="q-card--dark row" style="padding: 1em;">
 
           <div class="col-12 col-md-12">
-            <div
-              :style="reactiveStyles.payInvoiceLabel"
-            >
+            <div v-if="game.invoiceRecipientName" :style="reactiveStyles.payInvoiceLabel">
+              Pay {% raw %}{{game.invoiceAmount}}{% endraw %} sats to {% raw %}{{game.invoiceRecipientName}}{% endraw %}?
+            </div>
+
+            <div v-else :style="reactiveStyles.payInvoiceLabel">
               Pay this {% raw %}{{game.invoiceAmount}}{% endraw %} sats invoice?
             </div>
 
@@ -1113,9 +1115,11 @@
         <q-card class="q-card--dark row" style="padding: 1em;">
 
           <div class="col-12 col-md-12">
-            <div
-              :style="reactiveStyles.payInvoiceLabel"
-            >
+            <div v-if="game.invoiceRecipientName" :style="reactiveStyles.payInvoiceLabel">
+              Pay {% raw %}{{game.invoiceAmount}}{% endraw %} sats to {% raw %}{{game.invoiceRecipientName}}{% endraw %} on behalf of the free market?
+            </div>
+
+            <div v-else :style="reactiveStyles.payInvoiceLabel">
               Pay this {% raw %}{{game.invoiceAmount}}{% endraw %} sats invoice on behalf of the free market?
             </div>
 
@@ -1180,11 +1184,50 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="game.showStartClaimDialog" @hide="game.showStartClaimDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <q-card class="q-card--dark row" style="padding: 1em;">
+
+        <div class="col-12 col-md-12">
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Another Bitcoin cycle is starting!
+          </div>
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Claim {% raw %}{{game.startClaimAmount}}{% endraw %} sats?
+          </div>
+
+          <div
+            class="row"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
+          >
+            <div :style="reactiveStyles.propertyButtons.invoiceButton">
+              <q-btn @click="claimStartAmount()" flat color="grey" class="q-ml-auto">
+                Claim
+              </q-btn>
+            </div>
+          </div>
+
+        </div>
+
+      </q-card>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceDialog()">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="game.showPropertyPurchaseDialog" @hide="game.showPropertyPurchaseDialog = false">
 
       <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-        <div v-if="game.propertyPurchase.invoice">
+        <div v-if="game.propertyPurchase.property">
           <q-card class="q-card--dark row" style="padding: 1em;">
 
             <div class="col-7 col-md-7">
@@ -1200,7 +1243,7 @@
               <div
                 :style="reactiveStyles.propertyOwnershipLabel"
               >
-                Buy this property for {% raw %}{{game.propertyPurchase.invoiceAmount}}{% endraw %} sats
+                Buy this property for {% raw %}{{game.propertyPurchase.property.price}}{% endraw %} sats
               </div>
 
               <div
@@ -1229,7 +1272,7 @@
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.propertyUpgrade.invoice">
+      <div v-if="game.propertyUpgrade.property">
         <q-card class="q-card--dark row" style="padding: 1em;">
 
           <div class="col-7 col-md-7">
@@ -1245,7 +1288,7 @@
             <div
               :style="reactiveStyles.propertyOwnershipLabel"
             >
-              Upgrade this property's mining capacity for {% raw %}{{game.propertyUpgrade.invoiceAmount}}{% endraw %} sats
+              Upgrade this property's mining capacity for {% raw %}{{game.propertyUpgrade.price}}{% endraw %} sats
             </div>
 
             <div
@@ -1274,7 +1317,7 @@
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.networkFeeInvoice.invoice">
+      <div v-if="game.networkFeeInvoice.property">
         <q-card class="q-card--dark row" style="padding: 1em;">
 
           <div class="col-7 col-md-7">

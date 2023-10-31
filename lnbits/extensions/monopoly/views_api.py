@@ -63,9 +63,9 @@ async def api_monopoly_games_create(data: CreateGameData):
 @monopoly_ext.post("/api/v1/player", status_code=HTTPStatus.CREATED)
 async def api_monopoly_first_player_create(data: CreateFirstPlayerData):
     # Create player wallet
-    created_wallet = await create_player_wallet(data)
-    logger.info(f"Created player wallet ({created_wallet.id})")
-    return created_wallet
+    player_created = await create_player_wallet(data)
+    logger.info(f"Created player and player wallet ({player_created.player_index} {player_created.player_wallet_id})")
+    return player_created
 
 @monopoly_ext.put("/api/v1/player", status_code=HTTPStatus.CREATED)
 async def api_monopoly_first_player_update(data: UpdateFirstPlayerData):
@@ -238,11 +238,11 @@ async def api_monopoly_players_invite(
     assert current_players_count[0] < max_players_count[0], "Maximum number of players has been reached"
     # Create player account and wallet
     invited_user_name = await pick_player_name(game_id)
-    invited_user_id = await invite_player(game_id, invited_user_name)
-    logger.info(f"Created account and wallet for {invited_user_name} ({invited_user_id})")
+    invited_player = await invite_player(game_id, invited_user_name)
+    logger.info(f"Created account and wallet for {invited_user_name} ({invited_player.player_user_id})")
     # Enable monopoly extension for player
-    logger.info(f"Enabling extension: monopoly for {invited_user_name} ({invited_user_id})")
-    await update_user_extension(user_id=invited_user_id, extension="monopoly", active=True)
+    logger.info(f"Enabling extension: monopoly for {invited_user_name} ({invited_player.player_user_id})")
+    await update_user_extension(user_id=invited_player.player_user_id, extension="monopoly", active=True)
     # Redirect
-    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_user_id + "&game_id=" + game_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
+    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player.player_user_id + "&player_index=" + invited_player.player_index + "&game_id=" + game_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
     return RedirectResponse(redirectUrl)
