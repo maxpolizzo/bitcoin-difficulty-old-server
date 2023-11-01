@@ -63,7 +63,7 @@ async def m001_initial(db):
     )
 
     """
-    Initial chance and community chest cards table.
+    Initial lightning and protocol cards table.
     """
     await db.execute(
       f"""
