@@ -1,13 +1,12 @@
 import { properties } from './data/properties.js'
 import {
-  chance_cards,
-  community_chest_cards
+  lightning_cards,
+  protocol_cards
 } from './data/cards.js'
 import {
   newGame,
   playerNames
 } from './data/data.js'
-import { qrCodes } from './data/qr.js'
 import { reactiveStyles } from '../css/styles.js'
 import {
   decodeInvoice,
@@ -287,7 +286,7 @@ new Vue({
       await this.createFreeMarketPayLNURL();
       // Create a static LNURL pay link to be used for sending sats to player
       await this.createPlayerPayLNURL();
-      // Initialize Chance and Community Chest cards indexes
+      // Initialize Lightning and Protocol cards indexes
       await this.initializeCards()
       // Start checking user balance
       await fetchPlayerBalance(this.game)
@@ -494,7 +493,7 @@ new Vue({
       }
     },
     initializeCards: async function () {
-      // Initialize chance and community chest cards indexes
+      // Initialize Lightning and Protocol cards indexes
       const res = await LNbits.api
         .request(
           'POST',
@@ -505,7 +504,7 @@ new Vue({
           },
         )
       if(res.status == 201) {
-        console.log("Monopoly: Chance and Community Chest cards indexes initialized successfully ")
+        console.log("Monopoly: Lightning and Protocol cards indexes initialized successfully ")
       }
     },
     // Logic to format an invite link to invite other players to the game
@@ -573,7 +572,7 @@ new Vue({
           LNbits.utils.notifyApiError(res.error)
         }
       } else  {
-        LNbits.utils.notifyApiError(res.error)
+        LNbits.utils.notifyApiError('Error: invalid game.fundingInvoiceAmount')
         this.game.fundingStatus = 'error'
       }
     },
@@ -1312,20 +1311,20 @@ new Vue({
         console.log(res.data)
       }
     },
-    showChanceCard: async function() {
+    showLightningCard: async function() {
       let res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/next_chance_card_index?game_id=' + this.game.marketData.id,
+          '/monopoly/api/v1/next_lightning_card_index?game_id=' + this.game.marketData.id,
           this.game.player.wallets[0].inkey,
         )
       if(res.data) {
-        let chanceCard = res.data
-        console.log("Showing Chance card at index " + chanceCard.next_index.toString())
-        console.log(chance_cards[chanceCard.next_index.toString()].imgPath)
-        this.game.showChanceCard = true;
-        this.game.chanceCardToShow = chance_cards[chanceCard.next_index.toString()];
-        // Update next Chance card index
+        let lightningCard = res.data
+        console.log("Showing Lightning card at index " + lightningCard.next_index.toString())
+        console.log(lightning_cards[lightningCard.next_index.toString()].imgPath)
+        this.game.showLightningCard = true;
+        this.game.lightningCardToShow = lightning_cards[lightningCard.next_index.toString()];
+        // Update next Lightning card index
         res = await LNbits.api
           .request(
             'PUT',
@@ -1333,29 +1332,29 @@ new Vue({
             this.game.player.wallets[0].inkey,
             {
               game_id: this.game.marketData.id,
-              card_type: "chance"
+              card_type: "lightning"
             }
           )
         if(res.data) {
-          console.log("Next Chance card index updated successfully")
+          console.log("Next Lightning card index updated successfully")
           console.log(res.data)
         }
       }
     },
-    showCommunityChestCard: async function() {
+    showProtocolCard: async function() {
       let res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/next_community_chest_card_index?game_id=' + this.game.marketData.id,
+          '/monopoly/api/v1/next_protocol_card_index?game_id=' + this.game.marketData.id,
           this.game.player.wallets[0].inkey,
         )
       if(res.data) {
-        let communityChestCard = res.data
-        console.log("Showing Community Chest card at index " + communityChestCard.next_index.toString())
-        console.log(community_chest_cards[communityChestCard.next_index.toString()].imgPath)
-        this.game.showCommunityChestCard = true;
-        this.game.communityChestCardToShow = community_chest_cards[communityChestCard.next_index.toString()] ;;
-        // Update next Community Chest card index
+        let protocolCard = res.data
+        console.log("Showing Protocol card at index " + protocolCard.next_index.toString())
+        console.log(protocol_cards[protocolCard.next_index.toString()].imgPath)
+        this.game.showProtocolCard = true;
+        this.game.protocolCardToShow = protocol_cards[protocolCard.next_index.toString()] ;;
+        // Update next Protocol card index
         res = await LNbits.api
           .request(
             'PUT',
@@ -1363,11 +1362,11 @@ new Vue({
             this.game.player.wallets[0].inkey,
             {
               game_id: this.game.marketData.id,
-              card_type: "community_chest"
+              card_type: "protocol"
             }
           )
         if(res.data) {
-          console.log("Next Community Chest card index updated successfully")
+          console.log("Next Protocol card index updated successfully")
           console.log(res.data)
         }
       }
@@ -1440,10 +1439,10 @@ new Vue({
       }
     },
     closePayFineDialog: function () {
-      this.game.showChanceCard = false;
-      this.game.chanceCardToShow = null;
-      this.game.showCommunityChestCard = false;
-      this.game.communityChestCardToShow = null;
+      this.game.showLightningCard = false;
+      this.game.lightningCardToShow = null;
+      this.game.showProtocolCard = false;
+      this.game.protocolCardToShow = null;
       this.game.fineAmountSats = 0;
       this.game.customFineMultiplier = 0;
       this.game.rewardAmountSats = 0;
@@ -1465,10 +1464,10 @@ new Vue({
       this.closeClaimRewardDialog()
     },
     closeClaimRewardDialog: function () {
-      this.game.showChanceCard = false;
-      this.game.chanceCardToShow = null;
-      this.game.showCommunityChestCard = false;
-      this.game.communityChestCardToShow = null;
+      this.game.showLightningCard = false;
+      this.game.lightningCardToShow = null;
+      this.game.showProtocolCard = false;
+      this.game.protocolCardToShow = null;
       this.game.fineAmountMSats = 0;
       this.game.customFineMultiplier = 0;
       this.game.fineAmountSats = 0;
@@ -1607,12 +1606,12 @@ new Vue({
 
               case "chance_card":
                 this.closePropertyDialog()
-                this.showChanceCard()
+                this.showLightningCard()
                 break
 
               case "community_chest_card":
                 this.closePropertyDialog()
-                this.showCommunityChestCard()
+                this.showProtocolCard()
                 break
 
               case "property_purchase":
@@ -1708,21 +1707,21 @@ new Vue({
               throw("Invalid data type for free market")
             }
             this.closePropertyDialog()
-            this.showPropertyDetails(qrCodes[QRData])
+            this.showPropertyDetails(properties[QRData.slice(1,7)][QRData.slice(7,8)])
             break
 
           case "L": // Lightning card
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            this.showChanceCard()
+            this.showLightningCard()
             break
 
-          case "M": // Community mining card
+          case "B": // Protocol card
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            this.showCommunityChestCard()
+            this.showProtocolCard()
             break
 /*
           case "B": // Property purchase

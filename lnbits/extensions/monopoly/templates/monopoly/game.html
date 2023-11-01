@@ -485,59 +485,59 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="game.showChanceCard" @hide="game.showChanceCard = false">
+  <q-dialog v-model="game.showLightningCard" @hide="game.showLightningCard = false">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.chanceCardToShow">
+      <div v-if="game.lightningCardToShow">
 
         <q-card class="q-card--dark row" style="padding: 1em;">
 
           <div class="col-7 col-md-7">
             <img
               class="image-hover-highlight"
-              :src="game.chanceCardToShow.imgPath"
-              alt="chance"
-              :style="reactiveStyles.chanceCard(game.chanceCardToShow)"
+              :src="game.lightningCardToShow.imgPath"
+              alt="lightning card"
+              :style="reactiveStyles.lightningCard(game.lightningCardToShow)"
             >
           </div>
           <div
             class="col-5 col-md-5"
-            v-if="game.chanceCardToShow.fineType"
+            v-if="game.lightningCardToShow.fineType"
           >
             <div
              :style="reactiveStyles.cardsMessage"
             >
-             {% raw %}{{game.chanceCardToShow.fineMessage}}{% endraw %}
+             {% raw %}{{game.lightningCardToShow.fineMessage}}{% endraw %}
             </div>
 
             <q-form
-              v-if="game.chanceCardToShow.fineType == 'custom'"
+              v-if="game.lightningCardToShow.fineType == 'custom'"
               :style="reactiveStyles.cardsAmountForm"
               class="q-gutter-md col-8 col-md-8">
               <q-input
                 filled
                 dense
                 v-model.trim="game.customFineMultiplier"
-                :label="game.chanceCardToShow.inputLabel"
+                :label="game.lightningCardToShow.inputLabel"
                 placeholder=""
               ></q-input>
             </q-form>
 
             <div
-              v-if="game.chanceCardToShow.fineType == 'custom'"
+              v-if="game.lightningCardToShow.fineType == 'custom'"
               :style="reactiveStyles.cardsAmount">
-              Fine amount: {% raw %}{{Math.floor(game.chanceCardToShow.fineMultiplier * game.customFineMultiplier)}}{% endraw %} sats
+              Fine amount: {% raw %}{{Math.floor(game.lightningCardToShow.fineMultiplier * game.customFineMultiplier)}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.chanceCardToShow.fineType == 'pct_balance'"
+              v-if="game.lightningCardToShow.fineType == 'pct_balance'"
               :style="reactiveStyles.cardsAmount">
-              Fine amount: {% raw %}{{Math.floor(game.chanceCardToShow.fineMultiplier * game.userBalance)}}{% endraw %} sats
+              Fine amount: {% raw %}{{Math.floor(game.lightningCardToShow.fineMultiplier * game.userBalance)}}{% endraw %} sats
             </div>
 
            <div :style="reactiveStyles.cardsButton">
-             <q-btn v-if="game.chanceCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0" @click="payFine(game.chanceCardToShow)" flat color="grey" class="q-ml-auto">
+             <q-btn v-if="game.lightningCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0" @click="payFine(game.lightningCardToShow)" flat color="grey" class="q-ml-auto">
                Pay fine
              </q-btn>
              <q-btn v-else disabled flat color="grey" class="q-ml-auto">
@@ -555,49 +555,49 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="game.showCommunityChestCard" @hide="game.showCommunityChestCard = false">
+  <q-dialog v-model="game.showProtocolCard" @hide="game.showProtocolCard = false">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.communityChestCardToShow">
+      <div v-if="game.protocolCardToShow">
 
         <q-card class="q-card--dark row" style="padding: 1em;">
 
           <div class="col-7 col-md-7">
             <img
               class="image-hover-highlight"
-              :src="game.communityChestCardToShow.imgPath"
-              alt="community_chest"
-              :style="reactiveStyles.communityChestCard(game.communityChestCardToShow)"
+              :src="game.protocolCardToShow.imgPath"
+              alt="protocol card"
+              :style="reactiveStyles.protocolCard(game.protocolCardToShow)"
             >
           </div>
 
           <div
             class="col-5 col-md-5"
-            v-if="game.communityChestCardToShow.fineType"
+            v-if="game.protocolCardToShow.fineType"
           >
             <div
               :style="reactiveStyles.cardsMessage"
             >
-              {% raw %}{{game.communityChestCardToShow.fineMessage}}{% endraw %}
+              {% raw %}{{game.protocolCardToShow.fineMessage}}{% endraw %}
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.fineType == 'pct_balance'"
+              v-if="game.protocolCardToShow.fineType == 'pct_balance'"
               :style="reactiveStyles.cardsAmount">
-              Fine amount: {% raw %}{{Math.floor(game.communityChestCardToShow.fineMultiplier * game.userBalance)}}{% endraw %} sats
+              Fine amount: {% raw %}{{Math.floor(game.protocolCardToShow.fineMultiplier * game.userBalance)}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.fineType == 'pct_most_recent_tx_to_player'"
+              v-if="game.protocolCardToShow.fineType == 'pct_most_recent_tx_to_player'"
               :style="reactiveStyles.cardsAmount">
-              Pay {% raw %}{{Math.floor(game.communityChestCardToShow.fineMultiplier * 100)}}{% endraw %} sats to {% raw %}{{getLowestBalancePlayerName()}}{% endraw %}
+              Pay {% raw %}{{Math.floor(game.protocolCardToShow.fineMultiplier * 100)}}{% endraw %} sats to {% raw %}{{getLowestBalancePlayerName()}}{% endraw %}
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.fineType == 'pct_balance'"
+              v-if="game.protocolCardToShow.fineType == 'pct_balance'"
               :style="reactiveStyles.cardsButton">
-              <q-btn @click="payFine(game.communityChestCardToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn @click="payFine(game.protocolCardToShow)" flat color="grey" class="q-ml-auto">
                 Pay fine
               </q-btn>
             </div>
@@ -606,67 +606,67 @@
 
           <div
             class="col-5 col-md-5"
-            v-if="game.communityChestCardToShow.rewardType"
+            v-if="game.protocolCardToShow.rewardType"
           >
             <div
               :style="reactiveStyles.cardsMessage"
             >
-              {% raw %}{{game.communityChestCardToShow.rewardMessage}}{% endraw %}
+              {% raw %}{{game.protocolCardToShow.rewardMessage}}{% endraw %}
             </div>
 
             <q-form
-              v-if="game.communityChestCardToShow.rewardType == 'custom'"
+              v-if="game.protocolCardToShow.rewardType == 'custom'"
               :style="reactiveStyles.cardsAmountForm"
               class="q-gutter-md col-8 col-md-8">
               <q-input
                 filled
                 dense
                 v-model.trim="game.customRewardMultiplier"
-                :label="game.communityChestCardToShow.inputLabel"
+                :label="game.protocolCardToShow.inputLabel"
                 placeholder=""
               ></q-input>
             </q-form>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'custom'"
+              v-if="game.protocolCardToShow.rewardType == 'custom'"
               :style="reactiveStyles.cardsAmount">
-              Reward amount: {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * game.customRewardMultiplier)}}{% endraw %} sats
+              Reward amount: {% raw %}{{Math.floor(game.protocolCardToShow.rewardMultiplier * game.customRewardMultiplier)}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'fixed'"
+              v-if="game.protocolCardToShow.rewardType == 'fixed'"
               :style="reactiveStyles.cardsAmount">
-              Reward amount: {% raw %}{{game.communityChestCardToShow.rewardAmount}}{% endraw %} sats
+              Reward amount: {% raw %}{{game.protocolCardToShow.rewardAmount}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'pct_total_liquidity'"
+              v-if="game.protocolCardToShow.rewardType == 'pct_total_liquidity'"
               :style="reactiveStyles.cardsAmount">
-              Reward amount: {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * game.initialFunding)}}{% endraw %} sats
+              Reward amount: {% raw %}{{Math.floor(game.protocolCardToShow.rewardMultiplier * game.initialFunding)}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'pct_players_balance_from_players'"
+              v-if="game.protocolCardToShow.rewardType == 'pct_players_balance_from_players'"
               :style="reactiveStyles.cardsAmount">
                 Invoice every other player for 1% of their respective balance
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'pct_largest_transaction_from_players'"
+              v-if="game.protocolCardToShow.rewardType == 'pct_largest_transaction_from_players'"
               :style="reactiveStyles.cardsAmount">
-                Invoice every other player for {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * 100)}}{% endraw %} sats
+                Invoice every other player for {% raw %}{{Math.floor(game.protocolCardToShow.rewardMultiplier * 100)}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'pct_total_liquidity_from_players'"
+              v-if="game.protocolCardToShow.rewardType == 'pct_total_liquidity_from_players'"
               :style="reactiveStyles.cardsAmount">
-                Invoice every other player for {% raw %}{{Math.floor(game.communityChestCardToShow.rewardMultiplier * game.initialFunding)}}{% endraw %} sats
+                Invoice every other player for {% raw %}{{Math.floor(game.protocolCardToShow.rewardMultiplier * game.initialFunding)}}{% endraw %} sats
             </div>
 
             <div
-              v-if="game.communityChestCardToShow.rewardType == 'custom' || game.communityChestCardToShow.rewardType == 'fixed' || game.communityChestCardToShow.rewardType == 'pct_total_liquidity'"
+              v-if="game.protocolCardToShow.rewardType == 'custom' || game.protocolCardToShow.rewardType == 'fixed' || game.protocolCardToShow.rewardType == 'pct_total_liquidity'"
               :style="reactiveStyles.cardsButton">
-              <q-btn v-if="game.communityChestCardToShow.rewardType != 'custom' || game.customRewardMultiplier > 0" @click="claimReward(game.communityChestCardToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-if="game.protocolCardToShow.rewardType != 'custom' || game.customRewardMultiplier > 0" @click="claimReward(game.protocolCardToShow)" flat color="grey" class="q-ml-auto">
                 Claim reward
               </q-btn>
               <q-btn v-else disabled flat color="grey" class="q-ml-auto">

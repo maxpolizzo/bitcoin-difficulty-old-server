@@ -28,8 +28,8 @@ export function reactiveStyles(game) {
           marginTop: (3 * (parseInt(cardPosition) + 1)).toString() + `em`
         })
       },
-      chanceCard: (chanceCard) => {
-        if(chanceCard.fineType) {
+      lightningCard: (lightningCard) => {
+        if(lightningCard.fineType) {
           return({
             height: `auto`,
             maxWidth: `65%`,
@@ -45,15 +45,15 @@ export function reactiveStyles(game) {
           })
         }
       },
-      communityChestCard: (communityChestCard) => {
-        if(communityChestCard.fineType) {
+      protocolCard: (protocolCard) => {
+        if(protocolCard.fineType) {
           return({
             height: `auto`,
             maxWidth: `85%`,
             marginTop: `1em`,
             marginLeft: `2em`
           })
-        } else if (communityChestCard.rewardType) {
+        } else if (protocolCard.rewardType) {
           return({
               height: `auto`,
               maxWidth: `85%`,
@@ -83,7 +83,7 @@ export function reactiveStyles(game) {
         marginTop: `2em`,
         marginLeft: `0em`
       },
-      communityChestCardImage: {
+      protocolCardImage: {
         height: `auto`,
         maxWidth: `65%`,
         marginTop: `1em`,
@@ -192,8 +192,8 @@ export function reactiveStyles(game) {
           marginTop: (1.6 * (parseInt(cardPosition) + 1)).toString() + `em`
         })
       },
-      chanceCard: (chanceCard) => {
-        if(chanceCard.fineType) {
+      lightningCard: (lightningCard) => {
+        if(lightningCard.fineType) {
           return {
             height: `auto`,
             maxWidth: `100%`,
@@ -209,15 +209,15 @@ export function reactiveStyles(game) {
           }
         }
       },
-      communityChestCard: (communityChestCard) => {
-        if(communityChestCard.fineType) {
+      protocolCard: (protocolCard) => {
+        if(protocolCard.fineType) {
           return({
             height: `auto`,
             maxWidth: `100%`,
             marginTop: `0.5em`,
             marginLeft: `0em`
           })
-        } else if (communityChestCard.rewardType) {
+        } else if (protocolCard.rewardType) {
           return({
             height: `auto`,
             maxWidth: `100%`,
@@ -248,7 +248,7 @@ export function reactiveStyles(game) {
       cardsButton: {
         marginLeft: `0em`
       },
-      communityChestCardImage: {
+      protocolCardImage: {
         height: `auto`,
         maxWidth: `85%`,
         marginTop: `0.5em`,

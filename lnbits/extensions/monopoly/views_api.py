@@ -43,8 +43,8 @@ from .crud import (
     upgrade_property,
     initialize_cards_indexes,
     update_next_card_index,
-    get_next_chance_card_index,
-    get_next_community_chest_card_index,
+    get_next_lightning_card_index,
+    get_next_protocol_card_index,
     update_cumulated_fines,
     get_cumulated_fines,
     reset_cumulated_fines,
@@ -213,13 +213,13 @@ async def api_monopoly_properties(game_id: str, property_color: str, property_id
 async def api_monopoly_properties(game_id: str):
     return [property for property in await get_properties(game_id)]
 
-@monopoly_ext.get("/api/v1/next_chance_card_index", status_code=HTTPStatus.OK)
-async def api_monopoly_next_chance_card_index(game_id: str):
-    return await get_next_chance_card_index(game_id)
+@monopoly_ext.get("/api/v1/next_lightning_card_index", status_code=HTTPStatus.OK)
+async def api_monopoly_next_lightning_card_index(game_id: str):
+    return await get_next_lightning_card_index(game_id)
 
-@monopoly_ext.get("/api/v1/next_community_chest_card_index", status_code=HTTPStatus.OK)
-async def api_monopoly_next_community_chest_card_index(game_id: str):
-    return await get_next_community_chest_card_index(game_id)
+@monopoly_ext.get("/api/v1/next_protocol_card_index", status_code=HTTPStatus.OK)
+async def api_monopoly_next_protocol_card_index(game_id: str):
+    return await get_next_protocol_card_index(game_id)
 
 @monopoly_ext.get("/api/v1/cumulated_fines", status_code=HTTPStatus.OK)
 async def api_monopoly_cumulated_fines(game_id: str):

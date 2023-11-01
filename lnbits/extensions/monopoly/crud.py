@@ -311,27 +311,27 @@ async def initialize_cards_indexes(data: InitCardsIndex):
         INSERT INTO monopoly.cards (game_id, card_type, next_index)
         VALUES (?, ?, ?)
         """,
-        (data.game_id, "chance", 0),
+        (data.game_id, "lightning", 0),
     )
-    next_chance_card_index = await get_next_chance_card_index(data.game_id)
-    assert next_chance_card_index, "Next chance card index couldn't be retrieved"
+    next_lightning_card_index = await get_next_lightning_card_index(data.game_id)
+    assert next_lightning_card_index, "Next lightning card index couldn't be retrieved"
 
     await db.execute(
         """
         INSERT INTO monopoly.cards (game_id, card_type, next_index)
         VALUES (?, ?, ?)
         """,
-        (data.game_id, "community_chest", 0),
+        (data.game_id, "protocol", 0),
     )
-    next_community_chest_card_index = await get_next_community_chest_card_index(data.game_id)
-    assert next_community_chest_card_index, "Next community chest card index couldn't be retrieved"
+    next_protocol_card_index = await get_next_protocol_card_index(data.game_id)
+    assert next_protocol_card_index, "Next protocol card index couldn't be retrieved"
 
 async def update_next_card_index(data: UpdateCardIndex) -> int:
     next_card_index = 0
-    if (data.card_type == "chance"):
-        card_index = await get_next_chance_card_index(data.game_id)
-    elif (data.card_type == "community_chest"):
-        card_index = await get_next_community_chest_card_index(data.game_id)
+    if (data.card_type == "lightning"):
+        card_index = await get_next_lightning_card_index(data.game_id)
+    elif (data.card_type == "protocol"):
+        card_index = await get_next_protocol_card_index(data.game_id)
 
     assert card_index, "Card index couldn't be retrieved"
 
@@ -348,10 +348,10 @@ async def update_next_card_index(data: UpdateCardIndex) -> int:
     )
 
     updated_next_card_index = 0
-    if (data.card_type == "chance"):
-        card_index = await get_next_chance_card_index(data.game_id)
-    elif (data.card_type == "community_chest"):
-        card_index = await get_next_community_chest_card_index(data.game_id)
+    if (data.card_type == "lightning"):
+        card_index = await get_next_lightning_card_index(data.game_id)
+    elif (data.card_type == "protocol"):
+        card_index = await get_next_protocol_card_index(data.game_id)
 
     assert card_index, "Card index couldn't be retrieved after update"
 
@@ -439,12 +439,12 @@ async def get_property(game_id: str, property_color: str, property_id: int) -> P
     row = await db.fetchone("SELECT * FROM monopoly.properties WHERE game_id = ? AND property_color = ? AND property_id = ?", (game_id, property_color, property_id))
     return Property(**row) if row else None
 
-async def get_next_chance_card_index(game_id: str) -> CardIndex:
-    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, "chance"))
+async def get_next_lightning_card_index(game_id: str) -> CardIndex:
+    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, "lightning"))
     return CardIndex(**row) if row else None
 
-async def get_next_community_chest_card_index(game_id: str) -> CardIndex:
-    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, "community_chest"))
+async def get_next_protocol_card_index(game_id: str) -> CardIndex:
+    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, "protocol"))
     return CardIndex(**row) if row else None
 
 async def get_cumulated_fines(game_id: str) -> CumulatedFines:
