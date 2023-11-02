@@ -352,6 +352,7 @@ new Vue({
           console.log("Monopoly: Game registered successfully (" + res.config.data+ ")")
           // Update player wallet for game creator (pick random name)
           await this.updatePlayerWallet();
+          /*
           // Update created game with first player data
           this.game.players[this.game.player.wallets[0].id] = {
             player_wallet_id: this.game.player.wallets[0].id,
@@ -364,6 +365,7 @@ new Vue({
               balance: 0
             }
           )
+          */
           this.game.created = true
           this.game.fundingStatus = 'awaiting'
           this.game.timestamp = Date.now()
@@ -1523,7 +1525,6 @@ new Vue({
       this.game.showFreeBitcoinClaimDialog = false;
     },
     claimStartAmount: async function () {
-      // Claim cumulated fines from the free market
       let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
       // Claim reward
       console.log("Claiming start bonus...")

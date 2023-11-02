@@ -40,6 +40,7 @@ async def m001_initial(db):
           player_pay_link_id TEXT,
           player_pay_link TEXT,
           game_id TEXT NOT NULL,
+          joined BOOLEAN DEFAULT false,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     """

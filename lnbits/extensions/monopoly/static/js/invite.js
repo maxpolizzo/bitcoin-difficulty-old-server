@@ -1,5 +1,8 @@
 import { inviteGame } from './data/data.js'
-import { claimInviteVoucher } from './helpers/utils.js'
+import {
+  checkMaxNumberOfPlayersReached,
+  claimInviteVoucher
+} from './helpers/utils.js'
 
 let game = inviteGame
 game.player.id = window.user.id;
@@ -15,10 +18,12 @@ game.rewardVoucher = window.invite_vars.reward_voucher.toString();
 game.marketData = {
   id: gameId,
 }
+
 // Fetch game data, claim invite voucher and redirect to index.html
 enableMonopolyExtension(window.user.id).then(async () => {
   await fetchGameData(game);
 })
+
 const claimedVoucher = JSON.parse(localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher'));
 const inviteVoucherPaymentHash = localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherPaymentHash');
 
@@ -29,14 +34,19 @@ new Vue({
     game: game,
     inviteVoucher: inviteVoucher,
     inviteVoucherPaymentHash: inviteVoucherPaymentHash,
-    claimedVoucher:claimedVoucher
+    claimedVoucher:claimedVoucher,
+    maxNumberOfPlayersReached: false
   },
   methods: {
-    claimVoucher: function() {
-      // Claim invite voucher
-      claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]).then(() => {
-        redirect(this.game);
-      })
+    joinGame: async function() {
+      this.maxNumberOfPlayersReached = await checkMaxNumberOfPlayersReached(game.marketData.id)
+      // Join game if current_players_count < max_players_count
+      if(!this.maxNumberOfPlayersReached) {
+          // Claim invite voucher
+          await claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]).then(() => {
+          redirect(this.game);
+        })
+      }
     }
   }
 })

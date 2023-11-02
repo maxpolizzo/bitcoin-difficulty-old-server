@@ -1,9 +1,57 @@
 /* globals decode*/
 
+export async function checkMaxNumberOfPlayersReached(game_id) {
+  // Check current number of players vs max number of players
+  let res = await LNbits.api
+    .request(
+      'GET',
+      '/monopoly/api/v1/players_count?game_id=' + game_id,
+      window.user.wallets[0].inkey
+    )
+  if(res.data) {
+    let current_players_count = res.data['COUNT(*)']
+    res = await LNbits.api
+      .request(
+        'GET',
+        '/monopoly/api/v1/max_players_count?game_id=' + game_id,
+        window.user.wallets[0].inkey
+      )
+    if(res.data) {
+      let max_players_count = res.data['max_players_count']
+      if(current_players_count < max_players_count) {
+        return false
+      } else {
+        return true
+      }
+    } else {
+      LNbits.utils.notifyApiError(res.error)
+    }
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
 export async function claimInviteVoucher (lnurl, game, wallet) {
   const lnurlData = await decodeLNURL(lnurl, wallet);
   const amount = lnurlData.maxWithdrawable / 1000; // mSats to sats conversion
-  return await withdrawFromLNURL(lnurlData, game, wallet, amount, 'invite');
+  let result = await withdrawFromLNURL(lnurlData, game, wallet, amount, 'invite');
+  if(result) {
+    // Update invited player "joined" status to true
+    let res = await LNbits.api
+      .request(
+        'PUT',
+        '/monopoly/api/v1/player_joined',
+        game.player.wallets[0].inkey,
+        {
+          player_wallet_id: game.player.wallet_id,
+          game_id: game.marketData.id,
+          joined: true
+        }
+      )
+    if(res.data) {
+      console.log(game.player.name +  " successfully joined the game")
+    }
+  }
 }
 
 export async function createPlayerPayLNURL(game) {
@@ -101,7 +149,7 @@ export async function withdrawFromLNURL(lnurlData, game, wallet, amount, type) {
           JSON.stringify(res.data.payment_hash)
         )
         // Check for invoice payment
-        await checkForPayment(res.data.payment_hash, game, wallet)
+        return await checkForPayment(res.data.payment_hash, game, wallet)
       }
     }
   } else {
@@ -121,6 +169,7 @@ export async function checkForPayment(paymentHash, game, wallet) {
       LNbits.utils.notifyApiError(res.error)
     }
   }, 5000)
+  return true
 }
 
 export function onPaymentReceived(paymentChecker, game) {
