@@ -49,10 +49,11 @@ from .crud import (
     get_cumulated_fines,
     reset_cumulated_fines,
     update_player_pay_link,
-    get_player_pay_link
+    get_player_pay_link,
+    update_invited_player_joined
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, UpdateInvitedPlayerData
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -78,6 +79,12 @@ async def api_monopoly_first_player_update(data: UpdateFirstPlayerData):
     updated_wallet = await update_first_player_name(walletData)
     logger.info(f"Updated player name for {player_wallet_name} ({updated_wallet.id})")
     return updated_wallet
+
+@monopoly_ext.put("/api/v1/player_joined", status_code=HTTPStatus.CREATED)
+async def api_monopoly_invited_player_update_joined(data: UpdateInvitedPlayerData):
+    updated_player = await update_invited_player_joined(data)
+    logger.info(f"Updated player joined for {updated_player.player_wallet_name} ({updated_player.player_wallet_id})")
+    return updated_player
 
 @monopoly_ext.put("/api/v1/games/market-liquidity", status_code=HTTPStatus.CREATED)
 async def api_monopoly_games_update_market_liquidity(data: UpdateMarketLiquidityData):
@@ -193,6 +200,16 @@ async def api_monopoly_game_with_invoice(game_id: str):
 async def api_monopoly_players(game_id: str):
     return [player for player in await get_players(game_id)]
 
+@monopoly_ext.get("/api/v1/players_count", status_code=HTTPStatus.OK)
+async def api_monopoly_players_count(game_id: str):
+    current_players_count = await get_players_count(game_id)
+    return current_players_count
+
+@monopoly_ext.get("/api/v1/max_players_count", status_code=HTTPStatus.OK)
+async def api_monopoly_max_players_count(game_id: str):
+    max_players_count = await get_max_players_count(game_id)
+    return max_players_count
+
 @monopoly_ext.get("/api/v1/players/balance", status_code=HTTPStatus.OK)
 async def api_monopoly_player_balance(player_wallet_id: str):
     return await get_player_balance(player_wallet_id)
@@ -235,7 +252,7 @@ async def api_monopoly_players_invite(
     # Make sure all expected players have not joined yet
     current_players_count = await get_players_count(game_id)
     max_players_count = await get_max_players_count(game_id)
-    assert current_players_count[0] < max_players_count[0], "Maximum number of players has been reached"
+    assert current_players_count[0] < max_players_count[0], "Maximum number of players has been reached for this game"
     # Create player account and wallet
     invited_user_name = await pick_player_name(game_id)
     invited_player = await invite_player(game_id, invited_user_name)

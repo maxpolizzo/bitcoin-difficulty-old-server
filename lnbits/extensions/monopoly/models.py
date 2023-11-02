@@ -64,9 +64,15 @@ class CreatePlayerData(BaseModel):
     player_wallet_inkey: str = Query(...)
     player_balance: int
     game_id: str = Query(...)
+    joined: bool
 
 class InvitePlayerData(BaseModel):
     game_id: str = Query(...)
+
+class UpdateInvitedPlayerData(BaseModel):
+     player_wallet_id: str = Query(...)
+     game_id: str = Query(...)
+     joined: bool
 
 class Game(BaseModel):
     game_id: str = Query(...)
