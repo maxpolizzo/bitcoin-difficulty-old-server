@@ -59,7 +59,7 @@
              You are {% raw %}{{game.player.name}}{% endraw %}!
           </span>
           <span v-if="game.playersCount < game.minPlayersCount" class="col-7 col-md-8" style="margin-top: 0.5em;">
-            Invite at least {% raw %}{{game.minPlayersCount - game.playersCount}}{% endraw %} more player to start playing
+            Invite at least 1 more player to start playing
           </span>
           <span v-else-if="game.playersCount >= game.minPlayersCount && game.playersCount < game.maxPlayersCount" class="col-7 col-md-8" style="margin-top: 0.5em;">
             Invite up to {% raw %}{{game.maxPlayersCount - game.playersCount}}{% endraw %} more players or start playing now
@@ -99,28 +99,33 @@
       <!-- Game view -->
     <q-card>
       <div class="row" style="padding: 1em; font-size: 1.2em;" v-if="game.started && game.created">
-          <span class="col-7 col-md-8" style="padding: 0.5em; font-size: 1.4em;">
+          <span class="col-7 col-md-7" style="padding: 0.5em; font-size: 1.4em;">
             Free market wallet
           </span>
-        <span class="col-2 offset-md-1 col-md-1" style="padding: 0.5em;">
-            <q-btn row color="red" icon="qr_code_2" size="1em" @click="showFreeMarketInvoiceDialog"></q-btn>
+        <span class="col-3 col-md-2" style="padding: 0.5em; margin-left: 0.5em">
+            <q-btn row color="red" icon="qr_code_2" size="1.5em" @click="showFreeMarketInvoiceDialog"></q-btn>
           </span>
-        <span class="col-2 col-md-1" style="padding: 0.5em; margin-left: 1em">
-            <q-btn row color="red" icon="photo_camera" size="1em" @click="showFreeMarketCamera"></q-btn>
+        <span class="col-2 col-md-2" style="padding: 0.5em; margin-left: 1em">
+            <q-btn row color="red" icon="photo_camera" size="1.5em" @click="showFreeMarketCamera"></q-btn>
           </span>
       </div>
     </q-card>
     <q-card>
-      <div class="row" style="padding: 1em; font-size: 1.2em;" v-if="game.started">
-          <span class="col-7 col-md-8" style="padding: 0.5em; font-size: 1.4em;">
+      <div style="padding: 1em; font-size: 1.2em;" v-if="game.started">
+          <span style="padding: 0.5em; font-size: 1.4em;">
             {% raw %} {{game.player.name}} {% endraw %}
           </span>
-          <span class="col-2 offset-md-1 col-md-1" style="padding: 0.5em;">
-            <q-btn row color="primary" icon="qr_code_2" size="1em" @click="showPlayerInvoiceDialog"></q-btn>
-          </span>
-          <span class="col-2 col-md-1" style="padding: 0.5em; margin-left: 1em">
-            <q-btn row color="primary" icon="photo_camera" size="1em" @click="showCamera"></q-btn>
-          </span>
+          <div class="row" style="padding: 1em;">
+            <span class="col-5 col-md-7" style="padding: 0.5em;">
+              <q-btn row color="green" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
+            </span>
+            <span class="col-3 col-md-2" style="padding: 0.5em; margin-left: 1em">
+              <q-btn row color="orange" icon="qr_code_2" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
+            </span>
+            <span class="col-2 col-md-2" style="padding: 0.5em; margin-left: 1em">
+              <q-btn row color="orange" icon="photo_camera" size="1.5em" @click="showCamera"></q-btn>
+            </span>
+          </div>
       </div>
     </q-card>
 

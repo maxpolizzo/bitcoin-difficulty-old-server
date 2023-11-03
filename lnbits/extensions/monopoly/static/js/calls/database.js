@@ -6,7 +6,7 @@ export async function onGameFunded (game) {
   game.showFundingView = false
   game.fundingStatus = 'success'
   game.initialFunding = game.marketLiquidity
-  game.initialPlayerBalance = 1500 // 1500 sats initiali player balance
+  game.initialPlayerBalance = 1500 // 1500 sats initial player balance
   // Register initial funding and initial player balance in database
   const res = await LNbits.api
     .request(

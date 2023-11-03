@@ -345,7 +345,7 @@ new Vue({
               game_id: this.game.marketData.id,
               max_players_count: this.game.maxPlayersCount,
               cumulated_fines: 0,
-              available_player_names: playerNames
+              available_player_names: playerNames,
             }
           )
         if(res.data) {
@@ -727,6 +727,22 @@ new Vue({
           this.game.started.toString()
         )
         console.log("GAME STARTED")
+      }
+    },
+    incrementPlayerTurn: async function () {
+      const res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/games/increment_player_turn',
+          this.game.player.wallets[0].inkey,
+          {
+            game_id: this.game.marketData.id,
+          }
+        )
+      if(res.data) {
+        console.log("Current player turn: " + res.data)
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     deleteInviteVoucher: async function () {
@@ -1321,26 +1337,44 @@ new Vue({
           this.game.player.wallets[0].inkey,
         )
       if(res.data) {
+        let playerIndex = parseInt(this.game.player.index)
+        console.log(res.data)
+        console.log(playerIndex)
+
         let lightningCard = res.data
-        console.log("Showing Lightning card at index " + lightningCard.next_index.toString())
-        console.log(lightning_cards[lightningCard.next_index.toString()].imgPath)
-        this.game.showLightningCard = true;
-        this.game.lightningCardToShow = lightning_cards[lightningCard.next_index.toString()];
-        // Update next Lightning card index
-        res = await LNbits.api
-          .request(
-            'PUT',
-            '/monopoly/api/v1/cards/update_next_card_index',
-            this.game.player.wallets[0].inkey,
-            {
-              game_id: this.game.marketData.id,
-              card_type: "lightning"
-            }
-          )
-        if(res.data) {
-          console.log("Next Lightning card index updated successfully")
-          console.log(res.data)
+        let cardIndex;
+        if(lightningCard.player_index !== playerIndex) {
+          cardIndex = lightningCard.next_index
+        } else {
+          cardIndex = (lightningCard.next_index - 1) % 16
         }
+        console.log("Showing Lightning card at index " + cardIndex.toString())
+        console.log(lightning_cards[cardIndex.toString()].imgPath)
+        this.game.showLightningCard = true;
+        this.game.lightningCardToShow = lightning_cards[cardIndex.toString()];
+        // Update next Lightning card index if it's the first time that player is picking the card
+        // (if player picked the card already)
+        if(lightningCard.player_index !== playerIndex) {
+          console.log("Updating next card index")
+          res = await LNbits.api
+            .request(
+              'PUT',
+              '/monopoly/api/v1/cards/update_next_card_index',
+              this.game.player.wallets[0].inkey,
+              {
+                game_id: this.game.marketData.id,
+                card_type: "lightning",
+                player_index: playerIndex
+              }
+            )
+          if(res.data) {
+            console.log("Next Lightning card index updated successfully")
+          } else {
+            LNbits.utils.notifyApiError(res.error)
+          }
+        }
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     showProtocolCard: async function() {

@@ -78,6 +78,7 @@ class Game(BaseModel):
     game_id: str = Query(...)
     admin_wallet_id: str = Query(...)
     max_players_count: int
+    player_turn: int
 
 class MarketLiquidity(BaseModel):
     market_liquidity: int
@@ -156,6 +157,7 @@ class CardIndex(BaseModel):
     game_id: str
     card_type: str
     next_index: int
+    player_index: int
 
 class InitCardsIndex(BaseModel):
     game_id: str
@@ -163,6 +165,7 @@ class InitCardsIndex(BaseModel):
 class UpdateCardIndex(BaseModel):
     game_id: str
     card_type: str
+    player_index: int
 
 class UpdateCumulatedFines(BaseModel):
     game_id: str
@@ -183,3 +186,6 @@ class UpdatePlayerPayLink(BaseModel):
 class PlayerPayLink(BaseModel):
     player_pay_link_id: str
     player_pay_link: str
+
+class IncrementPlayerTurn(BaseModel):
+    game_id: str

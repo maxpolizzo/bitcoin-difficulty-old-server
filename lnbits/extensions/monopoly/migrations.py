@@ -20,6 +20,7 @@ async def m001_initial(db):
            payment_req TEXT,
            payment_hash TEXT,
            cumulated_fines {db.big_int},
+           player_turn INTEGER,
            time TIMESTAMP NOT NULL DEFAULT TIMESTAMP NOT NULL DEFAULT """+ db.timestamp_now + """
        );
     """
@@ -72,6 +73,7 @@ async def m001_initial(db):
           game_id TEXT NOT NULL,
           card_type TEXT NOT NULL,
           next_index INTEGER NOT NULL,
+          player_index INTEGER NOT NULL,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     """
