@@ -226,6 +226,11 @@ export async function fetchPlayerBalance(game) {
             player_balance: game.userBalance
           }
         );
+      // Refresh wallet balance in LNBits left panel
+      EventHub.$emit('update-wallet-balance', [
+        game.player.wallets[0].id,
+        userBalance
+      ])
       if(res.error) {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -390,11 +395,6 @@ export async function createInviteVoucher(game) {
       )
       // Claim LNURL voucher for game creator
       await claimInviteVoucher(voucher, game, game.player.wallets[0]);
-      setTimeout(() => {
-        // Refresh page to refresh game creator's player wallet balance in left panel
-        window.location.reload();
-      }, 250)
-
     } else {
       LNbits.utils.notifyApiError(res.error)
     }

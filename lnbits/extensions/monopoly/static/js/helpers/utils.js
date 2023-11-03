@@ -219,3 +219,4 @@ export function decodeInvoice(invoiceData) {
 
   return(cleanInvoice);
 }
+

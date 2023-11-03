@@ -50,10 +50,11 @@ from .crud import (
     reset_cumulated_fines,
     update_player_pay_link,
     get_player_pay_link,
-    update_invited_player_joined
+    update_invited_player_joined,
+    increment_game_player_turn,
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, UpdateInvitedPlayerData
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, UpdateInvitedPlayerData, IncrementPlayerTurn
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -100,6 +101,11 @@ async def api_monopoly_games_update_game_funding(data: UpdateGameFundingData):
 async def api_monopoly_games_start_game(data: StartGameData):
     started = await start_game(data)
     return started
+
+@monopoly_ext.put("/api/v1/games/increment_player_turn", status_code=HTTPStatus.CREATED)
+async def api_monopoly_games_increment_player_turn(data: IncrementPlayerTurn):
+    player_turn = await increment_game_player_turn(data)
+    return player_turn
 
 @monopoly_ext.post("/api/v1/games/invite_voucher", status_code=HTTPStatus.CREATED)
 async def api_monopoly_games_update_invite_voucher(data: UpdateVoucherData):
