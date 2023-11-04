@@ -10,7 +10,6 @@ game.player.wallet_id = window.user.wallets[0].id
 game.player.name = window.user.wallets[0].name;
 game.player.wallets.push(window.user.wallets[0]);
 // Get game invite data
-game.player.index = window.invite_vars.player_index;
 const gameId = window.invite_vars.game_id;
 const inviteVoucher = window.invite_vars.invite_voucher;
 game.rewardVoucher = window.invite_vars.reward_voucher.toString();
@@ -43,9 +42,9 @@ new Vue({
       // Join game if current_players_count < max_players_count
       if(!this.maxNumberOfPlayersReached) {
           // Claim invite voucher
-          await claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]).then(() => {
+          await claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]);
+          await joinGame(this.game);
           redirect(this.game);
-        })
       }
     }
   }
@@ -133,6 +132,29 @@ function saveGameRecord(game) {
       existingGameRecords = ['game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '_' + game.timestamp]
     }
     localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
+  }
+}
+
+async function joinGame(game) {
+  let res = await LNbits.api
+      .request(
+          'POST',
+          '/monopoly/api/v1/join',
+          window.user.wallets[0].inkey,
+          {
+            game_id: game.marketData.id,
+            player_user_id: game.player.id,
+            player_wallet_id: game.player.wallets[0].id,
+            player_wallet_name: game.player.wallets[0].name,
+            player_wallet_inkey: game.player.wallets[0].inkey,
+          }
+      )
+  if(res.data) {
+    // Save player index
+    game.player.index = res.data.player_index;
+    console.log(game.player.name +  " successfully joined the game")
+  } else {
+    LNbits.utils.notifyApiError(res.error)
   }
 }
 

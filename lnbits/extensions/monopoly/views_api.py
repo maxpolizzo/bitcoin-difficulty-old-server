@@ -50,12 +50,12 @@ from .crud import (
     reset_cumulated_fines,
     update_player_pay_link,
     get_player_pay_link,
-    update_invited_player_joined,
     increment_game_player_turn,
-    get_game_player_turn
+    get_game_player_turn,
+    join_player
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, UpdateInvitedPlayerData, IncrementPlayerTurn
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, IncrementPlayerTurn, JoinPlayerData
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
@@ -81,12 +81,6 @@ async def api_monopoly_first_player_update(data: UpdateFirstPlayerData):
     updated_wallet = await update_first_player_name(walletData)
     logger.info(f"Updated player name for {player_wallet_name} ({updated_wallet.id})")
     return updated_wallet
-
-@monopoly_ext.put("/api/v1/player_joined", status_code=HTTPStatus.CREATED)
-async def api_monopoly_invited_player_update_joined(data: UpdateInvitedPlayerData):
-    updated_player = await update_invited_player_joined(data)
-    logger.info(f"Updated player joined for {updated_player.player_wallet_name} ({updated_player.player_wallet_id})")
-    return updated_player
 
 @monopoly_ext.put("/api/v1/games/market-liquidity", status_code=HTTPStatus.CREATED)
 async def api_monopoly_games_update_market_liquidity(data: UpdateMarketLiquidityData):
@@ -255,7 +249,7 @@ async def api_monopoly_cumulated_fines(game_id: str):
     return await get_cumulated_fines(game_id)
 
 @monopoly_ext.get("/api/v1/invite", status_code=HTTPStatus.OK)
-async def api_monopoly_players_invite(
+async def api_monopoly_player_invite(
     game_id: str,
     invite_voucher: str,
     reward_voucher: str,
@@ -267,11 +261,21 @@ async def api_monopoly_players_invite(
     assert current_players_count[0] < max_players_count[0], "Maximum number of players has been reached for this game"
     # Create player account and wallet
     invited_user_name = await pick_player_name(game_id)
-    invited_player = await invite_player(game_id, invited_user_name)
-    logger.info(f"Created account and wallet for {invited_user_name} ({invited_player.player_user_id})")
+    invited_player_user_id = await invite_player(game_id, invited_user_name)
+    logger.info(f"Created account and wallet for {invited_user_name} ({invited_player_user_id})")
     # Enable monopoly extension for player
-    logger.info(f"Enabling extension: monopoly for {invited_user_name} ({invited_player.player_user_id})")
-    await update_user_extension(user_id=invited_player.player_user_id, extension="monopoly", active=True)
+    logger.info(f"Enabling extension: monopoly for {invited_user_name} ({invited_player_user_id})")
+    await update_user_extension(user_id=invited_player_user_id, extension="monopoly", active=True)
     # Redirect
-    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player.player_user_id + "&player_index=" + invited_player.player_index + "&game_id=" + game_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
+    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player_user_id + "&game_id=" + game_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
     return RedirectResponse(redirectUrl)
+
+@monopoly_ext.post("/api/v1/join", status_code=HTTPStatus.OK)
+async def api_monopoly_player_join(data: JoinPlayerData):
+    # Make sure all expected players have not joined yet
+    current_players_count = await get_players_count(data.game_id)
+    max_players_count = await get_max_players_count(data.game_id)
+    assert current_players_count[0] < max_players_count[0], "Maximum number of players has been reached for this game"
+    player_joined = await join_player(data)
+    return player_joined
+
