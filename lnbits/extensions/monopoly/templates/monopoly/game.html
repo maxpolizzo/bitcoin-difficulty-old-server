@@ -25,11 +25,11 @@
              You are {% raw %}{{game.player.name}}{% endraw %}!
           </span>
           <span class="col-2 col-md-2" style="margin-top: 0.5em;">
-            <q-btn row color="primary" icon="qr_code_2" size="1em" :style="reactiveStyles.initialFundingButton" v-if="game.created"@click="showFundingDialog()">
+            <q-btn row color="orange" icon="qr_code_2" size="1em" :style="reactiveStyles.initialFundingButton" v-if="game.created"@click="showFundingDialog()">
             </q-btn>
           </span>
           <span v-if="game.marketLiquidity >= game.minFunding" class="col-2 col-md-2" style="margin-top: 0.5em;">
-            <q-btn row color="primary" icon="play_circle" size="1em" v-if="game.created"@click="onGameFunded()"></q-btn>
+            <q-btn row color="orange" icon="play_circle" size="1em" v-if="game.created"@click="onGameFunded()"></q-btn>
           </span>
           <span v-else class="col-2 col-md-2" style="margin-top: 0.5em;">
             <q-btn disabled row color="grey" icon="play_circle" size="1em" v-if="game.created"@click=""></q-btn>
@@ -44,7 +44,7 @@
         <div class="row">
           <div class="offset-5 col-2 offset-md-5 col-md-2" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
             <q-spinner
-              color="primary"
+              color="orange"
               size="2em"
             />
           </div>
@@ -69,10 +69,10 @@
           </span>
           <span class="col-2 col-md-2" style="margin-top: -1.5em;">
             <q-btn  v-if="game.playersCount >= game.maxPlayersCount" disabled row icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
-            <q-btn  v-else-if="game.inviteVoucherId" row color="primary" icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
+            <q-btn  v-else-if="game.inviteVoucherId" row color="orange" icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
           </span>
           <span class="col-2 col-md-2" style="margin-top: -1.5em;">
-            <q-btn v-if="game.playersCount >= game.minPlayersCount" row color="primary" icon="play_circle" size="1em" @click="startGame()"></q-btn>
+            <q-btn v-if="game.playersCount >= game.minPlayersCount" row color="orange" icon="play_circle" size="1em" @click="startGame()"></q-btn>
             <q-btn v-else disabled row icon="play_circle" size="1em" @click="startGame()"></q-btn>
           </span>
         </div>
@@ -89,7 +89,7 @@
         <div class="row">
           <div class="offset-5 col-2 offset-md-5 col-md-2" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
             <q-spinner
-              color="primary"
+              color="orange"
               size="2em"
             />
           </div>
@@ -117,7 +117,7 @@
           </span>
           <div class="row" style="padding: 1em;">
             <span class="col-5 col-md-7" style="padding: 0.5em;">
-              <q-btn row color="green" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
+              <q-btn row color="orange" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
             </span>
             <span class="col-3 col-md-2" style="padding: 0.5em; margin-left: 1em">
               <q-btn row color="orange" icon="qr_code_2" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
@@ -228,9 +228,19 @@
             row-key="name"
             :rows-per-page-options="[game.maxPlayersCount]"
             hide-bottom
-          />
+          >
+            <template v-slot:body="props">
+              <q-tr :props="props" :class="props.row.index === game.playerTurn ? 'bg-orange-4 text-bold' : ''">
+                <q-td key="name" :props="props" >
+                  {% raw %}{{props.row.name}}{% endraw %}
+                </q-td>
+                <q-td key="balance" :props="props" >
+                  {% raw %}{{props.row.balance}}{% endraw %}
+                </q-td>
+              </q-tr>
+            </template>
+          </q-table>
         </div>
-
       </q-card-section>
     </q-card>
   </div>
@@ -309,8 +319,8 @@
       <q-tabs  v-model="fundingTab"
                dense
                class="text-grey"
-               active-color="primary"
-               indicator-color="primary"
+               active-color="orange"
+               indicator-color="orange"
                align="justify"
                narrow-indicator
       >

@@ -5,6 +5,7 @@ import { fetchGameStarted, fetchPlayers } from '../calls/database.js'
 import {
   checkPlayersBalances,
   checkPlayers,
+  checkPlayerTurn,
   checkPlayerBalance,
   checkProperties,
   checkMarketLiquidity,
@@ -77,6 +78,9 @@ export function initGameData(game) {
         })
         checkPlayers(game).then(() => {
           console.log("Periodically checking for new players...")
+        })
+        checkPlayerTurn(game).then(() => {
+          console.log("Periodically checking current player turn...")
         })
         checkPaymentsToPlayer(game).then(() => {
           console.log("Periodically checking for payments to player wallet...")

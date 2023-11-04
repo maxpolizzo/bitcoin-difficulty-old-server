@@ -35,6 +35,7 @@ import {
   checkPlayerBalance,
   checkMarketLiquidity,
   checkPlayers,
+  checkPlayerTurn,
   checkPlayersBalances,
   checkFundingInvoicePaid,
   checkPaymentsToFreeMarket,
@@ -298,6 +299,8 @@ new Vue({
       this.checkPlayers()
       // Start checking players balances
       this.checkPlayersBalances()
+      // Start checking player turn
+      this.checkPlayerTurn()
       // Display the view for initial free market funding
       this.game.showFundingView = true;
       // Register game data in local storage
@@ -794,6 +797,9 @@ new Vue({
     },
     checkPlayersBalances: async function () {
       await checkPlayersBalances(this.game)
+    },
+    checkPlayerTurn: async function () {
+      await checkPlayerTurn(this.game)
     },
     checkMarketLiquidity: async function () {
       await checkMarketLiquidity(this.game)

@@ -9,6 +9,7 @@ export const newGame = {
   startClaimAmount: 200,
   initialFunding: "0",
   initialPlayerBalance: "0",
+  playerTurn: 0,
   showFundingView: false,
   showFundingDialog: false,
   showInviteQR: false,
