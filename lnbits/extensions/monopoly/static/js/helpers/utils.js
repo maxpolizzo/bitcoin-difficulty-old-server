@@ -36,21 +36,7 @@ export async function claimInviteVoucher (lnurl, game, wallet) {
   const amount = lnurlData.maxWithdrawable / 1000; // mSats to sats conversion
   let result = await withdrawFromLNURL(lnurlData, game, wallet, amount, 'invite');
   if(result) {
-    // Update invited player "joined" status to true
-    let res = await LNbits.api
-      .request(
-        'PUT',
-        '/monopoly/api/v1/player_joined',
-        game.player.wallets[0].inkey,
-        {
-          player_wallet_id: game.player.wallet_id,
-          game_id: game.marketData.id,
-          joined: true
-        }
-      )
-    if(res.data) {
-      console.log(game.player.name +  " successfully joined the game")
-    }
+    console.log(game.player.name +  " successfully claimed invite voucher")
   }
 }
 
