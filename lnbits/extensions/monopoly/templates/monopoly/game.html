@@ -32,7 +32,7 @@
             <q-btn row color="orange" icon="play_circle" size="1em" v-if="game.created"@click="onGameFunded()"></q-btn>
           </span>
           <span v-else class="col-2 col-md-2" style="margin-top: 0.5em;">
-            <q-btn disabled row color="grey" icon="play_circle" size="1em" v-if="game.created"@click=""></q-btn>
+            <q-btn disabled row icon="play_circle" size="1em" v-if="game.created"@click=""></q-btn>
           </span>
         </div>
         <div class="row">
@@ -117,7 +117,8 @@
           </span>
           <div class="row" style="padding: 1em;">
             <span class="col-5 col-md-7" style="padding: 0.5em;">
-              <q-btn row color="orange" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
+              <q-btn v-if="game.playerTurn === game.player.index" row color="orange" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
+              <q-btn v-else disabled row icon="next_plan" size="1.5em"></q-btn>
             </span>
             <span class="col-3 col-md-2" style="padding: 0.5em; margin-left: 1em">
               <q-btn row color="orange" icon="qr_code_2" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
@@ -376,7 +377,7 @@
               </q-form>
             </div>
             <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
-              <q-btn @click="createFundingInvoice()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+              <q-btn @click="createFundingInvoice()" flat color="orange" class="q-ml-auto">Generate</q-btn>
             </div>
           </div>
           <div class="row q-mt-lg">
@@ -447,7 +448,7 @@
         </q-form>
       </div>
       <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
-        <q-btn @click="createPlayerInvoice()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+        <q-btn @click="createPlayerInvoice()" flat color="orange" class="q-ml-auto">Generate</q-btn>
       </div>
     </div>
     <div class="row q-mt-lg">
@@ -489,13 +490,22 @@
           </q-form>
         </div>
         <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
-          <q-btn @click="createFreeMarketInvoice()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+          <q-btn @click="createFreeMarketInvoice()" flat color="orange" class="q-ml-auto">Generate</q-btn>
         </div>
       </div>
       <div class="row q-mt-lg">
         <!--q-btn v-if="game.freeMarketInvoice.paymentReq" outline color="grey" @click="copyText(game.freeMarketInvoice.paymentReq)">Copy invoice</q-btn-->
         <q-btn disabled outline color="grey" @click="">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showNotYourTurnPopUp" @hide="closeNotYourTurnPopUp">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+      <div class="text-center q-mb-lg">
+        It's not your turn to play
       </div>
     </q-card>
   </q-dialog>
@@ -552,10 +562,10 @@
             </div>
 
            <div :style="reactiveStyles.cardsButton">
-             <q-btn v-if="game.lightningCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0" @click="payFine(game.lightningCardToShow)" flat color="grey" class="q-ml-auto">
+             <q-btn v-if="game.lightningCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0" @click="payFine(game.lightningCardToShow)" flat color="orange" class="q-ml-auto">
                Pay fine
              </q-btn>
-             <q-btn v-else disabled flat color="grey" class="q-ml-auto">
+             <q-btn v-else disabled flat class="q-ml-auto">
                Pay fine
              </q-btn>
            </div>
@@ -612,7 +622,7 @@
             <div
               v-if="game.protocolCardToShow.fineType == 'pct_balance'"
               :style="reactiveStyles.cardsButton">
-              <q-btn @click="payFine(game.protocolCardToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn @click="payFine(game.protocolCardToShow)" flat color="orange" class="q-ml-auto">
                 Pay fine
               </q-btn>
             </div>
@@ -681,10 +691,10 @@
             <div
               v-if="game.protocolCardToShow.rewardType == 'custom' || game.protocolCardToShow.rewardType == 'fixed' || game.protocolCardToShow.rewardType == 'pct_total_liquidity'"
               :style="reactiveStyles.cardsButton">
-              <q-btn v-if="game.protocolCardToShow.rewardType != 'custom' || game.customRewardMultiplier > 0" @click="claimReward(game.protocolCardToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-if="game.protocolCardToShow.rewardType != 'custom' || game.customRewardMultiplier > 0" @click="claimReward(game.protocolCardToShow)" flat color="orange" class="q-ml-auto">
                 Claim reward
               </q-btn>
-              <q-btn v-else disabled flat color="grey" class="q-ml-auto">
+              <q-btn v-else disabled flat class="q-ml-auto">
                 Claim reward
               </q-btn>
             </div>
@@ -785,19 +795,19 @@
             </div>
 
             <div :style="reactiveStyles.propertyButtons.invoiceButton">
-              <q-btn v-if="!game.playerInvoiceAmount && !game.showNetworkFeeInvoiceDialog" @click="getNetworkFeeInvoiceAmount(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-if="!game.playerInvoiceAmount && !game.showNetworkFeeInvoiceDialog" @click="getNetworkFeeInvoiceAmount(game.propertyToShow)" flat color="orange" class="q-ml-auto">
                 Invoice fee
               </q-btn>
-              <q-btn v-else-if="game.customNetworkFeeInvoiceAmount" @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-else-if="game.customNetworkFeeInvoiceAmount" @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="orange" class="q-ml-auto">
                 Invoice fee
               </q-btn>
-              <q-btn v-else disabled outline color="grey" @click="">Invoice fee</q-btn>
+              <q-btn v-else disabled outline @click="">Invoice fee</q-btn>
             </div>
 
             <div
               v-if="game.propertyToShow.oneKwPrice"
               :style="reactiveStyles.propertyButtons.upgradeButton">
-              <q-btn @click="showUpgradeMinersPayment(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-if="game.playerTurn === game.player.index" @click="showUpgradeMinersPayment(game.propertyToShow)" flat color="orange" class="q-ml-auto">
                 Upgrade miners
               </q-btn>
             </div>
@@ -822,7 +832,7 @@
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
             <div :style="reactiveStyles.propertyButtons.buyButton">
-              <q-btn @click="showPropertyPurchasePayment(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+              <q-btn v-if="game.playerTurn === game.player.index" @click="showPropertyPurchasePayment(game.propertyToShow)" flat color="orange" class="q-ml-auto">
                 Buy property
               </q-btn>
             </div>
@@ -901,7 +911,7 @@
           class="col-12 col-md-12"
           :style="reactiveStyles.propertyButtonsForGameCreator.invoicePurchaseButton"
         >
-          <q-btn @click="createPurchaseInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+          <q-btn @click="createPurchaseInvoice(game.propertyToShow)" flat color="red" class="q-ml-auto">
             Invoice property purchase
           </q-btn>
         </div>
@@ -910,7 +920,7 @@
           class="col-12 col-md-12"
           :style="reactiveStyles.propertyButtonsForGameCreator.invoiceUpgradeButton"
         >
-          <q-btn @click="createUpgradeInvoice(game.propertyToShow)" flat color="grey" class="q-ml-auto">
+          <q-btn @click="createUpgradeInvoice(game.propertyToShow)" flat color="red" class="q-ml-auto">
             Invoice mining capacity upgrade
           </q-btn>
         </div>
@@ -1048,7 +1058,9 @@
             </q-form>
           </div>
           <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
-            <q-btn @click="createSaleInvoice(game.propertyToShow, game.playerInvoiceAmount)" flat color="grey" class="q-ml-auto">Generate</q-btn>
+            <q-btn @click="createSaleInvoice(game.propertyToShow, game.playerInvoiceAmount)" flat color="orange" class="q-ml-auto">
+              Generate
+            </q-btn>
           </div>
         </div>
       </div>
@@ -1066,7 +1078,9 @@
           </q-form>
         </div>
         <div class="q-gutter-md offset-1 col-3 offset-md-1 col-md-3">
-          <q-btn @click="createPlayerWithdrawLNURL()" flat color="grey" class="q-ml-auto">Generate</q-btn>
+          <q-btn @click="createPlayerWithdrawLNURL()" flat color="orange" class="q-ml-auto">
+            Generate
+          </q-btn>
         </div>
       </div>
 
@@ -1105,7 +1119,7 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="payInvoice()" flat color="grey" class="q-ml-auto">
+                <q-btn @click="payInvoice()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
               </div>
@@ -1143,7 +1157,7 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="payInvoiceOnBehalfOfFreeMarket()" flat color="grey" class="q-ml-auto">
+                <q-btn @click="payInvoiceOnBehalfOfFreeMarket()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
               </div>
@@ -1183,7 +1197,7 @@
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
             <div :style="reactiveStyles.propertyButtons.invoiceButton">
-              <q-btn @click="claimCumulatedFines()" flat color="grey" class="q-ml-auto">
+              <q-btn @click="claimCumulatedFines()" flat color="orange" class="q-ml-auto">
                 Claim
               </q-btn>
             </div>
@@ -1222,7 +1236,7 @@
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
             <div :style="reactiveStyles.propertyButtons.invoiceButton">
-              <q-btn @click="claimStartAmount()" flat color="grey" class="q-ml-auto">
+              <q-btn @click="claimStartAmount()" flat color="orange" class="q-ml-auto">
                 Claim
               </q-btn>
             </div>
@@ -1266,7 +1280,7 @@
                 :style="reactiveStyles.propertyButtons.cardButtonsGroup"
               >
                 <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                  <q-btn @click="purchaseProperty()" flat color="grey" class="q-ml-auto">
+                  <q-btn @click="purchaseProperty()" flat color="orange" class="q-ml-auto">
                     Pay invoice
                   </q-btn>
                 </div>
@@ -1311,7 +1325,7 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="upgradeProperty()" flat color="grey" class="q-ml-auto">
+                <q-btn @click="upgradeProperty()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
               </div>
@@ -1356,7 +1370,7 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="payNetworkFee()" flat color="grey" class="q-ml-auto">
+                <q-btn @click="payNetworkFee()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
               </div>

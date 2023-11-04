@@ -15,7 +15,8 @@ import {
 } from './helpers/utils.js'
 import {
   onGameFunded,
-  fetchPlayers
+  fetchPlayers,
+  fetchPlayerTurn
 } from './calls/database.js'
 import {
   fetchGameRecords,
@@ -289,6 +290,9 @@ new Vue({
       await this.createPlayerPayLNURL();
       // Initialize Lightning and Protocol cards indexes
       await this.initializeCards()
+      // Start checking player turn
+      await fetchPlayerTurn(this.game)
+      this.checkPlayerTurn()
       // Start checking user balance
       await fetchPlayerBalance(this.game)
       this.checkPlayerBalance()
@@ -299,8 +303,6 @@ new Vue({
       this.checkPlayers()
       // Start checking players balances
       this.checkPlayersBalances()
-      // Start checking player turn
-      this.checkPlayerTurn()
       // Display the view for initial free market funding
       this.game.showFundingView = true;
       // Register game data in local storage
@@ -415,7 +417,7 @@ new Vue({
         )
       if(res.data) {
         this.game.player.wallet_id = res.data.player_wallet_id
-        this.game.player.index = res.data.player_index
+        this.game.player.index = res.data.player_index.toString()
         console.log("Monopoly: Player wallet created successfully (" + res.data.id + ", " + res.data.player_wallet_id + ")")
       }
     },
@@ -1413,6 +1415,12 @@ new Vue({
         }
       }
     },
+    showNotYourTurnPopUp: function() {
+      this.game.showNotYourTurnPopUp = true
+    },
+    closeNotYourTurnPopUp: function() {
+      this.game.showNotYourTurnPopUp = false
+    },
     showUpgradeMinersPayment: function(property) {
       if(this.game.created) {
         this.game.gameCreatorPaymentToMarket = true
@@ -1755,14 +1763,22 @@ new Vue({
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            this.showLightningCard()
+            if(this.game.playerTurn === this.game.player.index) {
+              this.showLightningCard()
+            } else {
+              this.showNotYourTurnPopUp()
+            }
             break
 
           case "B": // Protocol card
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            this.showProtocolCard()
+            if(this.game.playerTurn === this.game.player.index) {
+              this.showProtocolCard()
+            } else {
+              this.showNotYourTurnPopUp()
+            }
             break
 /*
           case "B": // Property purchase
@@ -1816,14 +1832,22 @@ new Vue({
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            await this.showFreeBitcoinClaimDialog()
+            if(this.game.playerTurn === this.game.player.index) {
+              this.showFreeBitcoinClaimDialog()
+            } else {
+              this.showNotYourTurnPopUp()
+            }
             break
 
           case "T": // Start
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            await this.showStartClaimDialog()
+            if(this.game.playerTurn === this.game.player.index) {
+              this.showStartClaimDialog()
+            } else {
+              this.showNotYourTurnPopUp()
+            }
             break
 
           default:

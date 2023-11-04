@@ -28,6 +28,7 @@ export const newGame = {
   showProtocolCard: false,
   lightningCardToShow: "",
   protocolCardToShow: "",
+  showNotYourTurnPopUp: false,
   showNetworkFeeInvoiceDialog: false,
   saleInvoiceCreated: false,
   purchaseInvoiceCreated: false,
