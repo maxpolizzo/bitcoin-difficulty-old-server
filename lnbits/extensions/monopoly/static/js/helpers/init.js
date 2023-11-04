@@ -1,7 +1,7 @@
 import { newGame, gameRecordsData } from '../data/data.js'
 import { properties } from '../data/properties.js'
 import { fetchMarketLiquidity, fetchPlayerBalance } from '../calls/api.js'
-import { fetchGameStarted, fetchPlayers } from '../calls/database.js'
+import { fetchGameStarted, fetchPlayers, fetchPlayerTurn } from '../calls/database.js'
 import {
   checkPlayersBalances,
   checkPlayers,
@@ -64,47 +64,49 @@ export function loadGameData(gameRecord) {
 export function initGameData(game) {
     // Initialize game properties map
     game.properties["for-sale"] = properties;
-    // Start checking game funding balance
-    fetchMarketLiquidity(game).then(() => {
-      // If game has already been created or imported, fetch user balance, other
-      // players and start checking periodically for game being started by creator
-      if(game.created || game.imported) {
-        fetchPlayerBalance(game).then(() => {
-          fetchPlayers(game).then(() => {
-            checkPlayersBalances(game).then(() => {
-              console.log("Periodically fetching other players balances from database...")
+    fetchPlayerTurn(game).then(() => {
+      // Start checking game funding balance
+      fetchMarketLiquidity(game).then(() => {
+        // If game has already been created or imported, fetch user balance, other
+        // players and start checking periodically for game being started by creator
+        if(game.created || game.imported) {
+          fetchPlayerBalance(game).then(() => {
+            fetchPlayers(game).then(() => {
+              checkPlayersBalances(game).then(() => {
+                console.log("Periodically fetching other players balances from database...")
+              })
             })
           })
+          checkPlayers(game).then(() => {
+            console.log("Periodically checking for new players...")
+          })
+          checkPlayerTurn(game).then(() => {
+            console.log("Periodically checking current player turn...")
+          })
+          checkPaymentsToPlayer(game).then(() => {
+            console.log("Periodically checking for payments to player wallet...")
+          })
+          checkPlayerBalance(game).then(() => {
+            console.log("Periodically checking player balance...")
+          })
+          checkProperties(game).then(() => {
+            console.log("Periodically checking properties ownership...")
+          })
+        }
+        checkMarketLiquidity(game).then(() => {
+          console.log("Periodically checking game funding balance...")
         })
-        checkPlayers(game).then(() => {
-          console.log("Periodically checking for new players...")
-        })
-        checkPlayerTurn(game).then(() => {
-          console.log("Periodically checking current player turn...")
-        })
-        checkPaymentsToPlayer(game).then(() => {
-          console.log("Periodically checking for payments to player wallet...")
-        })
-        checkPlayerBalance(game).then(() => {
-          console.log("Periodically checking player balance...")
-        })
-        checkProperties(game).then(() => {
-          console.log("Periodically checking properties ownership...")
-        })
-      }
-      checkMarketLiquidity(game).then(() => {
-        console.log("Periodically checking game funding balance...")
+        if(game.created) {
+          checkPaymentsToFreeMarket(game).then(() => {
+            console.log("Periodically checking for payments to free market wallet...")
+            fetchGameStarted(game).then()
+          })
+        } else if(game.imported) {
+          checkGameStarted(game).then(() => {
+            console.log("Periodically checking if game creator started the game...")
+          })
+        }
       })
-      if(game.created) {
-        checkPaymentsToFreeMarket(game).then(() => {
-          console.log("Periodically checking for payments to free market wallet...")
-          fetchGameStarted(game).then()
-        })
-      } else if(game.imported) {
-        checkGameStarted(game).then(() => {
-          console.log("Periodically checking if game creator started the game...")
-        })
-      }
     })
 
     // Hack to copy command to pay invoice from local node

@@ -150,9 +150,14 @@ async function joinGame(game) {
           }
       )
   if(res.data) {
-    // Save player index
-    game.player.index = res.data.player_index;
+    // Save player index in local storage
+    game.player.index = res.data.player_index.toString();
+    localStorage.setItem(
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.player',
+        JSON.stringify(game['player'])
+    )
     console.log(game.player.name +  " successfully joined the game")
+    return game
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
