@@ -89,7 +89,8 @@ export async function fetchPlayers(game) {
         game.playersData.rows.push(
           {
             name: player.player_wallet_name,
-            balance: 0
+            balance: 0,
+            index: player.player_index
           }
         )
       }
@@ -155,6 +156,19 @@ export async function fetchPlayersBalances(game) {
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
+  }
+}
+
+export async function fetchPlayerTurn(game) {
+  // Fetch player turn from database
+  let res = await LNbits.api
+      .request(
+          'GET',
+          '/monopoly/api/v1/player_turn?game_id=' + game.marketData.id,
+          game.player.wallets[0].inkey
+      )
+  if(res.data) {
+    game.playerTurn = res.data["player_turn"].toString()
   }
 }
 

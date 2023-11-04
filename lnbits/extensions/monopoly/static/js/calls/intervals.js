@@ -10,6 +10,7 @@ import {
 import {
   fetchGameStarted,
   fetchPlayers,
+  fetchPlayerTurn,
   fetchPlayersBalances,
   fetchProperties
 } from './database.js'
@@ -77,6 +78,14 @@ export async function checkPlayers(game) {
   clearInterval(game.playersChecker) // Interval should be cleared again when game starts
   game.playersChecker = setInterval(async () => {
     await fetchPlayers(game)
+  }, PERIOD)
+}
+
+// Logic to check periodically for new current player turn
+export async function checkPlayerTurn(game) {
+  clearInterval(game.playerTurnChecker) // Interval should be cleared again when game starts
+  game.playerTurnChecker = setInterval(async () => {
+    await fetchPlayerTurn(game)
   }, PERIOD)
 }
 

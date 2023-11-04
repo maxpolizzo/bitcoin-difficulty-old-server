@@ -52,6 +52,7 @@ from .crud import (
     get_player_pay_link,
     update_invited_player_joined,
     increment_game_player_turn,
+    get_game_player_turn
 )
 from lnbits.core.crud import update_user_extension
 from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, UpdateInvitedPlayerData, IncrementPlayerTurn
@@ -215,6 +216,11 @@ async def api_monopoly_players_count(game_id: str):
 async def api_monopoly_max_players_count(game_id: str):
     max_players_count = await get_max_players_count(game_id)
     return max_players_count
+
+@monopoly_ext.get("/api/v1/player_turn", status_code=HTTPStatus.OK)
+async def api_monopoly_player_turn(game_id: str):
+    current_player_turn = await get_game_player_turn(game_id)
+    return current_player_turn
 
 @monopoly_ext.get("/api/v1/players/balance", status_code=HTTPStatus.OK)
 async def api_monopoly_player_balance(player_wallet_id: str):
