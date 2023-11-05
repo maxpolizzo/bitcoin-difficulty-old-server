@@ -1,5 +1,6 @@
 import { properties } from '../data/properties.js'
 import { createGameVouchers } from './api.js'
+import { playNextPlayerTurnSound, playStartGameSound } from '../helpers/audio.js'
 
 export async function onGameFunded (game) {
   game.showFundingDialog = false
@@ -50,6 +51,7 @@ export async function onGameFunded (game) {
 }
 
 export async function fetchGameStarted(game) {
+  let gameWasAlreadyStarted = game.started
   let res = await LNbits.api
     .request(
       'GET',
@@ -66,6 +68,9 @@ export async function fetchGameStarted(game) {
     if(game.started) {
       // Clear interval
       clearInterval(game.gameStartedChecker)
+      if(!gameWasAlreadyStarted)  {
+        playStartGameSound()
+      }
       console.log("GAME STARTED")
     }
   } else {
@@ -160,6 +165,7 @@ export async function fetchPlayersBalances(game) {
 }
 
 export async function fetchPlayerTurn(game) {
+  let currentPlayerTurn = game.playerTurn;
   // Fetch player turn from database
   let res = await LNbits.api
       .request(
@@ -169,6 +175,23 @@ export async function fetchPlayerTurn(game) {
       )
   if(res.data) {
     game.playerTurn = res.data["player_turn"].toString()
+    localStorage.setItem(
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerTurn',
+        game.playerTurn
+    )
+    if(game.playerTurn !== currentPlayerTurn && game.playerTurn === game.player.index) {
+      game.fistLightningCardThisTurn = true
+      localStorage.setItem(
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fistLightningCardThisTurn',
+          game.fistLightningCardThisTurn
+      )
+      game.fistProtocolCardThisTurn = true
+      localStorage.setItem(
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fistProtocolCardThisTurn',
+          game.fistProtocolCardThisTurn
+      )
+      playNextPlayerTurnSound();
+    }
   }
 }
 

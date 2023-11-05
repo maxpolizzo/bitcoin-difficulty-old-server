@@ -166,7 +166,6 @@ class InitCardsIndex(BaseModel):
 class UpdateCardIndex(BaseModel):
     game_id: str
     card_type: str
-    player_index: int
 
 class UpdateCumulatedFines(BaseModel):
     game_id: str
