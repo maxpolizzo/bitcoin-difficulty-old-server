@@ -358,27 +358,26 @@ async def update_next_card_index(data: UpdateCardIndex) -> CardIndex:
 
     assert card_index, "Card index couldn't be retrieved"
 
-    if(card_index.player_index != data.player_index):
-        next_card_index = card_index.next_index + 1
+    next_card_index = card_index.next_index + 1
 
-        if (next_card_index > 15):
-            next_card_index = 0
+    if (next_card_index > 15):
+        next_card_index = 0
 
-        await db.execute(
-                """
-                UPDATE monopoly.cards SET next_index = ?, player_index = ? WHERE game_id = ? AND card_type = ?
-               """,
-               (next_card_index, data.player_index, data.game_id, data.card_type),
-        )
+    await db.execute(
+            """
+            UPDATE monopoly.cards SET next_index = ? WHERE game_id = ? AND card_type = ?
+           """,
+           (next_card_index, data.game_id, data.card_type),
+    )
 
-        if (data.card_type == "lightning"):
-            card_index = await get_next_lightning_card_index(data.game_id)
-        elif (data.card_type == "protocol"):
-            card_index = await get_next_protocol_card_index(data.game_id)
+    if (data.card_type == "lightning"):
+        card_index = await get_next_lightning_card_index(data.game_id)
+    elif (data.card_type == "protocol"):
+        card_index = await get_next_protocol_card_index(data.game_id)
 
-        assert card_index, "Card index couldn't be retrieved after update"
+    assert card_index, "Card index couldn't be retrieved after update"
 
-        return card_index
+    return card_index
 
 async def update_cumulated_fines(data: UpdateCumulatedFines) -> CumulatedFines:
     cumulated_fines = await get_cumulated_fines(data.game_id)

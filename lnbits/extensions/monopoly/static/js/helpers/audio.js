@@ -1,7 +1,10 @@
 import {
   dragAndDropCardSoundURI,
   cashRegisterSoundURI,
-  bellSoundURI
+  bellSoundURI,
+  nextPlayerTurnSoundURI,
+  newPlayerJoinedSoundURI,
+  startGameSoundURI
 } from '../data/sounds.js'
 
 export function playCardSound() {
@@ -16,5 +19,20 @@ export function playPlayerPaymentReceivedSound() {
 
 export function playMarketPaymentReceivedSound() {
   const snd = new Audio(cashRegisterSoundURI);
+  snd.play();
+}
+
+export function playNextPlayerTurnSound() {
+  const snd = new Audio(nextPlayerTurnSoundURI);
+  snd.play();
+}
+
+export function playPlayerJoinedSound() {
+  const snd = new Audio(newPlayerJoinedSoundURI);
+  snd.play();
+}
+
+export function playStartGameSound() {
+  const snd = new Audio(startGameSoundURI);
   snd.play();
 }
