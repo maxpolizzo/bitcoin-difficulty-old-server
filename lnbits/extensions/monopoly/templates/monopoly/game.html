@@ -510,6 +510,15 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="game.showAlreadyClaimedStartBonusPopUp" @hide="closeAlreadyClaimedStartBonusPopUp">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+      <div class="text-center q-mb-lg">
+        Start bonus has already been claimed
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="game.showLightningCard" @hide="game.showLightningCard = false">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">

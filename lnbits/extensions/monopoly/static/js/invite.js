@@ -151,7 +151,7 @@ async function joinGame(game) {
       )
   if(res.data) {
     // Save player index in local storage
-    game.player.index = res.data.player_index.toString();
+    game.player.index = parseInt(res.data.player_index);
     localStorage.setItem(
         'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.player',
         JSON.stringify(game['player'])
