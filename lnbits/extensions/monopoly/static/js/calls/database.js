@@ -174,21 +174,26 @@ export async function fetchPlayerTurn(game) {
           game.player.wallets[0].inkey
       )
   if(res.data) {
-    game.playerTurn = res.data["player_turn"].toString()
+    game.playerTurn = res.data["player_turn"]
     localStorage.setItem(
         'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerTurn',
         game.playerTurn
     )
     if(game.playerTurn !== currentPlayerTurn && game.playerTurn === game.player.index) {
-      game.fistLightningCardThisTurn = true
+      game.firstLightningCardThisTurn = true
       localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fistLightningCardThisTurn',
-          game.fistLightningCardThisTurn
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.firstLightningCardThisTurn',
+          JSON.stringify(game.firstLightningCardThisTurn)
       )
-      game.fistProtocolCardThisTurn = true
+      game.firstProtocolCardThisTurn = true
       localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fistProtocolCardThisTurn',
-          game.fistProtocolCardThisTurn
+          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.firstProtocolCardThisTurn',
+          JSON.stringify(game.firstProtocolCardThisTurn)
+      )
+      game.firstStartClaimThisTurn = true
+      localStorage.setItem(
+        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.firstStartClaimThisTurn',
+        JSON.stringify(game.firstStartClaimThisTurn)
       )
       playNextPlayerTurnSound();
     }

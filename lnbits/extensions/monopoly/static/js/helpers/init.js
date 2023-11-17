@@ -55,6 +55,11 @@ export function loadGameData(gameRecord) {
       } catch(err) {
         game[key] = localStorage.getItem('monopoly.' + gameRecord + '.' + key)
       }
+      if(key === "firstStartClaimThisTurn"){
+        console.log('INIT')
+        console.log(key)
+        console.log(game[key])
+      }
     }
   })
 

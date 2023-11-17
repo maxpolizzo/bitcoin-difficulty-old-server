@@ -29,9 +29,11 @@ export const newGame = {
   showProtocolCard: false,
   lightningCardToShow: "",
   protocolCardToShow: "",
-  fistLightningCardThisTurn: true,
-  fistProtocolCardThisTurn: true,
+  firstLightningCardThisTurn: true,
+  firstProtocolCardThisTurn: true,
+  firstStartClaimThisTurn: true,
   showNotYourTurnPopUp: false,
+  showAlreadyClaimedStartBonusPopUp: false,
   showNetworkFeeInvoiceDialog: false,
   saleInvoiceCreated: false,
   purchaseInvoiceCreated: false,
@@ -92,7 +94,7 @@ export const newGame = {
     payments: {}
   },
   player: {
-    index: "", // Monopoly database player index
+    index: null, // Monopoly database player index
     name: "", // Monopoly database player name
     id: "", // LNBits user_id
     wallet_id: "", // LNBits wallet_id
