@@ -1,6 +1,7 @@
 import { properties } from '../data/properties.js'
 import { createGameVouchers } from './api.js'
 import { playNextPlayerTurnSound, playStartGameSound } from '../helpers/audio.js'
+import { saveGameData } from '../helpers/storage.js'
 
 export async function onGameFunded (game) {
   game.showFundingDialog = false
@@ -22,49 +23,39 @@ export async function onGameFunded (game) {
     )
   if(res.data) {
     // Save game data into local storage
-    localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.showFundingDialog',
-      JSON.stringify(game.showFundingDialog)
-    )
-    localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.showFundingView',
-      JSON.stringify(game.showFundingView)
-    )
-    localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.fundingStatus',
-      JSON.stringify(game.fundingStatus)
-    )
-    localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.initialFunding',
-      JSON.stringify(game.initialFunding)
-    )
-    localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.initialPlayerBalance',
-      JSON.stringify(game.initialPlayerBalance)
-    )
+    saveGameData(game, 'showFundingDialog', game.showFundingDialog)
+    saveGameData(game, 'showFundingView', game.showFundingView)
+    saveGameData(game, 'fundingStatus', game.fundingStatus)
+    saveGameData(game, 'initialFunding', game.initialFunding)
+    saveGameData(game, 'initialPlayerBalance', game.initialPlayerBalance)
     console.log("Monopoly: game has been funded")
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
   // Create LNURl vouchers to be claimed by players
   await createGameVouchers(game)
+  // Redirect to game.html
+  window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
 }
 
 export async function fetchGameStarted(game) {
   let gameWasAlreadyStarted = game.started
+  let inkey
+  if(game.player.wallets.length) {
+    inkey = game.player.wallets[0].inkey // Case where player wallet has already been created
+  } else {
+    inkey = game.marketData.wallets[0].inkey  // Case where player wallet has not yet been created
+  }
   let res = await LNbits.api
     .request(
       'GET',
       '/monopoly/api/v1/game-started?game_id=' + game.marketData.id,
-      game.player.wallets[0].inkey,
+      inkey,
     )
   if(res.data) {
     game.started = res.data[0][1]
     // Save game status in local storage
-    localStorage.setItem(
-      'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.started',
-      game.started.toString()
-    )
+    saveGameData(game, 'started', game.started)
     if(game.started) {
       // Clear interval
       clearInterval(game.gameStartedChecker)
@@ -103,18 +94,9 @@ export async function fetchPlayers(game) {
     if(playersCount !== game.playersCount) {
       game.playersCount = playersCount
       // Save game data in  local storage
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playersCount',
-        game.playersCount
-      )
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.players',
-        JSON.stringify(game.players)
-      )
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playersData',
-        JSON.stringify(game.playersData)
-      )
+      saveGameData(game, 'playersCount', game.playersCount)
+      saveGameData(game, 'players', game.players)
+      saveGameData(game, 'playersData', game.playersData)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -150,14 +132,8 @@ export async function fetchPlayersBalances(game) {
     })
     if(balanceChanged) {
       // Save game data in  local storage
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.players',
-        JSON.stringify(game.players)
-      )
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playersData',
-        JSON.stringify(game.playersData)
-      )
+      saveGameData(game, 'players', game.players)
+      saveGameData(game, 'playersData', game.playersData)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -175,26 +151,14 @@ export async function fetchPlayerTurn(game) {
       )
   if(res.data) {
     game.playerTurn = res.data["player_turn"]
-    localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerTurn',
-        game.playerTurn
-    )
+    saveGameData(game, 'playerTurn', game.playerTurn)
     if(game.playerTurn !== currentPlayerTurn && game.playerTurn === game.player.index) {
       game.firstLightningCardThisTurn = true
-      localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.firstLightningCardThisTurn',
-          JSON.stringify(game.firstLightningCardThisTurn)
-      )
       game.firstProtocolCardThisTurn = true
-      localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.firstProtocolCardThisTurn',
-          JSON.stringify(game.firstProtocolCardThisTurn)
-      )
       game.firstStartClaimThisTurn = true
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.firstStartClaimThisTurn',
-        JSON.stringify(game.firstStartClaimThisTurn)
-      )
+      saveGameData(game, 'firstLightningCardThisTurn', game.firstLightningCardThisTurn)
+      saveGameData(game, 'firstProtocolCardThisTurn', game.firstProtocolCardThisTurn)
+      saveGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
       playNextPlayerTurnSound();
     }
   }
@@ -267,14 +231,8 @@ export async function fetchProperties(game) {
       game.properties = gameProperties;
       game.propertiesCount = gamePropertiesCount;
       // Save game data in local storage
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.properties',
-        JSON.stringify(game.properties)
-      )
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.propertiesCount',
-        JSON.stringify(game.propertiesCount)
-      )
+      saveGameData(game, 'properties', game.properties)
+      saveGameData(game, 'propertiesCount', game.propertiesCount)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)

@@ -1,5 +1,7 @@
 /* globals decode*/
 
+import { saveGameData } from '../helpers/storage.js'
+
 export async function checkMaxNumberOfPlayersReached(game_id) {
   // Check current number of players vs max number of players
   let res = await LNbits.api
@@ -70,10 +72,7 @@ export async function createPlayerPayLNURL(game) {
       console.log(game.player.name +  " LNURL pay link created successfully " + payLink)
       const playerPayLinkCreated = true
       // Saving game.playerPayLinkCreated in local storage
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.playerPayLinkCreated',
-        playerPayLinkCreated.toString()
-      )
+      saveGameData(game, 'playerPayLinkCreated', playerPayLinkCreated)
       return playerPayLinkCreated;
       // No need to save payLinkId and payLink in local storage (will be fetched from database by other players)
     } else {
@@ -129,11 +128,7 @@ export async function withdrawFromLNURL(lnurlData, game, wallet, amount, type) {
       } else if (res.data.lnurl_response === true) {
         console.log(`Invoice sent to ${lnurlData.domain}!`)
         // Store payment hash in local storage
-        localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + type + 'VoucherPaymentHash',
-          // 'monopoly.game.' + type + 'VoucherPaymentHash',
-          JSON.stringify(res.data.payment_hash)
-        )
+        saveGameData(game, type + 'VoucherPaymentHash', res.data.payment_hash)
         // Check for invoice payment
         return await checkForPayment(res.data.payment_hash, game, wallet)
       }
@@ -160,11 +155,10 @@ export async function checkForPayment(paymentHash, game, wallet) {
 
 export function onPaymentReceived(paymentChecker, game) {
   clearInterval(paymentChecker)
-  localStorage.setItem(
-    'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher',
-    // 'monopoly.game.paidVoucher',
-    JSON.stringify(true)
-  )
+  saveGameData(game, 'paidVoucher', true)
+  if(res.error) {
+    LNbits.utils.notifyApiError(res.error)
+  }
   console.log("Successfully claimed LNURL voucher")
 }
 

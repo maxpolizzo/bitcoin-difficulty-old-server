@@ -6,7 +6,7 @@ async def m001_initial(db):
        f"""
        CREATE TABLE monopoly.games (
            game_id TEXT PRIMARY KEY,
-           admin_wallet_id TEXT NOT NULL,
+           admin_user_id TEXT NOT NULL,
            market_liquidity {db.big_int},
            pay_link_id TEXT,
            pay_link TEXT,

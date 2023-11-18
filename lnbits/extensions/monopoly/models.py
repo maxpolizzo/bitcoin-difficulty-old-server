@@ -4,7 +4,7 @@ from typing import Optional
 
 class CreateGameData(BaseModel):
     game_id: str = Query(...)
-    admin_wallet_id: str = Query(...)
+    admin_user_id: str = Query(...)
     max_players_count: int
     cumulated_fines: int
     available_player_names: str =  Query(...)
@@ -77,7 +77,7 @@ class InvitePlayerData(BaseModel):
 
 class Game(BaseModel):
     game_id: str = Query(...)
-    admin_wallet_id: str = Query(...)
+    admin_user_id: str = Query(...)
     max_players_count: int
     player_turn: int
 
@@ -107,7 +107,7 @@ class Invoice(BaseModel):
 
 class GameWithPayLink(BaseModel):
     game_id: str = Query(...)
-    admin_wallet_id: str = Query(...)
+    admin_user_id: str = Query(...)
     initial_funding: int
     initial_player_balance: int
     max_players_count: int
@@ -116,7 +116,7 @@ class GameWithPayLink(BaseModel):
 
 class GameWithInvoice(BaseModel):
     game_id: str = Query(...)
-    admin_wallet_id: str = Query(...)
+    admin_user_id: str = Query(...)
     payment_req: str = Query(...)
     payment_hash : str = Query(...)
 
