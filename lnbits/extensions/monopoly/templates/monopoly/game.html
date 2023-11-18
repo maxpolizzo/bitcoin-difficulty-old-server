@@ -22,7 +22,7 @@
       <div style="padding: 1em; font-size: 1.2em;" v-if="game.created && game.showFundingView">
         <div class="row">
           <span class="col-8 col-md-8" style="margin-top: 0.5em;">
-             You are {% raw %}{{game.player.name}}{% endraw %}!
+             Fund the game to start playing (minimum {% raw %} {{game.minFunding}} {% endraw %} sats)...
           </span>
           <span class="col-2 col-md-2" style="margin-top: 0.5em;">
             <q-btn row color="orange" icon="qr_code_2" size="1em" :style="reactiveStyles.initialFundingButton" v-if="game.created"@click="showFundingDialog()">
@@ -33,11 +33,6 @@
           </span>
           <span v-else class="col-2 col-md-2" style="margin-top: 0.5em;">
             <q-btn disabled row icon="play_circle" size="1em" v-if="game.created"@click=""></q-btn>
-          </span>
-        </div>
-        <div class="row">
-          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
-             Fund the game to start playing (minimum {% raw %} {{game.minFunding}} {% endraw %} sats)...
           </span>
         </div>
         <!-- Spinner -->
@@ -69,7 +64,8 @@
           </span>
           <span class="col-2 col-md-2" style="margin-top: -1.5em;">
             <q-btn  v-if="game.playersCount >= game.maxPlayersCount" disabled row icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
-            <q-btn  v-else-if="game.inviteVoucherId" row color="orange" icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
+            <q-btn  v-else-if="game.showInviteButton && game.inviteVoucherId" row color="orange" icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
+            <q-btn  v-else disabled row icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
           </span>
           <span class="col-2 col-md-2" style="margin-top: -1.5em;">
             <q-btn v-if="game.playersCount >= game.minPlayersCount" row color="orange" icon="play_circle" size="1em" @click="startGame()"></q-btn>
@@ -231,7 +227,7 @@
             hide-bottom
           >
             <template v-slot:body="props">
-              <q-tr :props="props" :class="props.row.index === game.playerTurn ? 'bg-orange-4 text-bold' : ''">
+              <q-tr :props="props" :class="props.row.index === game.playerTurn.toString() ? 'bg-orange-4 text-bold' : ''">
                 <q-td key="name" :props="props" >
                   {% raw %}{{props.row.name}}{% endraw %}
                 </q-td>
@@ -452,8 +448,8 @@
       </div>
     </div>
     <div class="row q-mt-lg">
-      <!--q-btn v-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn-->
-      <q-btn disabled outline color="grey" @click="">Copy invoice</q-btn>
+      <q-btn v-if="game.playerInvoice" outline color="grey" @click="copyPlayerInvoice">Copy invoice</q-btn>
+      <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
       <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
     </div>
     </q-card>
@@ -494,8 +490,8 @@
         </div>
       </div>
       <div class="row q-mt-lg">
-        <!--q-btn v-if="game.freeMarketInvoice.paymentReq" outline color="grey" @click="copyText(game.freeMarketInvoice.paymentReq)">Copy invoice</q-btn-->
-        <q-btn disabled outline color="grey" @click="">Copy invoice</q-btn>
+        <q-btn v-if="game.freeMarketInvoice" outline color="grey" @click="copyFreeMarketInvoice">Copy invoice</q-btn>
+        <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
@@ -810,7 +806,7 @@
               <q-btn v-else-if="game.customNetworkFeeInvoiceAmount" @click="createNetworkFeeInvoice(game.propertyToShow)" flat color="orange" class="q-ml-auto">
                 Invoice fee
               </q-btn>
-              <q-btn v-else disabled outline @click="">Invoice fee</q-btn>
+              <q-btn v-else disabled @click="">Invoice fee</q-btn>
             </div>
 
             <div
@@ -1098,7 +1094,7 @@
         <q-btn v-else-if="game.showNetworkFeeInvoice" outline color="grey" @click="copyText(game.networkFeeInvoiceData)">Copy invoice</q-btn>
         <q-btn v-else-if="game.upgradeInvoiceCreated" outline color="grey" @click="copyText(game.propertyUpgradeData)">Copy invoice</q-btn>
         <q-btn v-else-if="game.saleInvoiceCreated" outline color="grey" @click="copyText(game.propertySaleData)">Copy invoice</q-btn>
-        <!-- q-btn v-else-if="game.playerInvoice.paymentReq" outline color="grey" @click="copyText(game.playerInvoice.paymentReq)">Copy invoice</q-btn-->
+        <q-btn v-else-if="game.playerInvoice" outline color="grey" @click="copyPlayerInvoice">Copy invoice</q-btn>
         <q-btn v-else-if="game.fundingInvoice.paymentReq" outline color="grey" @click="copyText(game.fundingInvoice.paymentReq)">Copy invoice</q-btn>
         <q-btn v-else disabled outline color="grey" @click="">Copy invoice</q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePropertyInvoiceDialog()">Close</q-btn>

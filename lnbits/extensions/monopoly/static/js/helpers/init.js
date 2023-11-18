@@ -1,4 +1,3 @@
-import { newGame, gameRecordsData } from '../data/data.js'
 import { properties } from '../data/properties.js'
 import { fetchMarketLiquidity, fetchPlayerBalance } from '../calls/api.js'
 import { fetchGameStarted, fetchPlayers, fetchPlayerTurn } from '../calls/database.js'
@@ -14,67 +13,15 @@ import {
   checkPaymentsToPlayer
 } from '../calls/intervals.js'
 
-export function fetchGameRecords() {
-  // Fetch existing game records in local storage
-  const gameRecords = {};
-  let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
-  if(existingGameRecords && existingGameRecords.length) {
-    for(let j = 0; j < existingGameRecords.length; j++) {
-      const gameId = existingGameRecords[j].split('_')[1];
-      const userId = existingGameRecords[j].split('_')[2];
-      const userWalletId = existingGameRecords[j].split('_')[3];
-      if(!gameRecords[gameId]) {
-        gameRecords[gameId] = {};
-      }
-      gameRecords[gameId][userId] = existingGameRecords[j].split('_')[0] + '_' + existingGameRecords[j].split('_')[1] + '_' + existingGameRecords[j].split('_')[2] + '_' + existingGameRecords[j].split('_')[3];
-      const dateTime = new Date(parseInt(existingGameRecords[j].split('_')[4])).toString().split('GMT')[0];
-      // Saved games for user
-      if(userId == window.user.id) {
-        gameRecordsData.rows.push(
-          {
-            gameId,
-            userId,
-            userWalletId,
-            dateTime
-          }
-        )
-      }
-    }
-  }
-  return {gameRecords, gameRecordsData};
-}
-
-export function loadGameData(gameRecord) {
-  console.log(gameRecord)
-  const game = newGame;
-  // Update game object with values found in local storage
-  Object.keys(game).forEach((key) => {
-    if(localStorage.getItem('monopoly.' + gameRecord + '.' + key) !== null) {
-      try {
-        game[key] = JSON.parse(localStorage.getItem('monopoly.' + gameRecord + '.' + key))
-      } catch(err) {
-        game[key] = localStorage.getItem('monopoly.' + gameRecord + '.' + key)
-      }
-      if(key === "firstStartClaimThisTurn"){
-        console.log('INIT')
-        console.log(key)
-        console.log(game[key])
-      }
-    }
-  })
-
-  return game;
-}
-
 export function initGameData(game) {
     // Initialize game properties map
     game.properties["for-sale"] = properties;
-    fetchPlayerTurn(game).then(() => {
-      // Start checking game funding balance
-      fetchMarketLiquidity(game).then(() => {
-        // If game has already been created or imported, fetch user balance, other
-        // players and start checking periodically for game being started by creator
-        if(game.created || game.imported) {
+    // Start checking game funding balance
+    fetchMarketLiquidity(game).then(() => {
+      // If game has already been funded or imported, fetch user balance, other
+      // players and start checking periodically for game being started by creator
+      if(game.fundingStatus === 'success' || game.imported) {
+        fetchPlayerTurn(game).then(() => {
           fetchPlayerBalance(game).then(() => {
             fetchPlayers(game).then(() => {
               checkPlayersBalances(game).then(() => {
@@ -82,36 +29,36 @@ export function initGameData(game) {
               })
             })
           })
-          checkPlayers(game).then(() => {
-            console.log("Periodically checking for new players...")
-          })
-          checkPlayerTurn(game).then(() => {
-            console.log("Periodically checking current player turn...")
-          })
-          checkPaymentsToPlayer(game).then(() => {
-            console.log("Periodically checking for payments to player wallet...")
-          })
-          checkPlayerBalance(game).then(() => {
-            console.log("Periodically checking player balance...")
-          })
-          checkProperties(game).then(() => {
-            console.log("Periodically checking properties ownership...")
-          })
-        }
-        checkMarketLiquidity(game).then(() => {
-          console.log("Periodically checking game funding balance...")
         })
-        if(game.created) {
-          checkPaymentsToFreeMarket(game).then(() => {
-            console.log("Periodically checking for payments to free market wallet...")
-            fetchGameStarted(game).then()
-          })
-        } else if(game.imported) {
-          checkGameStarted(game).then(() => {
-            console.log("Periodically checking if game creator started the game...")
-          })
-        }
+        checkPlayers(game).then(() => {
+          console.log("Periodically checking for new players...")
+        })
+        checkPlayerTurn(game).then(() => {
+          console.log("Periodically checking current player turn...")
+        })
+        checkPaymentsToPlayer(game).then(() => {
+          console.log("Periodically checking for payments to player wallet...")
+        })
+        checkPlayerBalance(game).then(() => {
+          console.log("Periodically checking player balance...")
+        })
+        checkProperties(game).then(() => {
+          console.log("Periodically checking properties ownership...")
+        })
+      }
+      checkMarketLiquidity(game).then(() => {
+        console.log("Periodically checking game funding balance...")
       })
+      if(game.created) {
+        checkPaymentsToFreeMarket(game).then(() => {
+          console.log("Periodically checking for payments to free market wallet...")
+        })
+      }
+      if(!game.started) {
+        checkGameStarted(game).then(() => {
+          console.log("Periodically checking if game creator started the game...")
+        })
+      }
     })
 
     // Hack to copy command to pay invoice from local node

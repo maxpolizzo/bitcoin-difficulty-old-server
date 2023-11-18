@@ -15,10 +15,10 @@ from lnbits.core.crud import (
 async def create_game(data: CreateGameData) -> Game:
     await db.execute(
         """
-        INSERT INTO monopoly.games (admin_wallet_id, game_id, max_players_count, cumulated_fines, player_turn, available_player_names)
+        INSERT INTO monopoly.games (admin_user_id, game_id, max_players_count, cumulated_fines, player_turn, available_player_names)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (data.admin_wallet_id, data.game_id, data.max_players_count, data.cumulated_fines, 0, data.available_player_names),
+        (data.admin_user_id, data.game_id, data.max_players_count, data.cumulated_fines, 0, data.available_player_names),
     )
 
     game_created = await get_game(data.game_id)

@@ -5,6 +5,7 @@ export const newGame = {
   created: false,
   imported: false,
   joined: false,
+  showInviteButton: false,
   timestamp: null,
   minFunding: 20000,
   startClaimAmount: 200,
@@ -42,15 +43,15 @@ export const newGame = {
   fundingStatus: 'pending',
   invoice: null,
   invoiceRecipientIndex: null,
-  invoiceAmount: "0",
-  fundingInvoiceAmount: "0",
-  playerInvoiceAmount: "0",
-  freeMarketInvoiceAmount: "0",
+  invoiceAmount: null,
+  fundingInvoiceAmount: null,
+  playerInvoiceAmount: null,
+  freeMarketInvoiceAmount: null,
   customNetworkFeeInvoiceAmount: null,
   customNetworkFeeMultiplier: null,
   playerVoucherId: "",
   playerVoucher: null,
-  playerVoucherAmount: 0,
+  playerVoucherAmount: null,
   lnurlPayLinkId: "",
   lnurlPayLink: "",
   playerPayLinkCreated: false,
@@ -153,7 +154,16 @@ export const inviteGame = {
 export const gameRecordsData = {
   columns: [
     {
-      name: 'Game Id',
+      name: 'creatorId',
+      required: true,
+      label: 'Creator user Id',
+      align: 'left',
+      field: 'creatorId',
+      format: val => `${val}`,
+      sortable: false
+    },
+    {
+      name: 'gameId',
       required: true,
       label: 'Game Id',
       align: 'left',
@@ -161,19 +171,8 @@ export const gameRecordsData = {
       format: val => `${val}`,
       sortable: false
     },
-    /*
     {
-      name: 'Creator wallet Id',
-      required: true,
-      label: 'Creator Id',
-      align: 'left',
-      field: 'creatorId',
-      format: val => `${val}`,
-      sortable: false
-    },
-    */
-    {
-      name: 'dateCreated',
+      name: 'dateTime',
       required: true,
       label: 'Date created',
       align: 'left',

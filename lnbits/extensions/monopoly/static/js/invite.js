@@ -1,8 +1,13 @@
 import { inviteGame } from './data/data.js'
 import {
+  saveGameRecord,
+  saveGameData
+} from './helpers/storage.js'
+import {
   checkMaxNumberOfPlayersReached,
   claimInviteVoucher
 } from './helpers/utils.js'
+
 
 let game = inviteGame
 game.player.id = window.user.id;
@@ -33,17 +38,21 @@ new Vue({
     game: game,
     inviteVoucher: inviteVoucher,
     inviteVoucherPaymentHash: inviteVoucherPaymentHash,
-    claimedVoucher:claimedVoucher,
-    maxNumberOfPlayersReached: false
+    claimedVoucher: claimedVoucher,
+    maxNumberOfPlayersReached: false,
+    joinedGame: false
   },
   methods: {
     joinGame: async function() {
       this.maxNumberOfPlayersReached = await checkMaxNumberOfPlayersReached(game.marketData.id)
       // Join game if current_players_count < max_players_count
-      if(!this.maxNumberOfPlayersReached) {
+      if(!this.maxNumberOfPlayersReached && !this.joinedGame) {
+          this.joinedGame = true // Prevent claiming multiple times
           // Claim invite voucher
           await claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]);
+          // Join game
           await joinGame(this.game);
+          // Redirect to game view
           redirect(this.game);
       }
     }
@@ -76,36 +85,13 @@ async function fetchGameData (game) {
     game.lnurlPayId = res.data[5][1]
     game.lnurlPayLink = res.data[6][1]
     console.log("Successfully fetched game data from database")
+    // Save game in local storage
+    saveGameRecord(game)
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
-  // Save game in local storage
-  Object.keys(game).forEach((key) => {
-    // console.log(key)
-    try {
-      if(game[key].toString() !== '[object Object]') {
-        localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + key,
-          game[key].toString()
-        )
-      } else {
-        localStorage.setItem(
-          'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + key,
-          JSON.stringify(game[key])
-        )
-      }
-    } catch(err) {
-      localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.' + key,
-        JSON.stringify(game[key])
-      )
-    }
-  })
-  // Save game record
-  saveGameRecord(game);
-
 }
-
+/*
 function saveGameRecord(game) {
   // Check local storage for existing game records
   let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
@@ -134,6 +120,7 @@ function saveGameRecord(game) {
     localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
   }
 }
+*/
 
 async function joinGame(game) {
   let res = await LNbits.api
@@ -152,10 +139,7 @@ async function joinGame(game) {
   if(res.data) {
     // Save player index in local storage
     game.player.index = parseInt(res.data.player_index);
-    localStorage.setItem(
-        'monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.player',
-        JSON.stringify(game['player'])
-    )
+    saveGameData(game, 'player', game.player)
     console.log(game.player.name +  " successfully joined the game")
     return game
   } else {
