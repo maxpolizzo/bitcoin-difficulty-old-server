@@ -1179,6 +1179,45 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="game.showWrenchAttackDialog" @hide="game.showWrenchAttackDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <q-card class="q-card--dark row" style="padding: 1em;">
+
+        <div class="col-12 col-md-12">
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Wrench attack! Someone knocked you up and stole your private key :/
+          </div>
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Pay {% raw %}{{game.wrenchAttackAmountSats}}{% endraw %} sats
+          </div>
+
+          <div
+            class="row"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
+          >
+            <div :style="reactiveStyles.propertyButtons.invoiceButton">
+              <q-btn @click="payWrenchAttack()" flat color="orange" class="q-ml-auto">
+                Pay
+              </q-btn>
+            </div>
+          </div>
+
+        </div>
+
+      </q-card>
+
+      <div class="row q-mt-lg">
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closeWrenchAttackDialog()">Close</q-btn>
+      </div>
+    </q-card>
+  </q-dialog>
+
   <q-dialog v-model="game.showFreeBitcoinClaimDialog" @hide="game.showFreeBitcoinClaimDialog = false">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
@@ -1213,7 +1252,7 @@
       </q-card>
 
       <div class="row q-mt-lg">
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceDialog()">Close</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closeFreeBitcoinClaimDialog()">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
@@ -1252,7 +1291,7 @@
       </q-card>
 
       <div class="row q-mt-lg">
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceDialog()">Close</q-btn>
+        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closeStartClaimDialog()">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
