@@ -1302,6 +1302,52 @@ new Vue({
         LNbits.utils.notifyApiError(res.error)
       }
     },
+    showWrenchAttackDialog: function(wrenchAttackIndex) {
+      this.game.wrenchAttackAmountSats = wrenchAttackIndex === "0"
+        ? Math.max(200, 0.1 * this.game.userBalance)
+        : 75
+        this.game.showWrenchAttackDialog = true
+    },
+    payWrenchAttack: async function() {
+      //Get lnurl pay data
+      let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
+      // Pay wrench attack
+      console.log("Paying wrench attack...")
+      let res = await LNbits.api.payLnurl(
+        this.game.player.wallets[0],
+        lnurlData.callback,
+        lnurlData.description_hash,
+        this.game.wrenchAttackAmountSats * 1000, // mSats
+        'Bitcoin Monopoly: wrench attack',
+        ''
+      )
+      if(res.data && res.data.payment_hash) {
+        console.log("Wrench attack paid successfully")
+        // Update cumulated fines in database
+        console.log("Updating cumulated fines")
+        res = await LNbits.api
+          .request(
+            'PUT',
+            '/monopoly/api/v1/cards/update_cumulated_fines',
+            this.game.player.wallets[0].inkey,
+            {
+              game_id: this.game.marketData.id,
+              fine: this.game.wrenchAttackAmountSats
+            }
+          )
+        if(res.data) {
+          console.log("Cumulated fines updated successfully")
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+        }
+        this.closeWrenchAttackDialog()
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    },
+    closeWrenchAttackDialog: function() {
+      this.game.showWrenchAttackDialog = false
+    },
     showNotYourTurnPopUp: function() {
       this.game.showNotYourTurnPopUp = true
     },
@@ -1422,12 +1468,18 @@ new Vue({
       this.game.cumulatedFines = await this.getCumulatedFines();
       this.game.showFreeBitcoinClaimDialog = true;
     },
+    closeFreeBitcoinClaimDialog: function () {
+      this.game.showFreeBitcoinClaimDialog = false;
+    },
     showStartClaimDialog: function () {
       if(this.game.firstStartClaimThisTurn && this.game.firstStartClaimThisTurn !== 'false') {
         this.game.showStartClaimDialog = true;
       } else {
         this.showAlreadyClaimedStartBonusPopUp()
       }
+    },
+    closeStartClaimDialog: function () {
+      this.game.showStartClaimDialog = false;
     },
     getCumulatedFines: async function () {
       let res = await LNbits.api
@@ -1564,8 +1616,16 @@ new Vue({
             if(onBehalfOfFreeMarket) {
               throw("Invalid data type for free market")
             }
-            this.closePropertyDialog()
-            this.showPropertyDetails(properties[QRData.slice(1,7)][QRData.slice(7,8)])
+            if(QRData.slice(1,7) == "00ff00") { // Fix for wrench attacks (TO DO: use dedicated QR codes W1 and W2)
+              if(this.game.playerTurn === this.game.player.index) {
+                this.showWrenchAttackDialog(QRData.slice(7,8))
+              } else {
+                this.showNotYourTurnPopUp()
+              }
+            } else {
+              this.closePropertyDialog()
+              this.showPropertyDetails(properties[QRData.slice(1,7)][QRData.slice(7,8)])
+            }
             break
 
           case "L": // Lightning card
