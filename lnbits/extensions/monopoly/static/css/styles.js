@@ -13,7 +13,11 @@ export function reactiveStyles(game) {
         marginLeft: `2em`
       },
       cardsStack: {
-        height: `25em`
+        height: `25em`,
+        marginLeft: '13em'
+      },
+      cardImage: {
+        height: `20em`
       },
       card: (card) => {
         let cardPosition;
@@ -177,7 +181,11 @@ export function reactiveStyles(game) {
         marginLeft: `-1em`
       },
       cardsStack: {
-        height: `12em`
+        height: `12em`,
+        marginLeft: '6em'
+      },
+      cardImage: {
+        height: `10em`
       },
       card: (card) => {
         let cardPosition;
