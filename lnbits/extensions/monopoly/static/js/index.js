@@ -225,7 +225,7 @@ new Vue({
       if(this.camera.track) {
         this.camera.track.stop();
       }
-      this.game.gameCreatorPaymentToMarket = false;
+      // this.game.gameCreatorPaymentToMarket = false;
       this.freeMarketCamera = false;
     },
     onError: function(err) {
@@ -736,10 +736,9 @@ new Vue({
       return this.game.fundingInvoiceAmount
     },
     showPropertyDetails: function (property) {
+      console.log(property.id, property.position)
       this.game.showPropertyDialog = true;
       this.game.propertyToShow = property;
-      console.log(this.game.playerInvoiceAmount)
-      console.log(this.game.showNetworkFeeInvoiceDialog)
     },
     getNetworkFeeInvoiceAmount: async function (property) {
       this.game.showSaleInvoiceDialog = false;
@@ -1027,6 +1026,7 @@ new Vue({
                 console.log("Updating property ownership")
                 await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
                 this.closePropertyPurchaseDialog()
+                this.game.purchasingProperty = false;
               } else {
                 this.game.purchasingProperty = false
                 LNbits.utils.notifyApiError(res.error)
@@ -1095,7 +1095,7 @@ new Vue({
           {
             game_id: this.game.marketData.id,
             property_color: property.color,
-            property_id:property.id,
+            property_id: property.id,
             new_owner: buyer
           }
         )
@@ -1141,7 +1141,7 @@ new Vue({
           {
             game_id: this.game.marketData.id,
             property_color: property.color,
-            property_id:property.id
+            property_id: property.id
           }
         )
       if(res.data) {
@@ -1210,7 +1210,7 @@ new Vue({
           {
             game_id: this.game.marketData.id,
             property_color: property.color,
-            property_id:property.id,
+            property_id: property.id,
             income_increment: amount
           }
         )
@@ -1361,9 +1361,11 @@ new Vue({
       this.game.showAlreadyClaimedStartBonusPopUp = false
     },
     showUpgradeMinersPayment: function(property) {
+      /*
       if(this.game.created) {
         this.game.gameCreatorPaymentToMarket = true
       }
+      */
       this.game.showPropertyUpgradeDialog = true
       this.game.propertyUpgrade.property = property
 
@@ -1376,9 +1378,11 @@ new Vue({
       // this.showCamera()
     },
     showPropertyPurchasePayment: function(property) {
+      /*
       if(this.game.created && !property.owner) {
         this.game.gameCreatorPaymentToMarket = true
       }
+      */
       this.game.showPropertyPurchaseDialog = true
       this.game.propertyPurchase.property = property
       // this.showCamera()

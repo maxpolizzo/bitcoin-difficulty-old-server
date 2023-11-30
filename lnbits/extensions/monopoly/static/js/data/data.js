@@ -137,7 +137,7 @@ export const newGame = {
   propertySaleData: null,
   networkFeeInvoiceData: null,
   networkFeeInvoice: {},
-  gameCreatorPaymentToMarket: false,
+  // orPaymentToMarket: false,
   fineAmountSats: 0,
   customFineMultiplier: 0,
   rewardAmountSats: 0,
