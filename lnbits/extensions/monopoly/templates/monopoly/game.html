@@ -21,11 +21,11 @@
       <!-- Game funding view -->
       <div style="padding: 1em; font-size: 1.2em;" v-if="game.created && game.showFundingView">
         <div class="row">
-          <span class="col-8 col-md-8" style="margin-top: 0.5em;">
+          <span class="col-7 col-md-8" style="margin-top: 0.5em;">
              Fund the game to start playing (minimum {% raw %} {{game.minFunding}} {% endraw %} sats)...
           </span>
-          <span class="col-2 col-md-2" style="margin-top: 0.5em;">
-            <q-btn row color="orange" icon="qr_code_2" size="1em" :style="reactiveStyles.initialFundingButton" v-if="game.created"@click="showFundingDialog()">
+          <span class="offset-1 offset-md-0 col-2 col-md-2" style="margin-top: 0.5em;">
+            <q-btn row color="orange" icon="file_download" size="1em" :style="reactiveStyles.initialFundingButton" v-if="game.created"@click="showFundingDialog()">
             </q-btn>
           </span>
           <span v-if="game.marketLiquidity >= game.minFunding" class="col-2 col-md-2" style="margin-top: 0.5em;">
@@ -93,19 +93,19 @@
       </div>
     </q-card>
       <!-- Game view -->
-    <q-card>
+    <!--q-card>
       <div class="row" style="padding: 1em; font-size: 1.2em;" v-if="game.started && game.created">
           <span class="col-7 col-md-7" style="padding: 0.5em; font-size: 1.4em;">
             Free market wallet
           </span>
         <span class="col-3 col-md-2" style="padding: 0.5em; margin-left: 0.5em">
-            <q-btn row color="red" icon="qr_code_2" size="1.5em" @click="showFreeMarketInvoiceDialog"></q-btn>
+            <q-btn row color="red" icon="file_download" size="1.5em" @click="showFreeMarketInvoiceDialog"></q-btn>
           </span>
         <span class="col-2 col-md-2" style="padding: 0.5em; margin-left: 1em">
             <q-btn row color="red" icon="photo_camera" size="1.5em" @click="showFreeMarketCamera"></q-btn>
           </span>
       </div>
-    </q-card>
+    </q-card-->
     <q-card>
       <div style="padding: 1em; font-size: 1.2em;" v-if="game.started">
           <span style="padding: 0.5em; font-size: 1.4em;">
@@ -117,7 +117,7 @@
               <q-btn v-else disabled row icon="next_plan" size="1.5em"></q-btn>
             </span>
             <span class="col-3 col-md-2" style="padding: 0.5em; margin-left: 1em">
-              <q-btn row color="orange" icon="qr_code_2" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
+              <q-btn row color="orange" icon="file_download" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
             </span>
             <span class="col-2 col-md-2" style="padding: 0.5em; margin-left: 1em">
               <q-btn row color="orange" icon="photo_camera" size="1.5em" @click="showCamera"></q-btn>
@@ -245,8 +245,7 @@
   <!-- QR code reader popup -->
   <q-dialog v-model="camera.show">
     <q-card class="q-pa-lg q-pt-xl">
-      <div v-if="!game.gameCreatorPaymentToMarket"
-        class="text-center q-mb-lg">
+      <div class="text-center q-mb-lg">
         <qrcode-stream
           class="rounded-borders"
           @init="onInitCamera"
@@ -273,9 +272,6 @@
           </q-slider>
           -->
         </qrcode-stream>
-      </div>
-      <div v-else>
-        Please paste an invoice
       </div>
       <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>
@@ -906,7 +902,7 @@
       </div>
     -->
 
-      <div
+      <!--div
         v-if="game.created"
         class="row"
         :style="reactiveStyles.propertyButtonsForGameCreator.div"
@@ -929,7 +925,7 @@
             Invoice mining capacity upgrade
           </q-btn>
         </div>
-      </div>
+      </div-->
 
       <div class="row">
         <q-btn

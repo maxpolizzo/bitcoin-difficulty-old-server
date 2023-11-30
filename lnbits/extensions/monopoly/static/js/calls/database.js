@@ -200,33 +200,56 @@ export async function fetchProperties(game) {
           if(_property.owner === game.player.wallets[0].id) {
             let newProperty = true;
             if(
-              game.properties[property.property_owner_id]
-              && game.properties[property.property_owner_id][property.property_color]
+              game.properties[_property.owner]
+              && game.properties[_property.owner][_property.color]
             ) {
-              game.properties[property.property_owner_id][property.property_color].forEach((__property) => {
+              game.properties[_property.owner][_property.color].forEach((__property) => {
                 if(__property.id === _property.id) {
                   newProperty = false;
-                  if(__property.position >= 0) {
-                    _property.position = __property.position
-                  } else {
-                    _property.position = gameProperties[property.property_owner_id][property.property_color].length
-                  }
+                  _property.position = __property.position;
                 }
               })
             }
+            // If property was not already owned by player, assign position
             if(newProperty) {
-              _property.position = gameProperties[property.property_owner_id][property.property_color].length
+              if(!game.properties[property.property_owner_id]) {
+                _property.position = 0
+              } else if(!game.properties[property.property_owner_id][property.property_color]) {
+                _property.position = 0
+              } else {
+                _property.position = game.properties[property.property_owner_id][property.property_color].length
+              }
             }
           }
-          // Add property to properties owned by property_owner_id
+          // Add property to gameProperties
           gameProperties[property.property_owner_id][property.property_color].push(_property)
-          // Update properties count for property_owner_id
+          // Update gamePropertiesCount
           if(!gamePropertiesCount[property.property_owner_id]) {
             gamePropertiesCount[property.property_owner_id] = 0
           }
           gamePropertiesCount[property.property_owner_id] += 1
         }
       })
+      // Re-position player's properties in case a property was sold and a position is now empty
+      if(gameProperties[game.player.wallets[0].id] && Object.keys(gameProperties[game.player.wallets[0].id]).length) {
+        Object.keys(gameProperties[game.player.wallets[0].id]).forEach((propertyColor) => {
+          for(let pos = 0; pos < gameProperties[game.player.wallets[0].id][propertyColor].length; pos++) {
+            let foundPosition = false;
+            gameProperties[game.player.wallets[0].id][propertyColor].forEach((property) => {
+              if(property.position === pos) {
+                foundPosition = true;
+              }
+            });
+            if(!foundPosition)  {
+              for(let i = 0; i < gameProperties[game.player.wallets[0].id][propertyColor].length; i++) {
+                if(gameProperties[game.player.wallets[0].id][propertyColor][i].position > pos) {
+                  gameProperties[game.player.wallets[0].id][propertyColor][i].position--
+                }
+              }
+            }
+          }
+        })
+      }
       // Update game data
       game.properties = gameProperties;
       game.propertiesCount = gamePropertiesCount;

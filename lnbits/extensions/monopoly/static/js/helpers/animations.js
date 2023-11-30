@@ -24,43 +24,45 @@ export function onMove({ relatedContext, draggedContext }) {
 }
 
 export function onDragged(game, dragStartTime, { oldIndex, newIndex }, color) {
-  console.log(game)
-
+  // oldIndex is the id of the card that was moved, newIndex is the id of the card on which it was moved
   // Update cards positions in the stack
-  let draggedProperty;
-  let draggedElement;
+  let draggedElement; // Card that was dragged
+  let oldPosition;
+  let newPosition;
   game.properties[game.player.wallets[0].id][color].forEach((card) => {
-    if(card.position === oldIndex) {
+    if(card.id === oldIndex) {
       draggedElement = card;
+      oldPosition = card.position;
+    }
+    if(card.id === newIndex) {
+      newPosition = card.position;
     }
   })
-  // Dragged element position becomes newIndex
+  // Dragged card position becomes the position of the moved card
   for(let i = 0; i < game.properties[game.player.wallets[0].id][color].length; i++) {
     if(game.properties[game.player.wallets[0].id][color][i].id === draggedElement.id) {
-      game.properties[game.player.wallets[0].id][color][i].position = newIndex;
-      draggedProperty = game.properties[game.player.wallets[0].id][color][i];
+      game.properties[game.player.wallets[0].id][color][i].position = newPosition;
     }
   }
   // Other cards positions are moved by 1 up or down
-  if(newIndex > oldIndex) {
-    // Cards between oldIndex and newIndex have their position reduced by
-    // one, including related element
+  if(newPosition > oldPosition) {
+    // Cards between oldPosition and (inclusive) newPosition have their position reduced by one
     for(let i = 0; i < game.properties[game.player.wallets[0].id][color].length; i++) {
       if(
-        game.properties[game.player.wallets[0].id][color][i].position <= newIndex
-        && game.properties[game.player.wallets[0].id][color][i].position > oldIndex
+        game.properties[game.player.wallets[0].id][color][i].position <= newPosition
+        && game.properties[game.player.wallets[0].id][color][i].position > oldPosition
         && game.properties[game.player.wallets[0].id][color][i].id !== draggedElement.id
       ) {
         game.properties[game.player.wallets[0].id][color][i].position -= 1;
       }
     }
-  } else {
-    // Cards between newIndex and oldIndex have their position increased by
+  } else if(newPosition < oldPosition) {
+    // Cards between newPosition and oldPosition have their position increased by
     // one, including related element
     for(let i = 0; i < game.properties[game.player.wallets[0].id][color].length; i++) {
       if(
-        game.properties[game.player.wallets[0].id][color][i].position >= newIndex
-        && game.properties[game.player.wallets[0].id][color][i].position < oldIndex
+        game.properties[game.player.wallets[0].id][color][i].position >= newPosition
+        && game.properties[game.player.wallets[0].id][color][i].position < oldPosition
         && game.properties[game.player.wallets[0].id][color][i].id !== draggedElement.id
       ) {
         game.properties[game.player.wallets[0].id][color][i].position += 1;
@@ -75,7 +77,7 @@ export function onDragged(game, dragStartTime, { oldIndex, newIndex }, color) {
     // treat event as if it was a click on the property card (otherwise
     // mobile taps are seen as drags)
     game.showPropertyDialog = true;
-    game.propertyToShow = draggedProperty;
+    game.propertyToShow = draggedElement;
   }
   return game
 }

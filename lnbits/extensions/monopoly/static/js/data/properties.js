@@ -1,8 +1,8 @@
 export const properties = {
   "800002": [
     {
-      qr: "p01",
       id: 0,
+      position: 0,
       color: "800002",
       name: "Whitepaper Avenue",
       imgPath: "./static/images/properties/cards/800002_0.png",
@@ -14,6 +14,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "800002",
       name: "Genesis Avenue",
       imgPath: "./static/images/properties/cards/800002_1.png",
@@ -27,6 +28,7 @@ export const properties = {
   "66ccff": [
     {
       id: 0,
+      position: 0,
       color: "66ccff",
       name: "Pizza Day Plaza",
       imgPath: "./static/images/properties/cards/66ccff_0.png",
@@ -38,8 +40,9 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "66ccff",
-      name: "Byzantine Road",
+      name: "Cold Storage Castle",
       imgPath: "./static/images/properties/cards/66ccff_1.png",
       price: 100,
       liquidationPrice: 50,
@@ -49,6 +52,7 @@ export const properties = {
     },
     {
       id: 2,
+      position: 2,
       color: "66ccff",
       name: "Miners Street",
       imgPath: "./static/images/properties/cards/66ccff_2.png",
@@ -62,6 +66,7 @@ export const properties = {
   "fd6fcf": [
     {
       id: 0,
+      position: 0,
       color: "fd6fcf",
       name: "Pier 51",
       imgPath: "./static/images/properties/cards/fd6fcf_0.png",
@@ -73,6 +78,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "fd6fcf",
       name: "Block Wars Memorial",
       imgPath: "./static/images/properties/cards/fd6fcf_1.png",
@@ -84,6 +90,7 @@ export const properties = {
     },
     {
       id: 2,
+      position: 2,
       color: "fd6fcf",
       name: "Halving Avenue",
       imgPath: "./static/images/properties/cards/fd6fcf_2.png",
@@ -97,6 +104,7 @@ export const properties = {
   "fd8008": [
     {
       id: 0,
+      position: 0,
       color: "fd8008",
       name: "Commodity Lane",
       imgPath: "./static/images/properties/cards/fd8008_0.png",
@@ -108,6 +116,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "fd8008",
       name: "Lightning Avenue",
       imgPath: "./static/images/properties/cards/fd8008_1.png",
@@ -119,6 +128,7 @@ export const properties = {
     },
     {
       id: 2,
+      position: 2,
       color: "fd8008",
       name: "Chaumian Street",
       imgPath: "./static/images/properties/cards/fd8008_2.png",
@@ -132,6 +142,7 @@ export const properties = {
   "fc0107": [
     {
       id: 0,
+      position: 0,
       color: "fc0107",
       name: "Elliptic Road",
       imgPath: "./static/images/properties/cards/fc0107_0.png",
@@ -143,6 +154,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "fc0107",
       name: "Merkle Lane",
       imgPath: "./static/images/properties/cards/fc0107_1.png",
@@ -154,6 +166,7 @@ export const properties = {
     },
     {
       id: 2,
+      position: 2,
       color: "fc0107",
       name: "Mempool Road",
       imgPath: "./static/images/properties/cards/fc0107_2.png",
@@ -167,6 +180,7 @@ export const properties = {
   "ffff00": [
     {
       id: 0,
+      position: 0,
       color: "ffff00",
       name: "Metal Street",
       imgPath: "./static/images/properties/cards/ffff00_0.png",
@@ -178,6 +192,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "ffff00",
       name: "Austrian Lane",
       imgPath: "./static/images/properties/cards/ffff00_1.png",
@@ -189,6 +204,7 @@ export const properties = {
     },
     {
       id: 2,
+      position: 2,
       color: "ffff00",
       name: "Freedom Gardens",
       imgPath: "./static/images/properties/cards/ffff00_2.png",
@@ -202,6 +218,7 @@ export const properties = {
   "00b050": [
       {
         id: 0,
+      position: 0,
         color: "00b050",
         name: "Circle Street",
         imgPath: "./static/images/properties/cards/00b050_0.png",
@@ -213,6 +230,7 @@ export const properties = {
       },
       {
         id: 1,
+      position: 1,
         color: "00b050",
         name: "Reserve Plaza",
         imgPath: "./static/images/properties/cards/00b050_1.png",
@@ -224,6 +242,7 @@ export const properties = {
       },
       {
         id: 2,
+      position: 2,
         color: "00b050",
         name: "Energy Lane",
         imgPath: "./static/images/properties/cards/00b050_2.png",
@@ -237,6 +256,7 @@ export const properties = {
   "0070c0": [
     {
       id: 0,
+      position: 0,
       color: "0070c0",
       name: "Prosperity Tower",
       imgPath: "./static/images/properties/cards/0070c0_0.png",
@@ -248,6 +268,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "0070c0",
       name: "Hope Island",
       imgPath: "./static/images/properties/cards/0070c0_1.png",
@@ -261,6 +282,7 @@ export const properties = {
   "bfbfbf": [
     {
       id: 0,
+      position: 0,
       color: "bfbfbf",
       name: "Consensus Pool",
       imgPath: "./static/images/properties/cards/bfbfbf_0.png",
@@ -270,6 +292,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "bfbfbf",
       name: "Nodes HQ",
       imgPath: "./static/images/properties/cards/bfbfbf_1.png",
@@ -279,6 +302,7 @@ export const properties = {
     },
     {
       id: 2,
+      position: 2,
       color: "bfbfbf",
       name: "Open Pool",
       imgPath: "./static/images/properties/cards/bfbfbf_2.png",
@@ -288,6 +312,7 @@ export const properties = {
     },
     {
       id: 3,
+      position: 3,
       color: "bfbfbf",
       name: "Minery",
       imgPath: "./static/images/properties/cards/bfbfbf_3.png",
@@ -299,6 +324,7 @@ export const properties = {
   "00FFFF": [
     {
       id: 0,
+      position: 0,
       color: "00FFFF",
       name: "Renewable Energy Company",
       imgPath: "./static/images/properties/cards/00FFFF_0.png",
@@ -308,6 +334,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "00FFFF",
       name: "Oil Field",
       imgPath: "./static/images/properties/cards/00FFFF_1.png",
@@ -319,6 +346,7 @@ export const properties = {
   "00ff00": [
     {
       id: 0,
+      position: 0,
       color: "00ff00",
       name: "Wrench Attack",
       imgPath: "./static/images/properties/cards/00ff00_0.png",
@@ -327,6 +355,7 @@ export const properties = {
     },
     {
       id: 1,
+      position: 1,
       color: "00ff00",
       name: "Wrench Attack",
       imgPath: "./static/images/properties/cards/00ff00_1.png",
