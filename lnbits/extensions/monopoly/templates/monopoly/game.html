@@ -159,7 +159,8 @@
         </span>
       </div>
 
-      <div v-else class="row col-12 col-md-12" style="padding: 1em;">
+      <!--div-- v-else class="row col-12 col-md-12" style="padding: 1em;">
+
         <div
           v-if="game.properties[game.player.wallets[0].id] && game.properties[game.player.wallets[0].id][colorGroup] && game.properties[game.player.wallets[0].id][colorGroup].length"
           class="row col-4 col-md-4"
@@ -172,6 +173,7 @@
               class="no-shadow row col-9 col-md-9"
               style="margin-left: 1.5em;"
             >
+
                 <draggable
                   class="cards-stack"
                   :group="colorGroup"
@@ -197,10 +199,68 @@
                     >
                   </li>
                 </draggable>
+
             </q-card>
 
-        </div>
-        </div>
+          </div>
+
+        </div-->
+
+      <div v-else class="row col-12 col-md-12" style="padding: 1em;">
+
+        <q-carousel
+          v-if="carouselSlide != ''"
+          v-model="carouselSlide"
+          @before-transition="onUpdateCarouselSlide"
+          animated
+          swipeable
+          arrows
+          infinite
+          transition-prev="slide-right"
+          transition-next="slide-left"
+          padding
+          control-color="orange"
+          class="bg-primary row col-12 col-md-12"
+        >
+
+          <q-carousel-slide
+            v-if="game.properties[game.player.wallets[0].id] && game.properties[game.player.wallets[0].id][colorGroup] && game.properties[game.player.wallets[0].id][colorGroup].length"
+            v-for="colorGroup in Object.keys(game.properties[game.player.wallets[0].id])"
+            :name="colorGroup"
+            :key="colorGroup"
+            v-ripple
+            style="margin-left: 1.5em;"
+          >
+
+            <draggable
+              class="cards-stack"
+              :group="colorGroup"
+              v-model="game.properties[game.player.wallets[0].id][colorGroup]"
+              v-bind="dragOptions"
+              :move="onMove"
+              @start="onStartDrag()"
+              @end="onDragged($event, colorGroup)"
+              tag="div"
+              :style="reactiveStyles.cardsStack"
+            >
+              <li
+                v-for="card in game.properties[game.player.wallets[0].id][colorGroup]"
+                :id="card.id"
+                class="my-box cursor-pointer q-hoverable row col-12 col-md-12"
+                :style="reactiveStyles.card(card)"
+                @click="showPropertyDetails(card)"
+              >
+                <img
+                  class="image-hover-highlight"
+                  :src=card.imgPath
+                  alt="card"
+                  :style="reactiveStyles.cardImage"
+                >
+              </li>
+            </draggable>
+          </q-carousel-slide>
+        <q-carousel>
+      </div>
     </q-card>
 
   </div>

@@ -81,3 +81,17 @@ export function onDragged(game, dragStartTime, { oldIndex, newIndex }, color) {
   }
   return game
 }
+
+export function onUpdateCarouselSlide(game, newSlide, oldSlide) {
+  if(newSlide === undefined) {
+    if(oldSlide === Object.keys(game.properties[game.player.wallets[0].id])[0]) {
+      return Object.keys(game.properties[game.player.wallets[0].id])[Object.keys(game.properties[game.player.wallets[0].id]).length - 1]
+    } else if(oldSlide === Object.keys(game.properties[game.player.wallets[0].id])[Object.keys(game.properties[game.player.wallets[0].id]).length - 1]) {
+      return Object.keys(game.properties[game.player.wallets[0].id])[0]
+    } else {
+      return oldSlide
+    }
+  } else  {
+    return newSlide
+  }
+}

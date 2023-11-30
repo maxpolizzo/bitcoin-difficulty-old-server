@@ -34,7 +34,8 @@ import {
 import {
   dragOptions,
   onMove,
-  onDragged
+  onDragged,
+  onUpdateCarouselSlide
 } from './helpers/animations.js'
 import {
   playPlayerJoinedSound
@@ -125,6 +126,8 @@ new Vue({
       enabled: true,
       isDragging: false,
       delayedDragging: false,
+      // data for properties carousel
+      carouselSlide: "",
     }
   },
   computed: {
@@ -242,6 +245,9 @@ new Vue({
     onDragged: function({ oldIndex, newIndex }, color) {
       this.game = onDragged(this.game, this.dragStartTime, { oldIndex, newIndex }, color);
       this.isDragging = false;
+    },
+    onUpdateCarouselSlide: function(newSlide, oldSlide) {
+      this.carouselSlide = onUpdateCarouselSlide(this.game, newSlide, oldSlide)
     },
     loadExistingGame: async function (gameId) {
       console.log("Loading saved game: " + gameId);
@@ -736,7 +742,6 @@ new Vue({
       return this.game.fundingInvoiceAmount
     },
     showPropertyDetails: function (property) {
-      console.log(property.id, property.position)
       this.game.showPropertyDialog = true;
       this.game.propertyToShow = property;
     },
@@ -1060,6 +1065,8 @@ new Vue({
               LNbits.utils.notifyApiError(res.error)
             }
           }
+          // Switch carouselSlide value to property color to display newly purchased property
+          this.carouselSlide = this.game.propertyPurchase.property.color
         } catch(err) {
           this.game.purchasingProperty = false
           LNbits.utils.notifyApiError(err)
