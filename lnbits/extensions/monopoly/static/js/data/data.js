@@ -130,6 +130,7 @@ export const newGame = {
   properties: {},
   propertiesCount: {},
   propertyToShow: {},
+  propertiesCarouselSlide: "",
   propertyPurchase: {},
   propertyPurchaseData: null,
   propertyUpgrade: {},
@@ -143,7 +144,7 @@ export const newGame = {
   rewardAmountSats: 0,
   customRewardMultiplier: 0,
   // Hack to copy command to pay invoice from local node
-  payInvoiceCommand: "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Perso/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
+  payInvoiceCommand: "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
 
 }
 

@@ -82,7 +82,7 @@ export function onDragged(game, dragStartTime, { oldIndex, newIndex }, color) {
   return game
 }
 
-export function onUpdateCarouselSlide(game, newSlide, oldSlide) {
+export function onUpdatePropertiesCarouselSlide(game, newSlide, oldSlide) {
   if(newSlide === undefined) {
     if(oldSlide === Object.keys(game.properties[game.player.wallets[0].id])[0]) {
       return Object.keys(game.properties[game.player.wallets[0].id])[Object.keys(game.properties[game.player.wallets[0].id]).length - 1]
