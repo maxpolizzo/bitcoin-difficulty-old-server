@@ -14,7 +14,7 @@ export function reactiveStyles(game) {
       },
       cardsStack: {
         height: `25em`,
-        marginLeft: '13em'
+        marginLeft: '11em'
       },
       cardImage: {
         height: `20em`
@@ -26,10 +26,14 @@ export function reactiveStyles(game) {
             cardPosition = _card.position;
           }
         });
+        let marginTopFactor = 3;
+        let marginTop = game.properties[game.player.wallets[0].id][card.color].length === 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginLeft = game.properties[game.player.wallets[0].id][card.color].length === 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
         return({
           position: `absolute`,
           zIndex: parseInt(cardPosition) + 2,
-          marginTop: (3 * (parseInt(cardPosition) + 1)).toString() + `em`
+          marginTop,
+          marginLeft
         })
       },
       lightningCard: (lightningCard) => {
@@ -181,11 +185,13 @@ export function reactiveStyles(game) {
         marginLeft: `-1em`
       },
       cardsStack: {
-        height: `12em`,
-        marginLeft: '6em'
+        height: `36em`,
+        marginLeft: '-0.8em',
+        marginTop: '-4.5em',
+        marginBottom: '3em'
       },
       cardImage: {
-        height: `10em`
+        height: `21em`
       },
       card: (card) => {
         let cardPosition;
@@ -194,10 +200,14 @@ export function reactiveStyles(game) {
             cardPosition = _card.position;
           }
         });
+        let marginTopFactor = 5.6;
+        let marginTop = game.properties[game.player.wallets[0].id][card.color].length == 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginLeft = game.properties[game.player.wallets[0].id][card.color].length == 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
         return({
           position: `absolute`,
           zIndex: parseInt(cardPosition) + 2,
-          marginTop: (1.6 * (parseInt(cardPosition) + 1)).toString() + `em`
+          marginTop,
+          marginLeft
         })
       },
       lightningCard: (lightningCard) => {

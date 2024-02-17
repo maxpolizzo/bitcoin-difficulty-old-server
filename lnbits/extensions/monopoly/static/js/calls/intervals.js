@@ -108,7 +108,6 @@ export async function checkPlayersBalances(game) {
 // Logic to check properties ownership periodically
 export async function checkProperties(game) {
   clearInterval(game.propertiesChecker)
-  let updated_game;
   game.propertiesChecker = setInterval(async () => {
     await fetchProperties(game)
   }, PERIOD)

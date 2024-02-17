@@ -209,9 +209,9 @@
       <div v-else class="row col-12 col-md-12" style="padding: 1em;">
 
         <q-carousel
-          v-if="carouselSlide != ''"
-          v-model="carouselSlide"
-          @before-transition="onUpdateCarouselSlide"
+          v-if="game.propertiesCarouselSlide != ''"
+          v-model="game.propertiesCarouselSlide"
+          @before-transition="onUpdatePropertiesCarouselSlide"
           animated
           swipeable
           arrows
@@ -220,7 +220,7 @@
           transition-next="slide-left"
           padding
           control-color="orange"
-          class="bg-primary row col-12 col-md-12"
+          class="row col-12 col-md-12"
         >
 
           <q-carousel-slide
@@ -232,7 +232,7 @@
             style="margin-left: 1.5em;"
           >
 
-            <draggable
+            <div
               class="cards-stack"
               :group="colorGroup"
               v-model="game.properties[game.player.wallets[0].id][colorGroup]"
@@ -257,9 +257,9 @@
                   :style="reactiveStyles.cardImage"
                 >
               </li>
-            </draggable>
+            </div>
           </q-carousel-slide>
-        <q-carousel>
+        </q-carousel>
       </div>
     </q-card>
 

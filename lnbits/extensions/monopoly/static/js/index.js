@@ -35,7 +35,7 @@ import {
   dragOptions,
   onMove,
   onDragged,
-  onUpdateCarouselSlide
+  onUpdatePropertiesCarouselSlide
 } from './helpers/animations.js'
 import {
   playPlayerJoinedSound
@@ -126,8 +126,6 @@ new Vue({
       enabled: true,
       isDragging: false,
       delayedDragging: false,
-      // data for properties carousel
-      carouselSlide: "",
     }
   },
   computed: {
@@ -161,6 +159,8 @@ new Vue({
           this.camera.candidateDevices.push(device)
         }
       })
+      console.log(this.camera.candidateDevices)
+
       await this.selectCameraDevice(this.camera.candidateDevices.length - 1);
     },
     selectCameraDevice: async function(deviceIndex, retry = true) {
@@ -246,8 +246,8 @@ new Vue({
       this.game = onDragged(this.game, this.dragStartTime, { oldIndex, newIndex }, color);
       this.isDragging = false;
     },
-    onUpdateCarouselSlide: function(newSlide, oldSlide) {
-      this.carouselSlide = onUpdateCarouselSlide(this.game, newSlide, oldSlide)
+    onUpdatePropertiesCarouselSlide: function(newSlide, oldSlide) {
+      this.game.propertiesCarouselSlide = onUpdatePropertiesCarouselSlide(this.game, newSlide, oldSlide)
     },
     loadExistingGame: async function (gameId) {
       console.log("Loading saved game: " + gameId);
@@ -1066,7 +1066,8 @@ new Vue({
             }
           }
           // Switch carouselSlide value to property color to display newly purchased property
-          this.carouselSlide = this.game.propertyPurchase.property.color
+          this.game.propertiesCarouselSlide = this.game.propertyPurchase.property.color
+          saveGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
         } catch(err) {
           this.game.purchasingProperty = false
           LNbits.utils.notifyApiError(err)
