@@ -141,7 +141,6 @@ export async function fetchPlayersBalances(game) {
 }
 
 export async function fetchPlayerTurn(game) {
-  let currentPlayerTurn = game.playerTurn;
   // Fetch player turn from database
   let res = await LNbits.api
       .request(
@@ -150,16 +149,22 @@ export async function fetchPlayerTurn(game) {
           game.player.wallets[0].inkey
       )
   if(res.data) {
-    game.playerTurn = res.data["player_turn"]
-    saveGameData(game, 'playerTurn', game.playerTurn)
-    if(game.playerTurn !== currentPlayerTurn && game.playerTurn === game.player.index) {
-      game.firstLightningCardThisTurn = true
-      game.firstProtocolCardThisTurn = true
-      game.firstStartClaimThisTurn = true
-      saveGameData(game, 'firstLightningCardThisTurn', game.firstLightningCardThisTurn)
-      saveGameData(game, 'firstProtocolCardThisTurn', game.firstProtocolCardThisTurn)
-      saveGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
-      playNextPlayerTurnSound();
+    let nextPlayerTurn = res.data["player_turn"]
+    if(nextPlayerTurn !== game.playerTurn)  {
+      game.playerTurnUpdated = false
+      game.playerTurn = nextPlayerTurn
+      saveGameData(game, 'playerTurn', game.playerTurn)
+      if(game.playerTurn === game.player.index && !game.playerTurnUpdated) {
+        game.firstLightningCardThisTurn = true
+        game.firstProtocolCardThisTurn = true
+        game.firstStartClaimThisTurn = true
+        saveGameData(game, 'firstLightningCardThisTurn', game.firstLightningCardThisTurn)
+        saveGameData(game, 'firstProtocolCardThisTurn', game.firstProtocolCardThisTurn)
+        saveGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
+        playNextPlayerTurnSound();
+
+      }
+      game.playerTurnUpdated = true
     }
   }
 }
