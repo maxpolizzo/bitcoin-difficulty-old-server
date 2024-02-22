@@ -13,8 +13,8 @@ export function reactiveStyles(game) {
         marginLeft: `2em`
       },
       cardsStack: {
-        height: `25em`,
-        marginLeft: '11em'
+        height: `35em`,
+        marginLeft: '11.5em'
       },
       cardImage: {
         height: `20em`
@@ -186,7 +186,7 @@ export function reactiveStyles(game) {
       },
       cardsStack: {
         height: `36em`,
-        marginLeft: '-0.8em',
+        marginLeft: '0.7em',
         marginTop: '-4.5em',
         marginBottom: '3em'
       },
