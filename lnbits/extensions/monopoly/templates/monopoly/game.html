@@ -207,7 +207,6 @@
         </div-->
 
       <div v-else class="row col-12 col-md-12" style="padding: 1em;">
-
         <q-carousel
           v-if="game.propertiesCarouselSlide != ''"
           v-model="game.propertiesCarouselSlide"
@@ -220,7 +219,7 @@
           transition-next="slide-left"
           padding
           control-color="orange"
-          class="row col-12 col-md-12"
+          class="col-12 col-md-12"
         >
 
           <q-carousel-slide
@@ -229,24 +228,27 @@
             :name="colorGroup"
             :key="colorGroup"
             v-ripple
-            style="margin-left: 1.5em;"
           >
 
-            <div
+            <!--div
               class="cards-stack"
               :group="colorGroup"
-              v-model="game.properties[game.player.wallets[0].id][colorGroup]"
               v-bind="dragOptions"
               :move="onMove"
               @start="onStartDrag()"
               @end="onDragged($event, colorGroup)"
               tag="div"
               :style="reactiveStyles.cardsStack"
+            -->
+            <div
+              class="cards-stack"
+              :group="colorGroup"
+              :style="reactiveStyles.cardsStack"
             >
               <li
                 v-for="card in game.properties[game.player.wallets[0].id][colorGroup]"
                 :id="card.id"
-                class="my-box cursor-pointer q-hoverable row col-12 col-md-12"
+                class="row col-12 col-md-12"
                 :style="reactiveStyles.card(card)"
                 @click="showPropertyDetails(card)"
               >
@@ -254,6 +256,7 @@
                   class="image-hover-highlight"
                   :src=card.imgPath
                   alt="card"
+                  draggable="false"
                   :style="reactiveStyles.cardImage"
                 >
               </li>
@@ -575,10 +578,11 @@
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.lightningCardToShow">
-
-        <q-card class="q-card--dark row" style="padding: 1em;">
-
+      <div
+        v-if="game.lightningCardToShow"
+        class="q-card--dark row"
+        style="padding: 1em;"
+      >
           <div class="col-7 col-md-7">
             <img
               class="image-hover-highlight"
@@ -631,9 +635,6 @@
              </q-btn>
            </div>
          </div>
-
-
-        </q-card>
       </div>
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
@@ -645,10 +646,11 @@
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
-      <div v-if="game.protocolCardToShow">
-
-        <q-card class="q-card--dark row" style="padding: 1em;">
-
+      <div
+        v-if="game.protocolCardToShow"
+        class="q-card--dark row"
+        style="padding: 1em;"
+      >
           <div class="col-7 col-md-7">
             <img
               class="image-hover-highlight"
@@ -760,11 +762,7 @@
               </q-btn>
             </div>
           </div>
-
-
-        </q-card>
       </div>
-
 
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
