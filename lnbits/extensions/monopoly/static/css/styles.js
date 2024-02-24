@@ -12,6 +12,39 @@ export function reactiveStyles(game) {
       inviteButton: {
         marginLeft: `2em`
       },
+      header: {
+        marginTop: `-5em`
+      },
+      playerName: {
+        paddingTop: `0.5em`,
+        fontSize: `2.5em`
+      },
+      gameButtonsGroup: {
+        paddingTop: `0em`
+      },
+      nextPlayerTurnButton: {
+        padding: `0.5em`
+      },
+      receiveButton: {
+        padding: `0.5em`,
+        marginLeft: `2em`
+      },
+      sendButton: {
+        padding: `0.5em`,
+        marginLeft: `2em`
+      },
+      fundingViewContainer: {
+        marginTop: `1em`,
+        paddingRight: `0.5em`
+      },
+      propertiesContainer: {
+        marginTop: `1em`,
+        paddingRight: `0.5em`
+      },
+      playersTableContainer: {
+        marginTop: `1em`,
+        paddingLeft: `0.5em`
+      },
       cardsStack: {
         height: `35em`,
         marginLeft: '11.5em'
@@ -183,6 +216,39 @@ export function reactiveStyles(game) {
       },
       inviteButton: {
         marginLeft: `-1em`
+      },
+      header: {
+        marginTop: `-9em`
+      },
+      playerName: {
+        paddingTop: `0.7em`,
+        fontSize: `1.5em`
+      },
+      gameButtonsGroup: {
+        paddingTop: `1em`
+      },
+      nextPlayerTurnButton: {
+        padding: `0.5em`
+      },
+      receiveButton: {
+        padding: `0.5em`,
+        marginLeft: `1em`
+      },
+      sendButton: {
+        padding: `0.5em`,
+        marginLeft: `1em`
+      },
+      fundingViewContainer: {
+        marginTop: `-2.5em`,
+        paddingRight: `0em`
+      },
+      propertiesContainer: {
+        marginTop: `1em`,
+        paddingRight: `0em`
+      },
+      playersTableContainer: {
+        marginTop: `1em`,
+        paddingLeft: `0em`
       },
       cardsStack: {
         height: `36em`,
