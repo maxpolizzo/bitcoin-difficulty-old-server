@@ -56,8 +56,7 @@ export async function fetchPaymentsToFreeMarket(game) {
 }
 
 export async function fetchPaymentsToPlayer(game) {
-  if(game.imported || (game.created && game.showInviteButton)) { // For game creator:
-    // only fetch payments after redirection following onGameFunded() call
+  if(game.imported || (game.created && game.showInviteButton) || game.started) {
     const res = await LNbits.api.getPayments(game.player.wallets[0]);
     if(res.data) {
       const payments = res.data
@@ -68,6 +67,9 @@ export async function fetchPaymentsToPlayer(game) {
           return b.time - a.time
         })
       payments.forEach((payment) => {
+        console.log(payment)
+        console.log(game.playerWallet.payments[payment.payment_hash])
+
         if(game.playerWallet.payments[payment.payment_hash]) {
           if(game.playerWallet.payments[payment.payment_hash].pending && !payment.pending) {
             game.playerWallet.payments[payment.payment_hash].pending = false
