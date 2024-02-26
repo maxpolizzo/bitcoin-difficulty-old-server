@@ -1109,7 +1109,6 @@ new Vue({
         )
       if(res.data) {
         console.log("Property ownership transferred successfully")
-        console.log(res.data)
       }
     },
     upgradeProperty: async function() {

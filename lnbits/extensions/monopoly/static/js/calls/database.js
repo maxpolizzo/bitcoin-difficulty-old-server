@@ -191,48 +191,62 @@ export async function fetchProperties(game) {
             gameProperties[property.property_owner_id][property.property_color] = []
           }
           // Update property data
-          let _property = properties[property.property_color][property.property_id];
-          _property.mining_capacity = property.property_mining_capacity
-          _property.mining_income = property.property_mining_income
-          _property.owner = property.property_owner_id
+          let updatedProperty = properties[property.property_color][property.property_id];
+          updatedProperty.mining_capacity = property.property_mining_capacity
+          updatedProperty.mining_income = property.property_mining_income
+          updatedProperty.owner = property.property_owner_id
           // Get property owner's name
           Object.keys(game.players).forEach((player_id) => {
             if(player_id === property.property_owner_id) {
-              _property.owner_name = game.players[player_id].player_wallet_name
+              updatedProperty.owner_name = game.players[player_id].player_wallet_name
             }
           });
           // Keep property card position in case it is already owned by player
-          if(_property.owner === game.player.wallets[0].id) {
-            let newProperty = true;
-            if(
-              game.properties[_property.owner]
-              && game.properties[_property.owner][_property.color]
-            ) {
-              game.properties[_property.owner][_property.color].forEach((__property) => {
-                if(__property.id === _property.id) {
-                  newProperty = false;
-                  _property.position = __property.position;
-                }
-              })
-            }
-            // If property was not already owned by player, assign position
-            if(newProperty) {
-              if(!game.properties[property.property_owner_id]) {
-                _property.position = 0
-              } else if(!game.properties[property.property_owner_id][property.property_color]) {
-                _property.position = 0
-              } else {
-                _property.position = game.properties[property.property_owner_id][property.property_color].length
+          let newProperty = true;
+          if(game.properties[game.player.wallets[0].id] &&
+            game.properties[game.player.wallets[0].id][property.property_color] &&
+            game.properties[game.player.wallets[0].id][property.property_color].length
+          ) {
+            game.properties[game.player.wallets[0].id][property.property_color].forEach((previouslyOwnedProperty) => {
+              if(previouslyOwnedProperty.id === property.property_id && property.property_owner_id === game.player.wallets[0].id) {
+                // Property was already owned by player
+                newProperty = false;
+                updatedProperty.position = previouslyOwnedProperty.position;
               }
+            })
+          }
+          // If property was not already owned by player, assign position
+          if(newProperty) {
+            if(!game.properties[property.property_owner_id]) {
+              updatedProperty.position = 0
+            } else if(!game.properties[property.property_owner_id][property.property_color]) {
+              updatedProperty.position = 0
+            } else {
+              updatedProperty.position = game.properties[property.property_owner_id][property.property_color].length
             }
           }
           // Add property to gameProperties
-          gameProperties[property.property_owner_id][property.property_color].push(_property)
+          gameProperties[property.property_owner_id][property.property_color].push(updatedProperty)
           // Update gamePropertiesCount
           if(!gamePropertiesCount[property.property_owner_id]) {
             gamePropertiesCount[property.property_owner_id] = 0
           }
           gamePropertiesCount[property.property_owner_id] += 1
+          // If property was just sold, close property invoice dialog
+          if(game.properties[game.player.wallets[0].id] &&
+            game.properties[game.player.wallets[0].id][property.property_color] &&
+            game.properties[game.player.wallets[0].id][property.property_color].length
+          ) {
+            game.properties[game.player.wallets[0].id][property.property_color].forEach((previouslyOwnedProperty) => {
+              if(previouslyOwnedProperty.id === property.property_id && property.property_owner_id !== game.player.wallets[0].id) {
+                game.playerInvoiceAmount = null;
+                game.propertySaleData = null;
+                game.saleInvoiceCreated = false;
+                game.showSaleInvoiceDialog = false;
+                game.showPropertyInvoiceDialog = false
+              }
+            })
+          }
         }
       })
       // Re-position player's properties in case a property was sold and a position is now empty
@@ -254,6 +268,20 @@ export async function fetchProperties(game) {
             }
           }
         })
+      }
+      // Update game.propertiesCarouselSlide in case property was sold and seller doesn't own any property of the same
+      // color anymore
+      if(gameProperties[game.player.wallets[0].id] &&
+        Object.keys(gameProperties[game.player.wallets[0].id]) &&
+        Object.keys(gameProperties[game.player.wallets[0].id]).length
+      ) {
+          if(!gameProperties[game.player.wallets[0].id][game.propertiesCarouselSlide] ||
+            !gameProperties[game.player.wallets[0].id][game.propertiesCarouselSlide].length
+          ) {
+            game.propertiesCarouselSlide = Object.keys(gameProperties[game.player.wallets[0].id])[0];
+          }
+      } else {
+        game.propertiesCarouselSlide = '';
       }
       // Update game data
       game.properties = gameProperties;
