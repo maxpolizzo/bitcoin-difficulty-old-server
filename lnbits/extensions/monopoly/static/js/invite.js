@@ -85,6 +85,7 @@ async function fetchGameData (game) {
     game.lnurlPayId = res.data[5][1]
     game.lnurlPayLink = res.data[6][1]
     console.log("Successfully fetched game data from database")
+    game.timestamp = Date.now()
     // Save game in local storage
     saveGameRecord(game)
   } else {
