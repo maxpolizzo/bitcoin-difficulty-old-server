@@ -67,9 +67,6 @@ export async function fetchPaymentsToPlayer(game) {
           return b.time - a.time
         })
       payments.forEach((payment) => {
-        console.log(payment)
-        console.log(game.playerWallet.payments[payment.payment_hash])
-
         if(game.playerWallet.payments[payment.payment_hash]) {
           if(game.playerWallet.payments[payment.payment_hash].pending && !payment.pending) {
             game.playerWallet.payments[payment.payment_hash].pending = false

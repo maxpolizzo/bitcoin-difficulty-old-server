@@ -31,16 +31,27 @@ export function fetchGameRecords() {
 export function saveGameRecord(game) {
   // Save game record to local storage
   let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
+  let gameAlreadySaved = false;
   if(existingGameRecords && existingGameRecords.length) {
-    existingGameRecords.push('game_' + game.player.id + '_' + game.marketData.id + '_' + game.timestamp)
-  } else {
-    existingGameRecords = ['game_' + game.player.id + '_' + game.marketData.id + '_' + game.timestamp]
+    existingGameRecords.forEach((gameRecordString) => {
+      if(gameRecordString.startsWith('game_' + game.player.id + '_' + game.marketData.id)) {
+        gameAlreadySaved = true;
+        console.log('Game already saved in local storage')
+      }
+    })
   }
-  localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
-  // Save game to local storage
-  Object.keys(game).forEach((key) => {
-    saveGameData(game, key, game[key])
-  })
+  if(!gameAlreadySaved) {
+    if(existingGameRecords && existingGameRecords.length) {
+      existingGameRecords.push('game_' + game.player.id + '_' + game.marketData.id + '_' + game.timestamp)
+    } else {
+      existingGameRecords = ['game_' + game.player.id + '_' + game.marketData.id + '_' + game.timestamp]
+    }
+    localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
+    // Save game to local storage
+    Object.keys(game).forEach((key) => {
+      saveGameData(game, key, game[key])
+    })
+  }
 }
 
 export function loadGameData(gameRecord) {

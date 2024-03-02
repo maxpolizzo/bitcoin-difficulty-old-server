@@ -156,6 +156,7 @@ export const inviteGame = {
 
 export const gameRecordsData = {
   columns: [
+    /*
     {
       name: 'creatorId',
       required: true,
@@ -174,6 +175,7 @@ export const gameRecordsData = {
       format: val => `${val}`,
       sortable: false
     },
+    */
     {
       name: 'dateTime',
       required: true,
