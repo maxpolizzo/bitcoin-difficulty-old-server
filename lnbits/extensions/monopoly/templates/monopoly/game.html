@@ -310,38 +310,40 @@
   </div>
   <!-- QR code reader popup -->
   <q-dialog v-model="camera.show">
+
     <q-card class="q-pa-lg q-pt-xl">
-      <div class="text-center q-mb-lg">
+      <div class="row">
+        <q-btn
+          v-if="camera.enableSwitchCameraButton"
+          class="offset-10 col-2"
+          icon="flip_camera_ios"
+          size="1em"
+          @click="switchCameraDevice"
+          style="margin-top: -2em; margin-bottom: 1.5em; z-index: 999;"
+        ></q-btn>
+        <q-btn
+          v-else
+          disabled
+          class="offset-10 col-2"
+          icon="flip_camera_ios"
+          size="1em"
+          @click="switchCameraDevice"
+          style="margin-top: -2em; margin-bottom: 1.5em; z-index: 999;"
+        ></q-btn>
+      </div>
+      <div class="text-center">
         <qrcode-stream
-          class="rounded-borders"
+          class="rounded-borders overflow-hidden"
           @init="onInitCamera"
           @error="onError"
           @decode="decodeQR"
           :camera="camera.camera"
         >
-          <!--
-          <q-slider
-            :style="reactiveStyles.cameraFocusSlider"
-            v-if="camera.focus.enabled"
-            class="q-mt-xl"
-            v-model="camera.focus.sliderValue"
-            @change="onCameraFocus"
-            color="deep-orange"
-            vertical
-            reverse
-            label-always
-            markers
-            marker-labels
-            :min="1"
-            :max="10"
-          >
-          </q-slider>
-          -->
         </qrcode-stream>
       </div>
       <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>
-        <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Cancel</q-btn>
+        <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
