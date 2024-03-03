@@ -114,9 +114,9 @@ new Vue({
           enabled: true,
           min: null,
           max: null,
-        }
+        },
+        enableSwitchCameraButton: true
       },
-      freeMarketCamera: false,
       qrCodeDialog: {
         data: null,
         show: false
@@ -160,56 +160,53 @@ new Vue({
         }
       })
       console.log(this.camera.candidateDevices)
-
-      await this.selectCameraDevice(this.camera.candidateDevices.length - 1);
+      if(this.camera.candidateDevices.length) {
+        this.camera.deviceIndex = this.camera.candidateDevices.length - 1
+        await this.selectCameraDevice(this.camera.deviceIndex, true);
+      } else{
+        this.camera.error = "Error: no camera found on device"
+        console.error(this.camera.error)
+      }
     },
     selectCameraDevice: async function(deviceIndex, retry = true) {
+      console.log("Camera device index:" + deviceIndex)
       this.camera.error = null;
       // Select last video device (usually camera with focus)
       try {
-        if(deviceIndex >= 0 && deviceIndex < this.camera.candidateDevices.length) {
+        if(deviceIndex >= 0) { // && deviceIndex < this.camera.candidateDevices.length) {
           this.camera.deviceId = this.camera.candidateDevices[deviceIndex].deviceId
           this.camera.constraints = {
             "video":  {
-              "aspectRatio": 1,
+              "aspectRatio": { "ideal": 1 },
               "facingMode": { "ideal":'environment' },
               "deviceId": { "exact": this.camera.deviceId }
             }
           }
-        } else {
-          this.camera.deviceId = "default"
-          this.camera.constraints = {
-            "video":  {
-              "facingMode": { "ideal":'environment' }, // back camera on smartphone
-              "aspectRatio": 1,
-            }
-          }
-          retry = false;
-        }
-        const video = document.querySelector("video");
-        const stream = await navigator.mediaDevices.getUserMedia(this.camera.constraints);
-        video.srcObject = stream;
-        // Wait for device to load
-        video.addEventListener('loadedmetadata', (event) => {
-          this.camera.track = stream.getVideoTracks()[0];
-          this.camera.capabilities = stream.getVideoTracks()[0].getCapabilities();
-          // Apply focusMode constraint if possible
-          if(this.camera.capabilities.focusMode) {
-            let continuousFocusAvailable = false;
-            this.camera.capabilities.focusMode.forEach((focusMode) => {
-              if (focusMode == "continuous") {
-                continuousFocusAvailable = true;
-              }
-            })
-            if(continuousFocusAvailable) {
-              console.log("applying focus mode")
-              stream.getVideoTracks()[0].applyConstraints({
-                "focusMode": "continuous"
+          const video = document.querySelector("video");
+          const stream = await navigator.mediaDevices.getUserMedia(this.camera.constraints);
+          video.srcObject = stream;
+          // Wait for device to load
+          video.addEventListener('loadedmetadata', (event) => {
+            this.camera.track = stream.getVideoTracks()[0];
+            this.camera.capabilities = stream.getVideoTracks()[0].getCapabilities();
+            // Apply focusMode constraint if possible
+            if(this.camera.capabilities.focusMode) {
+              let continuousFocusAvailable = false;
+              this.camera.capabilities.focusMode.forEach((focusMode) => {
+                if (focusMode === "continuous") {
+                  continuousFocusAvailable = true;
+                }
               })
+              if(continuousFocusAvailable) {
+                console.log("applying focus mode")
+                stream.getVideoTracks()[0].applyConstraints({
+                  "focusMode": "continuous"
+                })
+              }
             }
-          }
-          this.camera.settings = stream.getVideoTracks()[0].getSettings();
-        });
+            this.camera.settings = stream.getVideoTracks()[0].getSettings();
+          });
+        }
       } catch(err) {
         console.error(err)
         this.camera.error = err
@@ -218,9 +215,24 @@ new Vue({
           this.camera.track.stop();
         }
         if(retry) {
-          await this.selectCameraDevice(deviceIndex - 1, retry)
+          this.camera.deviceIndex = this.camera.deviceIndex - 1
+          await this.selectCameraDevice(this.camera.deviceIndex, true)
         }
       }
+    },
+    switchCameraDevice: async function(retry ) {
+      this.camera.enableSwitchCameraButton = false
+      if(this.camera.track) {
+        this.camera.track.stop();
+      }
+      console.log("Switching camera device")
+      if(this.camera.deviceIndex > 0) {
+        this.camera.deviceIndex = this.camera.deviceIndex - 1
+      } else  {
+        this.camera.deviceIndex = this.camera.candidateDevices.length - 1
+      }
+      await this.selectCameraDevice(this.camera.deviceIndex , false)
+      this.camera.enableSwitchCameraButton = true
     },
     closeCamera: function() {
       this.camera.show = false;
@@ -228,8 +240,6 @@ new Vue({
       if(this.camera.track) {
         this.camera.track.stop();
       }
-      // this.game.gameCreatorPaymentToMarket = false;
-      this.freeMarketCamera = false;
     },
     onError: function(err) {
       console.error(err)
@@ -1559,31 +1569,25 @@ new Vue({
     showCamera: function () {
       this.camera.show = true
     },
-    showFreeMarketCamera: function () {
-      this.freeMarketCamera = true
-      this.camera.show = true
-    },
     hasCamera: function () {
       navigator.permissions.query({name: 'camera'}).then(res => {
         return res.state == 'granted'
       })
     },
     pasteData: async function () {
-      let onBehalfOfFreeMarket = !!this.freeMarketCamera; // Must assign before closing camera
       this.closeCamera()
       let data = await navigator.clipboard.readText()
-      this.parseQRData(data, onBehalfOfFreeMarket)
+      this.parseQRData(data)
     },
     decodeQR: function (res) {
-      let onBehalfOfFreeMarket = !!this.freeMarketCamera; // Must assign before closing camera
       this.closeCamera()
       this.camera.data = res
       console.log(this.camera.data)
       if(this.camera.data) {
-        this.parseQRData(this.camera.data, onBehalfOfFreeMarket)
+        this.parseQRData(this.camera.data)
       }
     },
-    parseQRData: async function (QRData, onBehalfOfFreeMarket = false) {
+    parseQRData: async function (QRData) {
       // Regular lightning invoice case
       if(QRData.slice(0, 2) == "ln") {
         const invoice = decodeInvoice(QRData);
@@ -1591,11 +1595,7 @@ new Vue({
         console.log(invoice.sat)
         this.game.invoiceAmount = invoice.sat.toString()
         this.game.invoice = QRData
-        if(onBehalfOfFreeMarket) {
-          this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
-        } else  {
-          this.game.showPayInvoiceDialog = true
-        }
+        this.game.showPayInvoiceDialog = true
       } else  {
 
         console.log(QRData)
@@ -1616,17 +1616,10 @@ new Vue({
                 }
               })
             }
-            if(onBehalfOfFreeMarket) {
-              this.game.showPayInvoiceOnBehalfOfFreeMarketDialog = true
-            } else  {
-              this.game.showPayInvoiceDialog = true
-            }
+            this.game.showPayInvoiceDialog = true
             break
 
           case "P": // Property card
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             if(QRData.slice(1,7) == "00ff00") { // Fix for wrench attacks (TO DO: use dedicated QR codes W1 and W2)
               if(this.game.playerTurn === this.game.player.index) {
                 this.showWrenchAttackDialog(QRData.slice(7,8))
@@ -1640,9 +1633,6 @@ new Vue({
             break
 
           case "L": // Lightning card
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             if(this.game.playerTurn === this.game.player.index) {
               this.showLightningCard()
             } else {
@@ -1651,9 +1641,6 @@ new Vue({
             break
 
           case "B": // Protocol card
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             if(this.game.playerTurn === this.game.player.index) {
               this.showProtocolCard()
             } else {
@@ -1661,9 +1648,6 @@ new Vue({
             }
             break
           case "S": // Property sale
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             this.closePropertyDialog()
             // const saleInvoice = decodeInvoice(data.invoice);
             this.game.showPropertyPurchaseDialog = true
@@ -1672,9 +1656,6 @@ new Vue({
             break
 
           case "N": // Network fee
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             this.closePropertyDialog()
             this.game.networkFeeInvoice.property = properties[QRData.slice(1,7)][QRData.slice(7,8)]
             this.game.networkFeeInvoice.invoiceAmount = QRData.slice(8)
@@ -1682,9 +1663,6 @@ new Vue({
             break
 
           case "F": // Free Bitcoin
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             if(this.game.playerTurn === this.game.player.index) {
               this.showFreeBitcoinClaimDialog()
             } else {
@@ -1693,9 +1671,6 @@ new Vue({
             break
 
           case "T": // Start
-            if(onBehalfOfFreeMarket) {
-              throw("Invalid data type for free market")
-            }
             if(this.game.playerTurn === this.game.player.index) {
               this.showStartClaimDialog()
             } else {
