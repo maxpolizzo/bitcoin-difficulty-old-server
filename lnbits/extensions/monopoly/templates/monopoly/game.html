@@ -7,6 +7,9 @@
   {% if game_id %}
   window.game_id = {{ game_id | tojson | safe  }}
   {% endif %}
+  {% if open_camera %}
+  window.open_camera = {{ open_camera | tojson | safe  }}
+  {% endif %}
 </script>
 <script type="module" src="/monopoly/static/js/index.js"></script>
 <!-- CDNJS :: Sortable (https://cdnjs.com/) -->
@@ -309,13 +312,20 @@
     </div>
   </div>
   <!-- QR code reader popup -->
-  <q-dialog v-model="camera.show">
+  <q-dialog v-model="camera.show"  @hide="closeCamera">
 
     <q-card class="q-pa-lg q-pt-xl">
       <div class="row">
         <q-btn
+          class="col-2"
+          icon="refresh"
+          size="1em"
+          @click="reloadCamera"
+          style="margin-top: -2em; margin-bottom: 1.5em; z-index: 999;"
+        ></q-btn>
+        <q-btn
           v-if="camera.enableSwitchCameraButton"
-          class="offset-10 col-2"
+          class="offset-8 col-2"
           icon="flip_camera_ios"
           size="1em"
           @click="switchCameraDevice"
@@ -324,7 +334,7 @@
         <q-btn
           v-else
           disabled
-          class="offset-10 col-2"
+          class="offset-8 col-2"
           icon="flip_camera_ios"
           size="1em"
           @click="switchCameraDevice"
@@ -339,11 +349,22 @@
           @decode="decodeQR"
           :camera="camera.camera"
         >
+          <div class="row" style="margin-top: 6em;">
+            <div class="offset-1 col-1">
+              <i class="material-icons" style="margin-top: 0.15em;">camera_alt_outlined</i>
+            </div>
+            <div class="col-1">
+              <span style="font-size: 1.5em;">{% raw %}{{camera.deviceIndex}}{% endraw %}</span>
+            </div>
+          </div>
         </qrcode-stream>
       </div>
       <div class="row q-mt-lg">
         <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>
         <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Close</q-btn>
+      </div>
+      <div v-if="camera.error" style="margin-top: 1em;">
+        {% raw %}{{camera.error}}{% endraw %}
       </div>
     </q-card>
   </q-dialog>
