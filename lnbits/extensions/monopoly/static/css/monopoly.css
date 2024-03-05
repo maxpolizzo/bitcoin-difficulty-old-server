@@ -12,3 +12,6 @@
          transition: all 0.50s;
     }
 }
+.q-loading-bar {
+    visibility: hidden;
+}
