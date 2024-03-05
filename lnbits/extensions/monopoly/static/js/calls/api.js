@@ -163,7 +163,7 @@ export async function fetchFreeMarketInvoicePaid(game, invoiceReason = null) {
   if(res.data) {
     if (res.data.paid) {
       console.log("Free market invoice paid!")
-      playMarketPaymentReceivedSound()
+      // playMarketPaymentReceivedSound()
       // Clear payment checker interval
       clearInterval(game.freeMarketInvoice.paymentChecker)
       // Erase previous player invoice

@@ -1400,11 +1400,6 @@ new Vue({
       this.game.showAlreadyClaimedStartBonusPopUp = false
     },
     showUpgradeMinersPayment: function(property) {
-      /*
-      if(this.game.created) {
-        this.game.gameCreatorPaymentToMarket = true
-      }
-      */
       this.game.showPropertyUpgradeDialog = true
       this.game.propertyUpgrade.property = property
 
@@ -1413,18 +1408,10 @@ new Vue({
         : property.tenKwPrice
 
       this.game.showPropertyDialog = false;
-
-      // this.showCamera()
-    },
+      },
     showPropertyPurchasePayment: function(property) {
-      /*
-      if(this.game.created && !property.owner) {
-        this.game.gameCreatorPaymentToMarket = true
-      }
-      */
       this.game.showPropertyPurchaseDialog = true
       this.game.propertyPurchase.property = property
-      // this.showCamera()
     },
     payFine: async function(card) {
       if(card.fineType && card.fineType === "custom") {
