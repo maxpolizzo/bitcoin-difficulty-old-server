@@ -912,7 +912,7 @@
           </div>
 -->
           <div
-            v-else
+            v-if="!game.propertyToShow.owner"
             class="row"
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
