@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.params import Depends, Query
+from fastapi.params import Depends, Query, Optional
 from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
 
@@ -24,9 +24,10 @@ async def index(
     request: Request,
     user: User = Depends(check_user_exists),  # type: ignore
     game_id: str = Query(...),
+    open_camera: Optional[str] = None
 ):
     return monopoly_renderer().TemplateResponse(
-        "monopoly/game.html", {"request": request, "user": user.dict(), "game_id": game_id}
+        "monopoly/game.html", {"request": request, "user": user.dict(), "game_id": game_id, "open_camera": open_camera}
     )
 
 @monopoly_ext.get("/invite", response_class=HTMLResponse)

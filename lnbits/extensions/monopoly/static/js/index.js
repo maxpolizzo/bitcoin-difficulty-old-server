@@ -5,6 +5,7 @@ import {
 } from './data/cards.js'
 import {
   newGame,
+  cameraData,
   playerNames
 } from './data/data.js'
 import { reactiveStyles } from '../css/styles.js'
@@ -66,6 +67,13 @@ if(window.user.id && window.game_id && savedGameRecords.gameRecords[window.user.
   game = initGameData(game);
 }
 
+// Open camera if specified
+let camera = cameraData;
+camera.deviceId = game.cameraDeviceId;
+if(window.open_camera === "true") {
+  camera.show = true
+}
+
 // If not already created, create a static LNURL pay link to be used for sending sats to player
 if(game.imported && !game.playerPayLinkCreated) {
   const playerPayLinkCreated = await createPlayerPayLNURL(game);
@@ -98,25 +106,7 @@ new Vue({
       gameRecords: savedGameRecords.gameRecords,
       gameRecordsData: savedGameRecords.gameRecordsData,
       game: game,
-      camera: {
-        data: null,
-        show: false,
-        track: null,
-        camera: 'auto',
-        capabilities: {},
-        candidateDevices: [],
-        constraints: {},
-        tracksLength: 0,
-        settings: {},
-        deviceId: "",
-        error: "OK",
-        focus: {
-          enabled: true,
-          min: null,
-          max: null,
-        },
-        enableSwitchCameraButton: true
-      },
+      camera: camera,
       qrCodeDialog: {
         data: null,
         show: false
@@ -154,94 +144,122 @@ new Vue({
     onInitCamera: async function() {
       // Select video device (see: https://oberhofer.co/mediastreamtrack-and-its-capabilities/)
       const devices = await navigator.mediaDevices.enumerateDevices();
+      this.camera.candidateDevices = [];
       devices.forEach((device) => {
         if(device.kind === "videoinput") {
           this.camera.candidateDevices.push(device)
         }
       })
-      console.log(this.camera.candidateDevices)
-      if(this.camera.candidateDevices.length) {
-        this.camera.deviceIndex = this.camera.candidateDevices.length - 1
-        await this.selectCameraDevice(this.camera.deviceIndex, true);
-      } else{
-        this.camera.error = "Error: no camera found on device"
-        console.error(this.camera.error)
+      if(this.camera.deviceId) {
+        // If deviceId is already known, select same device
+        await this.selectCameraDevice(this.camera.deviceId, null, true);
+      } else {
+        // Else, look through candidate devices
+        if(this.camera.candidateDevices.length) {
+          this.camera.deviceIndex = this.camera.candidateDevices.length - 1
+          await this.selectCameraDevice(null, this.camera.deviceIndex, true);
+        } else{
+          this.camera.error = "Error: no camera found on device"
+          console.error(this.camera.error)
+        }
       }
+
     },
-    selectCameraDevice: async function(deviceIndex, retry = true) {
-      console.log("Camera device index:" + deviceIndex)
+    selectCameraDevice: async function(deviceId, deviceIndex, retry = true) {
       this.camera.error = null;
       // Select last video device (usually camera with focus)
       try {
-        if(deviceIndex >= 0) { // && deviceIndex < this.camera.candidateDevices.length) {
-          this.camera.deviceId = this.camera.candidateDevices[deviceIndex].deviceId
-          this.camera.constraints = {
-            "video":  {
-              "aspectRatio": { "ideal": 1 },
-              "facingMode": { "ideal":'environment' },
-              "deviceId": { "exact": this.camera.deviceId }
+        if(deviceId) {
+          this.camera.deviceId = deviceId;
+          for(let i = 0; i < this.camera.candidateDevices.length; i++) {
+            if(this.camera.candidateDevices[i].deviceId === deviceId) {
+              this.camera.deviceIndex = i;
             }
           }
-          const video = document.querySelector("video");
-          const stream = await navigator.mediaDevices.getUserMedia(this.camera.constraints);
-          video.srcObject = stream;
-          // Wait for device to load
-          video.addEventListener('loadedmetadata', (event) => {
-            this.camera.track = stream.getVideoTracks()[0];
-            this.camera.capabilities = stream.getVideoTracks()[0].getCapabilities();
-            // Apply focusMode constraint if possible
-            if(this.camera.capabilities.focusMode) {
-              let continuousFocusAvailable = false;
-              this.camera.capabilities.focusMode.forEach((focusMode) => {
-                if (focusMode === "continuous") {
-                  continuousFocusAvailable = true;
-                }
-              })
-              if(continuousFocusAvailable) {
-                console.log("applying focus mode")
-                stream.getVideoTracks()[0].applyConstraints({
-                  "focusMode": "continuous"
-                })
-              }
-            }
-            this.camera.settings = stream.getVideoTracks()[0].getSettings();
-          });
+        } else if(deviceIndex >= 0) {
+          this.camera.deviceIndex = deviceIndex;
+          this.camera.deviceId = this.camera.candidateDevices[this.camera.deviceIndex].deviceId
+        } else  {
+          this.camera.error = "Error: tried all candidate camera devices"
+          console.error(this.camera.error)
         }
+        // Try selected device
+        this.camera.constraints = {
+          "video":  {
+            "aspectRatio": 1,
+            "facingMode": { "ideal":'environment' },
+            "deviceId": { "exact": this.camera.deviceId }
+          }
+        }
+        const video = document.querySelector("video");
+        this.camera.stream = await navigator.mediaDevices.getUserMedia(this.camera.constraints);
+        video.srcObject = this.camera.stream;
+        // Wait for device to load
+        video.addEventListener('loadedmetadata', (event) => {
+          this.camera.capabilities = this.camera.stream.getVideoTracks()[0].getCapabilities();
+          // Apply focusMode constraint if possible
+          if(this.camera.capabilities.focusMode) {
+            let continuousFocusAvailable = false;
+            this.camera.capabilities.focusMode.forEach((focusMode) => {
+              if (focusMode === "continuous") {
+                continuousFocusAvailable = true;
+              }
+            })
+            if(continuousFocusAvailable) {
+              console.log("applying focus mode")
+              this.camera.stream.getVideoTracks()[0].applyConstraints({
+                "focusMode": "continuous"
+              })
+            }
+          }
+        });
+        // If no error occured, save deviceId in local storage
+        this.game.cameraDeviceId = this.camera.deviceId;
+        saveGameData(this.game, 'cameraDeviceId', game.cameraDeviceId)
       } catch(err) {
         console.error(err)
         this.camera.error = err
-        // Stop camera
-        if(this.camera.track) {
-          this.camera.track.stop();
-        }
         if(retry) {
-          this.camera.deviceIndex = this.camera.deviceIndex - 1
-          await this.selectCameraDevice(this.camera.deviceIndex, true)
+          await this.selectCameraDevice(null,this.camera.deviceIndex - 1, true)
         }
       }
     },
     switchCameraDevice: async function(retry ) {
       this.camera.enableSwitchCameraButton = false
-      if(this.camera.track) {
-        this.camera.track.stop();
-      }
       console.log("Switching camera device")
       if(this.camera.deviceIndex > 0) {
-        this.camera.deviceIndex = this.camera.deviceIndex - 1
+        await this.selectCameraDevice(null,this.camera.deviceIndex - 1 , false)
       } else  {
-        this.camera.deviceIndex = this.camera.candidateDevices.length - 1
+        await this.selectCameraDevice(null,this.camera.candidateDevices.length - 1 , false)
       }
-      await this.selectCameraDevice(this.camera.deviceIndex , false)
       this.camera.enableSwitchCameraButton = true
+    },
+    reloadCamera: async function(retry ) {
+      console.log("Reloading camera")
+      this.closeCamera()
+      this.loadExistingGame(this.game.marketData.id, true)
     },
     closeCamera: function() {
       this.camera.show = false;
       // Stop camera
-      if(this.camera.track) {
-        this.camera.track.stop();
+      if(this.camera.stream) {
+        let tracks = this.camera.stream.getTracks()
+        if(tracks && tracks.length) {
+          tracks.forEach((track) => {
+            track.enabled = false;
+            track.stop();
+          })
+        }
+      }
+      // Reset camera data
+      this.camera = cameraData;
+      if(window.open_camera === "true") {
+        window.open_camera = null
+        window.history.pushState({}, document.title, "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id);
       }
     },
     onError: function(err) {
+      this.closeCamera()
       console.error(err)
     },
     // Method for draggable cards
@@ -259,12 +277,16 @@ new Vue({
     onUpdatePropertiesCarouselSlide: function(newSlide, oldSlide) {
       this.game.propertiesCarouselSlide = onUpdatePropertiesCarouselSlide(this.game, newSlide, oldSlide)
     },
-    loadExistingGame: async function (gameId) {
+    loadExistingGame: async function (gameId, openCamera = false) {
       console.log("Loading saved game: " + gameId);
       const game = loadGameData(this.gameRecords[window.user.id][gameId]);
-      this.game = initGameData(game);
+      // this.game = initGameData(game);
+      let href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
+      if(openCamera) {
+        href += "&open_camera=true"
+      }
       // Redirect to game.html
-      window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + this.game.player.id + "&game_id=" + this.game.marketData.id;
+      window.location.href = href
     },
     // Logic to create a new game and a dedicated wallet for game creator (called from index.html)
     createGame: async function () {
@@ -1568,6 +1590,10 @@ new Vue({
     },
     showCamera: function () {
       this.camera.show = true
+      if(window.open_camera !== "true") {
+        window.open_camera = "true"
+        window.history.pushState({}, document.title, "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id + "&open_camera=true");
+      }
     },
     hasCamera: function () {
       navigator.permissions.query({name: 'camera'}).then(res => {
