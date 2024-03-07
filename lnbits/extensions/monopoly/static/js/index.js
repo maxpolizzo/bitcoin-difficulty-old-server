@@ -39,7 +39,13 @@ import {
   onUpdatePropertiesCarouselSlide
 } from './helpers/animations.js'
 import {
-  playPlayerJoinedSound
+  playBlackSwanCardSound,
+  playBoughtMinerSound,
+  playBoughtPropertySound,
+  playDevelopmentCardSound,
+  playPlayerSentPaymentToFreeMarketSound,
+  playStartGameSound,
+  playTaxationIsTheftSound
 } from './helpers/audio.js'
 import {
   checkPlayerBalance,
@@ -88,7 +94,6 @@ if(game.imported && !game.playerPayLinkCreated) {
 if(game.imported && !game.joined) {
   game.joined = true
   saveGameData(game, 'joined', game.joined)
-  playPlayerJoinedSound();
 }
 
 if(game.fundingStatus == 'success' && !game.started && !game.showInviteButton) {
@@ -585,7 +590,7 @@ new Vue({
       this.game.freeMarketInvoice.paymentHash = null
       this.game.freeMarketInvoice.invoiceAmount = null
       if(this.game.freeMarketInvoice.amount && this.game.freeMarketInvoice.amount > 0) {
-        // Generate new player invoice
+        // Generate new free market invoice
         this.game.freeMarketInvoice.invoiceAmount = this.game.freeMarketInvoice.amount
         if (LNBITS_DENOMINATION !== 'sats') {
           this.game.freeMarketInvoice.invoiceAmount = this.game.freeMarketInvoice.amount * 100
@@ -670,6 +675,7 @@ new Vue({
           }
         )
       if(res.data) {
+        playStartGameSound()
         // Save game status in local storage
         saveGameData(this.game, 'started', this.game.started)
         console.log("GAME STARTED")
@@ -1062,6 +1068,8 @@ new Vue({
                 console.log("Property purchase was paid successfully")
                 console.log("Updating property ownership")
                 await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
+                // Play audio
+                playBoughtPropertySound()
                 this.closePropertyPurchaseDialog()
                 this.game.purchasingProperty = false;
               } else {
@@ -1090,6 +1098,8 @@ new Vue({
               console.log("Property purchase was paid successfully")
               console.log("Registering property")
               await this.registerProperty(this.game.propertyPurchase.property, this.game.player.wallets[0].id)
+              // Play audio
+              playBoughtPropertySound()
               this.closePropertyPurchaseDialog()
               this.game.purchasingProperty = false
             } else {
@@ -1185,6 +1195,8 @@ new Vue({
         )
       if(res.data) {
         console.log("Property's mining capacity upgraded successfully")
+        // Play audio
+        playBoughtMinerSound()
         console.log(res.data)
       }
     },
@@ -1362,6 +1374,7 @@ new Vue({
       )
       if(res.data && res.data.payment_hash) {
         console.log("Wrench attack paid successfully")
+        playPlayerSentPaymentToFreeMarketSound()
         // Update cumulated fines in database
         console.log("Updating cumulated fines")
         res = await LNbits.api
@@ -1435,6 +1448,7 @@ new Vue({
         )
       if(res.data && res.data.payment_hash) {
         console.log("Fine paid successfully")
+        playPlayerSentPaymentToFreeMarketSound()
         // Update cumulated fines in database
         console.log("Updating cumulated fines")
         res = await LNbits.api
@@ -1633,8 +1647,9 @@ new Vue({
             break
 
           case "P": // Property card
-            if(QRData.slice(1,7) == "00ff00") { // Fix for wrench attacks (TO DO: use dedicated QR codes W1 and W2)
+            if(QRData.slice(1,7) == "00ff00") { // Fix for Taxation is theft (formerly wrench attacks) (TO DO: use dedicated QR codes T1 and T2)
               if(this.game.playerTurn === this.game.player.index) {
+                playTaxationIsTheftSound()
                 this.showWrenchAttackDialog(QRData.slice(7,8))
               } else {
                 this.showNotYourTurnPopUp()
@@ -1645,16 +1660,18 @@ new Vue({
             }
             break
 
-          case "L": // Lightning card
+          case "L": // Development card (formerly Lightning card)
             if(this.game.playerTurn === this.game.player.index) {
+              playDevelopmentCardSound()
               this.showLightningCard()
             } else {
               this.showNotYourTurnPopUp()
             }
             break
 
-          case "B": // Protocol card
+          case "B": // Black swan card (formerly Protocol card)
             if(this.game.playerTurn === this.game.player.index) {
+              playBlackSwanCardSound()
               this.showProtocolCard()
             } else {
               this.showNotYourTurnPopUp()

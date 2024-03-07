@@ -24,7 +24,7 @@ export async function fetchPaymentsToFreeMarket(game) {
           if(payment.isIn) {
             console.log("Free market wallet received a payment")
             // Play sound
-            playMarketPaymentReceivedSound()
+            // playMarketPaymentReceivedSound()
           } else  {
             console.log("Free market wallet sent a payment")
           }
@@ -41,7 +41,7 @@ export async function fetchPaymentsToFreeMarket(game) {
           if(payment.isIn) {
             console.log("Free market wallet received a payment")
             // Play sound
-            playMarketPaymentReceivedSound()
+            // playMarketPaymentReceivedSound()
           } else  {
             console.log("Free market wallet sent a payment")
           }
@@ -56,7 +56,7 @@ export async function fetchPaymentsToFreeMarket(game) {
 }
 
 export async function fetchPaymentsToPlayer(game) {
-  if(game.imported || (game.created && game.showInviteButton) || game.started) {
+  // if(game.imported || (game.created && game.showInviteButton) || game.started) {
     const res = await LNbits.api.getPayments(game.player.wallets[0]);
     if(res.data) {
       const payments = res.data
@@ -102,7 +102,7 @@ export async function fetchPaymentsToPlayer(game) {
     } else {
       LNbits.utils.notifyApiError(res.error)
     }
-  }
+  // }
 }
 
 export async function fetchFundingInvoicePaid(game, invoiceReason = null) {
@@ -110,6 +110,7 @@ export async function fetchFundingInvoicePaid(game, invoiceReason = null) {
   if(res.data) {
     if (res.data.paid) {
       console.log("Funding invoice paid!")
+      playMarketPaymentReceivedSound()
       // Clear payment checker interval
       clearInterval(game.fundingInvoice.paymentChecker)
       // Erase previous funding invoice
