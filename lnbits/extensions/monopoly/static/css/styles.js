@@ -124,6 +124,10 @@ export function reactiveStyles(game) {
         marginTop: `2em`,
         marginLeft: `0em`
       },
+      cardsSpinner: {
+        marginTop: `2.5em`,
+        marginLeft: `2em`
+      },
       protocolCardImage: {
         height: `auto`,
         maxWidth: `65%`,
@@ -205,6 +209,26 @@ export function reactiveStyles(game) {
         marginLeft: `5em`,
         marginTop: `3em`
       },
+      payInvoiceSpinner: {
+        marginTop: `2.5em`,
+        marginLeft: `2em`
+      },
+      payPropertyInvoiceSpinner: {
+        marginTop: `2.5em`,
+        marginLeft: `2em`
+      },
+      upgradePropertyInvoiceSpinner: {
+        marginTop: `2.5em`,
+        marginLeft: `2em`
+      },
+      payNetworkFeeInvoiceSpinner: {
+        marginTop: `2.5em`,
+        marginLeft: `2em`
+      },
+      payWrenchAttackSpinner: {
+        marginTop: `2.5em`,
+        marginLeft: `2em`
+      }
     }
   } else {
     return {
@@ -332,6 +356,10 @@ export function reactiveStyles(game) {
       cardsButton: {
         marginLeft: `0em`
       },
+      cardsSpinner: {
+        marginTop: `0.5em`,
+        marginLeft: `1em`
+      },
       protocolCardImage: {
         height: `auto`,
         maxWidth: `85%`,
@@ -419,6 +447,26 @@ export function reactiveStyles(game) {
         marginLeft: `5em`,
         marginTop: `3em`
       },
+      payInvoiceSpinner: {
+        marginTop: `0.5em`,
+        marginLeft: `1em`
+      },
+      payPropertyInvoiceSpinner: {
+        marginTop: `0.5em`,
+        marginLeft: `1em`
+      },
+      upgradePropertyInvoiceSpinner: {
+        marginTop: `0.5em`,
+        marginLeft: `1em`
+      },
+      payNetworkFeeInvoiceSpinner: {
+        marginTop: `0.5em`,
+        marginLeft: `1em`
+      },
+      payWrenchAttackSpinner: {
+        marginTop: `0.5em`,
+        marginLeft: `1em`
+      }
     }
   }
 }

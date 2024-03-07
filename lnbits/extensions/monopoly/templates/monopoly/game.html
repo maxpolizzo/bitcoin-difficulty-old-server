@@ -653,13 +653,21 @@
             </div>
 
            <div :style="reactiveStyles.cardsButton">
-             <q-btn v-if="game.lightningCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0" @click="payFine(game.lightningCardToShow)" flat color="orange" class="q-ml-auto">
+             <q-btn v-if="(game.lightningCardToShow.fineType == 'pct_balance' || game.customFineMultiplier > 0) && !game.showPayFineSpinner" @click="payFine(game.lightningCardToShow)" flat color="orange" class="q-ml-auto">
                Pay fine
              </q-btn>
              <q-btn v-else disabled flat class="q-ml-auto">
                Pay fine
              </q-btn>
            </div>
+          <!-- Spinner -->
+          <div :style="reactiveStyles.cardsSpinner">
+            <q-spinner
+              v-if="game.showPayFineSpinner"
+              color="orange"
+              size="1em"
+            />
+          </div>
          </div>
       </div>
       <div class="row q-mt-lg">
@@ -709,14 +717,23 @@
             </div>
 
             <div
-              v-if="game.protocolCardToShow.fineType == 'pct_balance'"
               :style="reactiveStyles.cardsButton">
-              <q-btn @click="payFine(game.protocolCardToShow)" flat color="orange" class="q-ml-auto">
+              <q-btn v-if="!game.showPayFineSpinner && (game.protocolCardToShow.fineType == 'pct_balance')" @click="payFine(game.protocolCardToShow)" flat color="orange" class="q-ml-auto">
+                Pay fine
+              </q-btn>
+              <q-btn v-else disabled flat class="q-ml-auto">
                 Pay fine
               </q-btn>
             </div>
+            <!-- Spinner -->
+            <div :style="reactiveStyles.cardsSpinner">
+              <q-spinner
+                v-if="game.showPayFineSpinner"
+                color="orange"
+                size="1em"
+              />
+            </div>
           </div>
-
 
           <div
             class="col-5 col-md-5"
@@ -1204,9 +1221,20 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="payInvoice()" flat color="orange" class="q-ml-auto">
+                <q-btn v-if="!game.showPayInvoiceSpinner" @click="payInvoice()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
+                <q-btn v-else  disabled flat class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+              <!-- Spinner -->
+              <div :style="reactiveStyles.payInvoiceSpinner">
+                <q-spinner
+                  v-if="game.showPayInvoiceSpinner"
+                  color="orange"
+                  size="1em"
+                />
               </div>
             </div>
 
@@ -1217,44 +1245,6 @@
 
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceDialog()">Close</q-btn>
-      </div>
-    </q-card>
-  </q-dialog>
-
-  <q-dialog v-model="game.showPayInvoiceOnBehalfOfFreeMarketDialog" @hide="game.showPayInvoiceOnBehalfOfFreeMarketDialog = false">
-
-    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
-
-      <div v-if="game.invoice">
-        <q-card class="q-card--dark row" style="padding: 1em;">
-
-          <div class="col-12 col-md-12">
-            <div v-if="game.invoiceRecipientName" :style="reactiveStyles.payInvoiceLabel">
-              Pay {% raw %}{{game.invoiceAmount}}{% endraw %} sats to {% raw %}{{game.invoiceRecipientName}}{% endraw %} on behalf of the free market?
-            </div>
-
-            <div v-else :style="reactiveStyles.payInvoiceLabel">
-              Pay this {% raw %}{{game.invoiceAmount}}{% endraw %} sats invoice on behalf of the free market?
-            </div>
-
-            <div
-              class="row"
-              :style="reactiveStyles.propertyButtons.cardButtonsGroup"
-            >
-              <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="payInvoiceOnBehalfOfFreeMarket()" flat color="orange" class="q-ml-auto">
-                  Pay invoice
-                </q-btn>
-              </div>
-            </div>
-
-          </div>
-
-        </q-card>
-      </div>
-
-      <div class="row q-mt-lg">
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closePayInvoiceOnBehalfOfFreeMarketDialog()">Close</q-btn>
       </div>
     </q-card>
   </q-dialog>
@@ -1282,9 +1272,20 @@
             :style="reactiveStyles.propertyButtons.cardButtonsGroup"
           >
             <div :style="reactiveStyles.propertyButtons.invoiceButton">
-              <q-btn @click="payWrenchAttack()" flat color="orange" class="q-ml-auto">
+              <q-btn v-if="!game.showPayFineSpinner" @click="payWrenchAttack()" flat color="orange" class="q-ml-auto">
                 Pay
               </q-btn>
+              <q-btn v-else  disabled flat class="q-ml-auto">
+                Pay
+              </q-btn>
+            </div>
+            <!-- Spinner -->
+            <div :style="reactiveStyles.payWrenchAttackSpinner">
+              <q-spinner
+                v-if="game.showPayFineSpinner"
+                color="orange"
+                size="1em"
+              />
             </div>
           </div>
 
@@ -1404,10 +1405,22 @@
                 :style="reactiveStyles.propertyButtons.cardButtonsGroup"
               >
                 <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                  <q-btn @click="purchaseProperty()" flat color="orange" class="q-ml-auto">
+                  <q-btn v-if="!game.showPayInvoiceSpinner" @click="purchaseProperty()" flat color="orange" class="q-ml-auto">
+                    Pay invoice
+                  </q-btn>
+                  <q-btn v-else  disabled flat class="q-ml-auto">
                     Pay invoice
                   </q-btn>
                 </div>
+                <!-- Spinner -->
+                <div :style="reactiveStyles.payPropertyInvoiceSpinner">
+                  <q-spinner
+                    v-if="game.showPayInvoiceSpinner"
+                    color="orange"
+                    size="1em"
+                  />
+                </div>
+
               </div>
 
             </div>
@@ -1449,9 +1462,20 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="upgradeProperty()" flat color="orange" class="q-ml-auto">
+                <q-btn v-if="!game.showPayInvoiceSpinner" @click="upgradeProperty()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
+                <q-btn v-else  disabled flat class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+              <!-- Spinner -->
+              <div :style="reactiveStyles.upgradePropertyInvoiceSpinner">
+                <q-spinner
+                  v-if="game.showPayInvoiceSpinner"
+                  color="orange"
+                  size="1em"
+                />
               </div>
             </div>
 
@@ -1494,9 +1518,20 @@
               :style="reactiveStyles.propertyButtons.cardButtonsGroup"
             >
               <div :style="reactiveStyles.propertyButtons.invoiceButton">
-                <q-btn @click="payNetworkFee()" flat color="orange" class="q-ml-auto">
+                <q-btn v-if="!game.showPayInvoiceSpinner" @click="payNetworkFee()" flat color="orange" class="q-ml-auto">
                   Pay invoice
                 </q-btn>
+                <q-btn v-else  disabled flat class="q-ml-auto">
+                  Pay invoice
+                </q-btn>
+              </div>
+              <!-- Spinner -->
+              <div :style="reactiveStyles.payNetworkFeeInvoiceSpinner">
+                <q-spinner
+                  v-if="game.showPayInvoiceSpinner"
+                  color="orange"
+                  size="1em"
+                />
               </div>
             </div>
 
