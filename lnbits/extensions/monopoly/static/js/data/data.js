@@ -29,6 +29,8 @@ export const newGame = {
   showLightningCard: false,
   showProtocolCard: false,
   showWrenchAttackDialog: false,
+  showPayFineSpinner: false,
+  showPayInvoiceSpinner: false,
   lightningCardToShow: "",
   protocolCardToShow: "",
   wrenchAttackAmountSats: null,

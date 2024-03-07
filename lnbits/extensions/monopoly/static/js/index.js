@@ -926,79 +926,41 @@ new Vue({
         // Pay invoice
         console.log(this.game.invoice)
         console.log("Paying invoice...")
+        this.game.showPayInvoiceSpinner = true
         let res = await LNbits.api.payInvoice(this.game.player.wallets[0], this.game.invoice);
         if(res.data && res.data.payment_hash) {
           console.log("Invoice paid successfully")
           this.closePayInvoiceDialog()
+          this.game.showPayInvoiceSpinner = false
         } else {
+          this.game.showPayInvoiceSpinner = false
           LNbits.utils.notifyApiError(res.error)
         }
       } else {
-        // Get invoice recipient's pay link
-        let invoiceRecipientPayLink;
-        if(this.game.invoiceRecipientIndex === "0") {
-          invoiceRecipientPayLink = this.game.lnurlPayLink
-        } else {
-          let res = await LNbits.api
-            .request(
-              'GET',
-              '/monopoly/api/v1/players/pay_link?player_wallet_id=' + this.game.invoiceRecipientWalletId,
-              this.game.player.wallets[0].inkey
-            )
-          if(res.data) {
-            invoiceRecipientPayLink = res.data.player_pay_link
+        try {
+          // Get invoice recipient's pay link
+          let invoiceRecipientPayLink;
+          if(this.game.invoiceRecipientIndex === "0") {
+            invoiceRecipientPayLink = this.game.lnurlPayLink
           } else {
-            LNbits.utils.notifyApiError(res.error)
+            let res = await LNbits.api
+              .request(
+                'GET',
+                '/monopoly/api/v1/players/pay_link?player_wallet_id=' + this.game.invoiceRecipientWalletId,
+                this.game.player.wallets[0].inkey
+              )
+            if(res.data) {
+              invoiceRecipientPayLink = res.data.player_pay_link
+            } else {
+              LNbits.utils.notifyApiError(res.error)
+            }
           }
-        }
-        //Get lnurl pay data
-        let lnurlData = await decodeLNURL(invoiceRecipientPayLink, this.game.player.wallets[0])
-        // Pay invoice to invoice recipient's pay link
-        console.log("Paying to invoice recipient's pay link...")
-        let res = await LNbits.api.payLnurl(
-          this.game.player.wallets[0],
-          lnurlData.callback,
-          lnurlData.description_hash,
-          this.game.invoiceAmount * 1000, // mSats
-          'Bitcoin Monopoly: player invoice',
-          ''
-        )
-        if(res.data && res.data.payment_hash) {
-          console.log("Player invoice was paid successfully")
-          this.closePayInvoiceDialog()
-        } else {
-          LNbits.utils.notifyApiError(res.error)
-        }
-      }
-    },
-    payInvoiceOnBehalfOfFreeMarket: async function() {
-      if(this.game.invoice.slice(0, 2) == "ln") {
-        // Pay invoice
-        console.log(this.game.invoice)
-        console.log("Paying invoice on behalf of the free market...")
-        let res = await LNbits.api.payInvoice(this.game.marketData.wallets[0], this.game.invoice);
-        if(res.data && res.data.payment_hash) {
-          console.log("Invoice paid successfully")
-          this.closePayInvoiceOnBehalfOfFreeMarketDialog()
-        } else {
-          LNbits.utils.notifyApiError(res.error)
-        }
-      } else {
-        // Get invoice recipient's pay link
-        let res = await LNbits.api
-          .request(
-            'GET',
-            '/monopoly/api/v1/players/pay_link?player_wallet_id=' + this.game.invoiceRecipientWalletId,
-            this.game.player.wallets[0].inkey
-          )
-        if(res.data) {
-          let invoiceRecipientPayLink = res.data.player_pay_link
           //Get lnurl pay data
-          let lnurlData = await decodeLNURL(invoiceRecipientPayLink, this.game.marketData.wallets[0])
+          let lnurlData = await decodeLNURL(invoiceRecipientPayLink, this.game.player.wallets[0])
           // Pay invoice to invoice recipient's pay link
-          console.log("Paying to invoice recipient's pay link on behalf of the free market...")
-          res = await LNbits.api.payLnurl(
-            this.game.marketData.wallets[0],
+          console.log("Paying to invoice recipient's pay link...")
+          let res = await LNbits.api.payLnurl(
+            this.game.player.wallets[0],
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.invoiceAmount * 1000, // mSats
@@ -1007,12 +969,15 @@ new Vue({
           )
           if(res.data && res.data.payment_hash) {
             console.log("Player invoice was paid successfully")
-            this.closePayInvoiceOnBehalfOfFreeMarketDialog()
+            this.closePayInvoiceDialog()
+            this.game.showPayInvoiceSpinner = false
           } else {
+            this.game.showPayInvoiceSpinner = false
             LNbits.utils.notifyApiError(res.error)
           }
-        } else {
-          LNbits.utils.notifyApiError(res.error)
+        } catch(err) {
+          this.game.showPayInvoiceSpinner = false
+          LNbits.utils.notifyApiError(err)
         }
       }
     },
@@ -1021,6 +986,7 @@ new Vue({
       if(!this.game.purchasingProperty) {
         try {
           this.game.purchasingProperty = true; // Prevent purchasing multiple times
+          this.game.showPayInvoiceSpinner = true
           // Check if property is already registered in database
           let res = await LNbits.api
             .request(
@@ -1071,12 +1037,15 @@ new Vue({
                 // Play audio
                 playBoughtPropertySound()
                 this.closePropertyPurchaseDialog()
+                this.game.showPayInvoiceSpinner = false
                 this.game.purchasingProperty = false;
               } else {
+                this.game.showPayInvoiceSpinner = false
                 this.game.purchasingProperty = false
                 LNbits.utils.notifyApiError(res.error)
               }
             } else {
+              this.game.showPayInvoiceSpinner = false
               this.game.purchasingProperty = false
               LNbits.utils.notifyApiError(res.error)
             }
@@ -1101,8 +1070,10 @@ new Vue({
               // Play audio
               playBoughtPropertySound()
               this.closePropertyPurchaseDialog()
+              this.game.showPayInvoiceSpinner = false
               this.game.purchasingProperty = false
             } else {
+              this.game.showPayInvoiceSpinner = false
               this.game.purchasingProperty = false
               LNbits.utils.notifyApiError(res.error)
             }
@@ -1111,6 +1082,7 @@ new Vue({
           this.game.propertiesCarouselSlide = this.game.propertyPurchase.property.color
           saveGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
         } catch(err) {
+          this.game.showPayInvoiceSpinner = false
           this.game.purchasingProperty = false
           LNbits.utils.notifyApiError(err)
         }
@@ -1155,29 +1127,38 @@ new Vue({
     },
     upgradeProperty: async function() {
       if(!this.game.upgradingProperty) {
-        this.game.upgradingProperty = true // Prevent upgrading multiple times
-        //Get lnurl pay data
-        let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
-        console.log("Upgrading property...")
-        // Pay property upgrade to free market pay link
-        console.log("Paying property upgrade to free market pay link...")
-        let res = await LNbits.api.payLnurl(
-          this.game.player.wallets[0],
-          lnurlData.callback,
-          lnurlData.description_hash,
-          this.game.propertyUpgrade.price * 1000, // mSats
-          'Bitcoin Monopoly: property upgrade',
-          ''
-        )
-        if(res.data && res.data.payment_hash) {
-          console.log("Property upgrade was paid successfully")
-          this.closePropertyUpgradeDialog()
-          console.log("Updating property's mining capacity")
-          await this.upgradePropertyMiningCapacity(this.game.propertyUpgrade.property)
+        try {
+          this.game.upgradingProperty = true // Prevent upgrading multiple times
+          this.game.showPayInvoiceSpinner = true
+          //Get lnurl pay data
+          let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
+          console.log("Upgrading property...")
+          // Pay property upgrade to free market pay link
+          console.log("Paying property upgrade to free market pay link...")
+          let res = await LNbits.api.payLnurl(
+            this.game.player.wallets[0],
+            lnurlData.callback,
+            lnurlData.description_hash,
+            this.game.propertyUpgrade.price * 1000, // mSats
+            'Bitcoin Monopoly: property upgrade',
+            ''
+          )
+          if(res.data && res.data.payment_hash) {
+            console.log("Property upgrade was paid successfully")
+            this.closePropertyUpgradeDialog()
+            this.game.showPayInvoiceSpinner = false
+            console.log("Updating property's mining capacity")
+            await this.upgradePropertyMiningCapacity(this.game.propertyUpgrade.property)
+            this.game.upgradingProperty = false
+          } else {
+            this.game.showPayInvoiceSpinner = false
+            this.game.upgradingProperty = false
+            LNbits.utils.notifyApiError(res.error)
+          }
+        } catch(err) {
+          this.game.showPayInvoiceSpinner = false
           this.game.upgradingProperty = false
-        } else {
-          this.game.upgradingProperty = false
-          LNbits.utils.notifyApiError(res.error)
+          LNbits.utils.notifyApiError(err)
         }
       }
     },
@@ -1204,6 +1185,7 @@ new Vue({
       if(!this.game.payingNetworkFee) {
         console.log("Paying network fee...")
         this.game.payingNetworkFee = true // Prevent paying multiple times
+        this.game.showPayInvoiceSpinner = true
         // Get property owner Id
         let propertyOwnerId;
         Object.keys(this.game.properties).forEach((ownerId) => {
@@ -1239,14 +1221,17 @@ new Vue({
           if(res.data && res.data.payment_hash) {
             console.log("Network fee was paid successfully")
             this.closeNetworkFeePaymentDialog()
+            this.game.showPayInvoiceSpinner = false
             console.log("Updating property's cumulated mining income")
             await this.updatePropertyMiningIncome(this.game.networkFeeInvoice.property, this.game.networkFeeInvoice.invoiceAmount)
             this.game.payingNetworkFee = false
           } else {
+            this.game.showPayInvoiceSpinner = false
             this.game.payingNetworkFee = false
             LNbits.utils.notifyApiError(res.error)
           }
         } else {
+          this.game.showPayInvoiceSpinner = false
           this.game.payingNetworkFee = false
           LNbits.utils.notifyApiError(res.error)
         }
@@ -1360,6 +1345,7 @@ new Vue({
         this.game.showWrenchAttackDialog = true
     },
     payWrenchAttack: async function() {
+      this.game.showPayFineSpinner = true
       //Get lnurl pay data
       let lnurlData = await decodeLNURL(this.game.lnurlPayLink, this.game.player.wallets[0])
       // Pay wrench attack
@@ -1393,7 +1379,9 @@ new Vue({
           LNbits.utils.notifyApiError(res.error)
         }
         this.closeWrenchAttackDialog()
+        this.game.showPayFineSpinner = false
       } else {
+        this.game.showPayFineSpinner = false
         LNbits.utils.notifyApiError(res.error)
       }
     },
@@ -1427,6 +1415,7 @@ new Vue({
       this.game.propertyPurchase.property = property
     },
     payFine: async function(card) {
+      this.game.showPayFineSpinner = true
       if(card.fineType && card.fineType === "custom") {
         this.game.fineAmountSats = Math.floor(card.fineMultiplier * game.customFineMultiplier)
       } else if(card.fineType && card.fineType === "pct_balance") {
@@ -1467,7 +1456,9 @@ new Vue({
           LNbits.utils.notifyApiError(res.error)
         }
         this.closePayFineDialog()
+        this.game.showPayFineSpinner = false
       } else {
+        this.game.showPayFineSpinner = false
         LNbits.utils.notifyApiError(res.error)
       }
     },
