@@ -1,6 +1,6 @@
 import { properties } from '../data/properties.js'
 import { fetchMarketLiquidity, fetchPlayerBalance } from '../calls/api.js'
-import { fetchGameStarted, fetchPlayers, fetchPlayerTurn } from '../calls/database.js'
+import { fetchPlayers, fetchPlayerTurn } from '../calls/database.js'
 import {
   checkPlayersBalances,
   checkPlayers,

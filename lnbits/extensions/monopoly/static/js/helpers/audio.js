@@ -1,18 +1,20 @@
 import {
-  newPlayerJoinedURI,
-  gameStartsURI,
-  boughtPropertyURI,
-  boughtMinerURI,
-  boughtCitadelURI,
-  colorCompletedURI,
-  playerRektURI,
-  nextPlayerTurnURI,
-  developmentCardURI,
-  blackSwanCardURI,
-  playerPaymentReceivedURI,
-  playerSentPaymentToFreeMarketURI,
-  newBlockMinedURI,
-  taxationIsTheftURI
+  cashRegisterSoundURI, //
+  newPlayerJoinedURI, //
+  gameStartedURI, //
+  boughtPropertyURI, //
+  boughtMinerURI, //
+  boughtCitadelURI, // Not yet implemented
+  colorCompletedURI, // Not yet implemented
+  playerRektURI, // Not yet implemented
+  nextPlayerTurnURI, //
+  developmentCardURI, //
+  blackSwanCardURI, //
+  playerPaymentReceivedURI, //
+  playerSentPaymentToFreeMarketURI, //
+  newBlockMinedURI, // Not yet implemented
+  taxationIsTheftURI, //
+  dragAndDropCardSoundURI // Not implemented
 } from '../data/sounds.js'
 
 export function playCardSound() {
@@ -36,7 +38,6 @@ export function playMarketPaymentReceivedSound() {
   snd.play();
 }
 
-
 export function playNextPlayerTurnSound() {
   const snd = new Audio(nextPlayerTurnURI);
   snd.play();
@@ -48,7 +49,7 @@ export function playPlayerJoinedSound() {
 }
 
 export function playStartGameSound() {
-  const snd = new Audio(gameStartsURI);
+  const snd = new Audio(gameStartedURI);
   snd.play();
 }
 

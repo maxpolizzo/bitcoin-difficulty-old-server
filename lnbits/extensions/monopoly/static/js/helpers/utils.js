@@ -2,6 +2,20 @@
 
 import { saveGameData } from '../helpers/storage.js'
 
+export async function timeout(fn, ms) {
+  return new Promise((resolve, reject) => {
+    try {
+      setTimeout(() => {
+        fn()
+        resolve()
+      }, ms)
+    } catch(err) {
+      LNbits.utils.notifyApiError(err)
+      reject()
+    }
+  });
+}
+
 export async function checkMaxNumberOfPlayersReached(game_id) {
   // Check current number of players vs max number of players
   let res = await LNbits.api

@@ -1,7 +1,8 @@
 import { properties } from '../data/properties.js'
 import { createGameVouchers } from './api.js'
-import { playNextPlayerTurnSound, playStartGameSound } from '../helpers/audio.js'
+import {playNextPlayerTurnSound, playPlayerJoinedSound, playStartGameSound} from '../helpers/audio.js'
 import { saveGameData } from '../helpers/storage.js'
+import { timeout } from '../helpers/utils.js'
 
 export async function onGameFunded (game) {
   game.showFundingDialog = false
@@ -39,7 +40,6 @@ export async function onGameFunded (game) {
 }
 
 export async function fetchGameStarted(game) {
-  let gameWasAlreadyStarted = game.started
   let inkey
   if(game.player.wallets.length) {
     inkey = game.player.wallets[0].inkey // Case where player wallet has already been created
@@ -53,16 +53,20 @@ export async function fetchGameStarted(game) {
       inkey,
     )
   if(res.data) {
-    game.started = res.data[0][1]
-    // Save game status in local storage
-    saveGameData(game, 'started', game.started)
-    if(game.started) {
+    let gameStarted = res.data[0][1]
+    if(gameStarted && !game.started) {
+      game.gameStartedUpdated = false // This is a lock to avoid playing startGame sound multiple times if player
+      // device is idle while game starts
+      game.started = gameStarted
+      // Save game status in local storage
+      saveGameData(game, 'started', game.started)
       // Clear interval
       clearInterval(game.gameStartedChecker)
-      if(!gameWasAlreadyStarted)  {
+      if(game.started && !game.gameStartedUpdated) {
+        console.log("GAME STARTED")
         playStartGameSound()
       }
-      console.log("GAME STARTED")
+      game.gameStartedUpdated = true
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -78,10 +82,13 @@ export async function fetchPlayers(game) {
     )
   if(res.data) {
     let playersCount = 0
-    res.data.forEach((player) => {
+    for (const player of res.data) {
       playersCount += 1;
       if(!game.players[player.player_wallet_id]){
+        game.newPlayerUpdated = false // This is a lock to avoid playing playerJoined sound multiple times if player
+        // device is idle while another player joins
         game.players[player.player_wallet_id] = player
+        saveGameData(game, 'players', game.players)
         game.playersData.rows.push(
           {
             name: player.player_wallet_name,
@@ -89,14 +96,18 @@ export async function fetchPlayers(game) {
             index: player.player_index
           }
         )
+        saveGameData(game, 'playersData', game.playersData)
+        if(player.player_index > game.player.index && !game.newPlayerUpdated) {
+          // Play sound when players join the game after current player
+          await timeout(playPlayerJoinedSound, 500) // Wait 500 ms between different players to have distinct sounds
+        }
+        game.newPlayerUpdated = false
       }
-    })
+    }
     if(playersCount !== game.playersCount) {
       game.playersCount = playersCount
       // Save game data in  local storage
       saveGameData(game, 'playersCount', game.playersCount)
-      saveGameData(game, 'players', game.players)
-      saveGameData(game, 'playersData', game.playersData)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -151,7 +162,8 @@ export async function fetchPlayerTurn(game) {
   if(res.data) {
     let nextPlayerTurn = res.data["player_turn"]
     if(nextPlayerTurn !== game.playerTurn)  {
-      game.playerTurnUpdated = false
+      game.playerTurnUpdated = false // This is a lock to avoid playing nextPlayerTurn sound multiple times if player
+      // device is idle while player turn changes
       game.playerTurn = nextPlayerTurn
       saveGameData(game, 'playerTurn', game.playerTurn)
       if(game.playerTurn === game.player.index && !game.playerTurnUpdated) {
@@ -162,7 +174,6 @@ export async function fetchPlayerTurn(game) {
         saveGameData(game, 'firstProtocolCardThisTurn', game.firstProtocolCardThisTurn)
         saveGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
         playNextPlayerTurnSound();
-
       }
       game.playerTurnUpdated = true
     }
