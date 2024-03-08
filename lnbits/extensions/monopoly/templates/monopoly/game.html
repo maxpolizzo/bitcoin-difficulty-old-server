@@ -346,12 +346,14 @@
           class="rounded-borders overflow-hidden"
           @init="onInitCamera"
           @error="onError"
-          @decode="decodeQR"
+          @track="camera.trackFunction"
+          @detect="decodeQR"
           :camera="camera.camera"
+          :paused="camera.paused"
         >
           <div class="row" style="margin-top: 6em;">
             <div class="offset-1 col-1">
-              <i class="material-icons" style="margin-top: 0.15em;">camera_alt_outlined</i>
+              <i class="material-icons" style="margin-top: 0.15em;">camera_outlined</i>
             </div>
             <div class="col-1">
               <span style="font-size: 1.5em;">{% raw %}{{camera.deviceIndex}}{% endraw %}</span>
@@ -360,8 +362,10 @@
         </qrcode-stream>
       </div>
       <div class="row q-mt-lg">
-        <q-btn outline color="grey" @click="pasteData">Paste invoice</q-btn>
-        <q-btn @click="closeCamera" flat color="grey" class="q-ml-auto">Close</q-btn>
+        <div class="offset-5 col-2">
+          <q-btn  v-if="!camera.scanEnabled" icon="qr_code_scanner" color="orange" size="1.5em" :style="reactiveStyles.scanButton" @click="enableScan"></q-btn>
+          <q-btn  v-else disabled icon="qr_code_scanner" size="2em" :style="reactiveStyles.scanButton"></q-btn>
+        </div>
       </div>
       <div v-if="camera.error" style="margin-top: 1em;">
         {% raw %}{{camera.error}}{% endraw %}
