@@ -31,7 +31,7 @@
         </div>
         <div class="row col-12 col-md-5" :style="reactiveStyles.gameButtonsGroup">
             <span class="col-5 col-md-6" :style="reactiveStyles.nextPlayerTurnButton">
-              <q-btn v-if="game.playerTurn === game.player.index" row color="orange" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
+              <q-btn v-if="game.playerTurn === game.player.index && !game.incrementingPlayerTurn" row color="orange" icon="next_plan" size="1.5em" @click="incrementPlayerTurn"></q-btn>
               <q-btn v-else disabled row icon="next_plan" size="1.5em"></q-btn>
             </span>
           <span class="col-3 col-md-2" :style="reactiveStyles.receiveButton">

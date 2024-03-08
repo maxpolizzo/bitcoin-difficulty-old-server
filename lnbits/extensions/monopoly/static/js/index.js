@@ -682,19 +682,25 @@ new Vue({
       }
     },
     incrementPlayerTurn: async function () {
-      const res = await LNbits.api
-        .request(
-          'PUT',
-          '/monopoly/api/v1/games/increment_player_turn',
-          this.game.player.wallets[0].inkey,
-          {
-            game_id: this.game.marketData.id,
-          }
-        )
-      if(res.data) {
-        console.log("Current player turn: " + res.data)
-      } else {
-        LNbits.utils.notifyApiError(res.error)
+      if(!this.game.incrementingPlayerTurn) {
+        this.game.incrementingPlayerTurn = true
+        const res = await LNbits.api
+          .request(
+            'PUT',
+            '/monopoly/api/v1/games/increment_player_turn',
+            this.game.player.wallets[0].inkey,
+            {
+              game_id: this.game.marketData.id,
+            }
+          )
+        if(res.data) {
+          console.log("Current player turn: " + res.data)
+          this.game.playerTurn = res.data
+          this.game.incrementingPlayerTurn = false
+        } else {
+          LNbits.utils.notifyApiError(res.error)
+          this.game.incrementingPlayerTurn = false
+        }
       }
     },
     deleteInviteVoucher: async function () {
