@@ -217,7 +217,7 @@ export const cameraData = {
   },
   enableSwitchCameraButton: true,
   scanEnabled: false,
-  paused: false
+  closeTimeout: null
 }
 
 export const playerNames = "Satoshi Nakamoto,Nick Szabo,Hal Finney,Adam Back,Craig Wright,Michael Saylor,Jack Dorsey,Elon Musk,Nayib Bukele,Jed McCaleb,Brian Armstrong,Tyler Winklevoss,Cameron Winklevoss,Laszlo Hanyecz,Jeremy Sturdivant,Len Sassaman,Max Keizer,Stacy Herbert"

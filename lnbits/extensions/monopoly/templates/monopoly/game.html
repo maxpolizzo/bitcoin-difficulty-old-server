@@ -341,15 +341,12 @@
           style="margin-top: -2em; margin-bottom: 1.5em; z-index: 999;"
         ></q-btn>
       </div>
-      <div class="text-center">
+      <div class="rounded-borders overflow-hidden">
         <qrcode-stream
-          class="rounded-borders overflow-hidden"
           @init="onInitCamera"
           @error="onError"
           @track="camera.trackFunction"
-          @detect="decodeQR"
-          :camera="camera.camera"
-          :paused="camera.paused"
+          @detect="detectQR"
         >
           <div class="row" style="margin-top: 6em;">
             <div class="offset-1 col-1">
