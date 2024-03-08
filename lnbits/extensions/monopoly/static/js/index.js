@@ -15,7 +15,8 @@ import {
 import {
   decodeInvoice,
   withdrawFromLNURL,
-  createPlayerPayLNURL
+  createPlayerPayLNURL,
+  timeout
 } from './helpers/utils.js'
 import {
   onGameFunded,
@@ -127,6 +128,7 @@ new Vue({
     }
   },
   computed: {
+    // Pass Vue components props here
     reactiveStyles: function() {
       return reactiveStyles(this.game)
     },
@@ -150,6 +152,11 @@ new Vue({
   methods: {
     // Methods for QR code scanning
     onInitCamera: async function() {
+      // Start closeTimeout after which camera will be closed unless a QR code is detected
+      this.camera.closeTimeout = setTimeout(() => {
+        this.closeCamera()
+        this.camera.data = null;
+      }, 10000)
       // Select video device (see: https://oberhofer.co/mediastreamtrack-and-its-capabilities/)
       const devices = await navigator.mediaDevices.enumerateDevices();
       this.camera.candidateDevices = [];
@@ -251,6 +258,8 @@ new Vue({
     closeCamera: function() {
       this.camera.show = false;
       this.camera.scanEnabled = false;
+      // Clear closeCamera timeout
+      clearTimeout(this.camera.closeTimeout)
       // Stop camera
       if(this.camera.stream) {
         let tracks = this.camera.stream.getTracks()
@@ -1610,24 +1619,34 @@ new Vue({
     },
     enableScan: function () {
       this.camera.scanEnabled = true
-      if(this.camera.data.content) {
-        let QRdata = this.camera.data.content
-        this.camera.data = null
-        this.closeCamera()
-        this.camera.scanEnabled = false
-        this.parseQRData(QRdata)
+      if(this.camera.data && this.camera.data.content) {
+        this.decodeQR()
       }
     },
-    decodeQR: async function (QRdataPromise) {
-      this.camera.data = await QRdataPromise
+    detectQR: async function (QRDataPromise) {
+      this.camera.data = await QRDataPromise
       console.log(this.camera.data.content)
-      if(this.camera.data.content && this.camera.scanEnabled) {
-        let QRdata = this.camera.data.content
-        this.camera.data = null
-        this.closeCamera()
-        this.camera.scanEnabled = false
-        this.parseQRData(QRdata)
+      if(this.camera.scanEnabled) {
+        if(this.camera.data && this.camera.data.content) {
+          if(this.camera.scanEnabled) {
+            this.decodeQR()
+          }
+        }
+      } else {
+        // Reset closeCamera timeout
+        clearTimeout(this.camera.closeTimeout)
+        this.camera.closeTimeout = setTimeout(() => {
+          this.closeCamera()
+          this.camera.data = null;
+        }, 10000)
       }
+    },
+    decodeQR: function () {
+      this.closeCamera()
+      this.camera.scanEnabled = false
+      let QRdata = this.camera.data.content
+      this.camera.data = null
+      this.parseQRData(QRdata)
     },
     parseQRData: async function (QRData) {
       // Regular lightning invoice case
