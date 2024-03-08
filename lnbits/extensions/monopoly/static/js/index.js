@@ -295,6 +295,7 @@ new Vue({
     },
     onUpdatePropertiesCarouselSlide: function(newSlide, oldSlide) {
       this.game.propertiesCarouselSlide = onUpdatePropertiesCarouselSlide(this.game, newSlide, oldSlide)
+      saveGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
     },
     loadExistingGame: async function (gameId, openCamera = false) {
       console.log("Loading saved game: " + gameId);
