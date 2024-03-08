@@ -228,6 +228,9 @@ export function reactiveStyles(game) {
       payWrenchAttackSpinner: {
         marginTop: `2.5em`,
         marginLeft: `2em`
+      },
+      scanButton: {
+        marginLeft: `0.5em`
       }
     }
   } else {
@@ -466,6 +469,9 @@ export function reactiveStyles(game) {
       payWrenchAttackSpinner: {
         marginTop: `0.5em`,
         marginLeft: `1em`
+      },
+      scanButton: {
+        marginLeft: '-0.25em'
       }
     }
   }

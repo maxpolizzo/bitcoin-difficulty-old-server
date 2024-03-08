@@ -10,6 +10,9 @@ import {
 } from './data/data.js'
 import { reactiveStyles } from '../css/styles.js'
 import {
+  paintOutline,
+} from './helpers/camera.js'
+import {
   decodeInvoice,
   withdrawFromLNURL,
   createPlayerPayLNURL
@@ -76,6 +79,7 @@ if(window.user.id && window.game_id && savedGameRecords.gameRecords[window.user.
 // Open camera if specified
 let camera = cameraData;
 camera.deviceId = game.cameraDeviceId;
+camera.trackFunction = paintOutline;
 if(window.open_camera === "true") {
   camera.show = true
 }
@@ -105,7 +109,6 @@ new Vue({
   el: '#vue',
   mixins: [windowMixin],
   data: function() {
-    console.log()
     // const initializedGame = initGameData(game)
     return {
       gameRecords: savedGameRecords.gameRecords,
@@ -247,6 +250,7 @@ new Vue({
     },
     closeCamera: function() {
       this.camera.show = false;
+      this.camera.scanEnabled = false;
       // Stop camera
       if(this.camera.stream) {
         let tracks = this.camera.stream.getTracks()
@@ -1604,12 +1608,25 @@ new Vue({
       let data = await navigator.clipboard.readText()
       this.parseQRData(data)
     },
-    decodeQR: function (res) {
-      this.closeCamera()
-      this.camera.data = res
-      console.log(this.camera.data)
-      if(this.camera.data) {
-        this.parseQRData(this.camera.data)
+    enableScan: function () {
+      this.camera.scanEnabled = true
+      if(this.camera.data.content) {
+        let QRdata = this.camera.data.content
+        this.camera.data = null
+        this.closeCamera()
+        this.camera.scanEnabled = false
+        this.parseQRData(QRdata)
+      }
+    },
+    decodeQR: async function (QRdataPromise) {
+      this.camera.data = await QRdataPromise
+      console.log(this.camera.data.content)
+      if(this.camera.data.content && this.camera.scanEnabled) {
+        let QRdata = this.camera.data.content
+        this.camera.data = null
+        this.closeCamera()
+        this.camera.scanEnabled = false
+        this.parseQRData(QRdata)
       }
     },
     parseQRData: async function (QRData) {
