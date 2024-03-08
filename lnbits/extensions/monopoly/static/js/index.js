@@ -155,9 +155,9 @@ new Vue({
           this.camera.candidateDevices.push(device)
         }
       })
-      if(this.camera.deviceId) {
+      if(this.game.cameraDeviceId) {
         // If deviceId is already known, select same device
-        await this.selectCameraDevice(this.camera.deviceId, null, true);
+        await this.selectCameraDevice(this.game.cameraDeviceId, null, true);
       } else {
         // Else, look through candidate devices
         if(this.camera.candidateDevices.length) {
