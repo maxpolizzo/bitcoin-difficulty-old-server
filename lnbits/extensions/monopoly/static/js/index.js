@@ -192,6 +192,7 @@ new Vue({
         this.camera.constraints = {
           "video":  {
             "aspectRatio": 1,
+            "frameRate": { "ideal": 4, "max": 12 },
             "facingMode": { "ideal":'environment' },
             "deviceId": { "exact": this.camera.deviceId }
           }
