@@ -216,6 +216,7 @@ export const cameraData = {
     max: null,
   },
   enableSwitchCameraButton: true,
+  firstQRDetected: false,
   scanEnabled: false,
   closeTimeout: null
 }
