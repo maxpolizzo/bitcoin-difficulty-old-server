@@ -360,7 +360,7 @@
       </div>
       <div class="row q-mt-lg">
         <div class="offset-5 col-2">
-          <q-btn  v-if="!camera.scanEnabled" icon="qr_code_scanner" color="orange" size="1.5em" :style="reactiveStyles.scanButton" @click="enableScan"></q-btn>
+          <q-btn  v-if="camera.firstQRDetected && !camera.scanEnabled" icon="qr_code_scanner" color="orange" size="1.5em" :style="reactiveStyles.scanButton" @click="enableScan"></q-btn>
           <q-btn  v-else disabled icon="qr_code_scanner" size="2em" :style="reactiveStyles.scanButton"></q-btn>
         </div>
       </div>

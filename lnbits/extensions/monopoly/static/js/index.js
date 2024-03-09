@@ -258,6 +258,7 @@ new Vue({
     closeCamera: function() {
       this.camera.show = false;
       this.camera.scanEnabled = false;
+      this.camera.firstQRDetected = false;
       // Clear closeCamera timeout
       clearTimeout(this.camera.closeTimeout)
       // Stop camera
@@ -1626,6 +1627,9 @@ new Vue({
     },
     detectQR: async function (QRDataPromise) {
       this.camera.data = await QRDataPromise
+      if(!this.camera.firstQRDetected) {
+        this.camera.firstQRDetected = true
+      }
       console.log(this.camera.data.content)
       if(this.camera.scanEnabled) {
         if(this.camera.data && this.camera.data.content) {
