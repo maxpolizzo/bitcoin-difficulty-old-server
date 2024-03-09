@@ -19,18 +19,23 @@
             <b>Make sure to bookmark this page in order to be able to restore your wallets and saved games!</b>
           </span>
         </div>
-        <div v-if="!maxNumberOfPlayersReached">
-          <div
-            v-if="!inviteVoucherPaymentHash && !claimedVoucher"
-            style="margin-top: 1em;"
-          >
-            <q-btn row outline color="orange" icon="bolt" @click="joinGame()">
+        <div class="row" v-if="!maxNumberOfPlayersReached">
+          <div style="margin-top: 1em;">
+            <q-btn v-if="!joiningGame" outline color="orange" icon="bolt" @click="joinGame()">
               <span style="margin-left: 1em;margin-right: 1em;">
                 Play
               </span>
             </q-btn>
+            <q-btn v-else disabled outline icon="bolt">
+              <q-spinner
+                v-if="joiningGame"
+                style="margin-left: 0.785em; margin-right: 0.785em;"
+                color="orange"
+                size="1em"
+              />
+            </q-btn>
           </div>
-          <div v-else>
+          <!--div v-else>
             <span style="margin-top: 1em;">
                Claiming your sats...
             </span>
@@ -42,7 +47,7 @@
                 />
               </div>
             </div>
-          </div>
+          </div-->
         </div>
         <div v-else>
           <div style="margin-top: 0.5em;">

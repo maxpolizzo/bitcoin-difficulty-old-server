@@ -7,7 +7,7 @@ import {
   checkMaxNumberOfPlayersReached,
   claimInviteVoucher
 } from './helpers/utils.js'
-
+import { reactiveStyles } from '../css/styles.js'
 
 let game = inviteGame
 game.player.id = window.user.id;
@@ -28,8 +28,8 @@ enableMonopolyExtension(window.user.id).then(async () => {
   await fetchGameData(game);
 })
 
-const claimedVoucher = JSON.parse(localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher'));
-const inviteVoucherPaymentHash = localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherPaymentHash');
+// const claimedVoucher = JSON.parse(localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher'));
+// const inviteVoucherPaymentHash = localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherPaymentHash');
 
 new Vue({
   el: '#vue',
@@ -37,13 +37,15 @@ new Vue({
   data: {
     game: game,
     inviteVoucher: inviteVoucher,
-    inviteVoucherPaymentHash: inviteVoucherPaymentHash,
-    claimedVoucher: claimedVoucher,
+    // inviteVoucherPaymentHash: inviteVoucherPaymentHash,
+    // claimedVoucher: claimedVoucher,
     maxNumberOfPlayersReached: false,
+    joiningGame: false,
     joinedGame: false
   },
   methods: {
     joinGame: async function() {
+      this.joiningGame = true;
       this.maxNumberOfPlayersReached = await checkMaxNumberOfPlayersReached(game.marketData.id)
       // Join game if current_players_count < max_players_count
       if(!this.maxNumberOfPlayersReached && !this.joinedGame) {
@@ -55,6 +57,12 @@ new Vue({
           // Redirect to game view
           redirect(this.game);
       }
+    }
+  },
+  computed: {
+    // Pass Vue components props here
+    reactiveStyles: function() {
+      return reactiveStyles(this.game)
     }
   }
 })
