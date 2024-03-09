@@ -229,6 +229,10 @@ export function reactiveStyles(game) {
         marginTop: `2.5em`,
         marginLeft: `2em`
       },
+      inviteSpinner: {
+        marginLeft: `0.8em`,
+        marginRight: `0.8em`
+      },
       scanButton: {
         marginLeft: `0.5em`
       }
@@ -469,6 +473,10 @@ export function reactiveStyles(game) {
       payWrenchAttackSpinner: {
         marginTop: `0.5em`,
         marginLeft: `1em`
+      },
+      inviteSpinner: {
+        marginLeft: `0.785em`,
+        marginRight: `0.785em`
       },
       scanButton: {
         marginLeft: '-0.25em'

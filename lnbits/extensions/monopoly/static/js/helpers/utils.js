@@ -170,9 +170,6 @@ export async function checkForPayment(paymentHash, game, wallet) {
 export function onPaymentReceived(paymentChecker, game) {
   clearInterval(paymentChecker)
   saveGameData(game, 'paidVoucher', true)
-  if(res.error) {
-    LNbits.utils.notifyApiError(res.error)
-  }
   console.log("Successfully claimed LNURL voucher")
 }
 
