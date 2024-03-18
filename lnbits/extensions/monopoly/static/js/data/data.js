@@ -1,111 +1,55 @@
 // Game data templates
-
+// URL = https://" + window.location.hostname + "/monopoly/game?usr=" + player_user_id + "&game_id=" + game_id;
 export const newGame = {
-  started: false,
-  created: false,
-  imported: false,
-  joined: false,
-  showInviteButton: false,
-  timestamp: null,
+  //////////////////////////////////////////////////////////////////////////////
+  // Static data
+  //////////////////////////////////////////////////////////////////////////////
   minFunding: 20000,
   startClaimAmount: 200,
-  initialFunding: "0",
-  initialPlayerBalance: "0",
-  playerTurn: 0,
-  showFundingView: false,
-  showFundingDialog: false,
-  showInviteQR: false,
-  showExplanationText: false,
-  showPayInvoiceDialog: false,
-  showPlayerInvoiceDialog: false,
-  showFreeMarketInvoiceDialog: false,
-  showPropertyDialog: false,
-  showPropertyInvoiceDialog: false,
-  showPropertyPurchaseDialog: false,
-  showPropertyUpgradeDialog: false,
-  showSaleInvoiceDialog: false,
-  showFreeBitcoinClaimDialog: false,
-  showStartClaimDialog: false,
-  showLightningCard: false,
-  showProtocolCard: false,
-  showWrenchAttackDialog: false,
-  showPayFineSpinner: false,
-  showPayInvoiceSpinner: false,
-  lightningCardToShow: "",
-  protocolCardToShow: "",
-  wrenchAttackAmountSats: null,
-  firstLightningCardThisTurn: true,
-  firstProtocolCardThisTurn: true,
-  firstStartClaimThisTurn: true,
-  showNotYourTurnPopUp: false,
-  showAlreadyClaimedStartBonusPopUp: false,
-  showNetworkFeeInvoiceDialog: false,
-  saleInvoiceCreated: false,
-  purchaseInvoiceCreated: false,
-  upgradeInvoiceCreated: false,
-  showNetworkFeeInvoice: false,
-  fundingStatus: 'pending',
-  invoice: null,
-  invoiceRecipientIndex: null,
-  invoiceAmount: null,
-  fundingInvoiceAmount: null,
-  playerInvoiceAmount: null,
-  freeMarketInvoiceAmount: null,
-  customNetworkFeeInvoiceAmount: null,
-  customNetworkFeeMultiplier: null,
-  playerVoucherId: "",
-  playerVoucher: null,
-  playerVoucherAmount: null,
-  lnurlPayLinkId: "",
-  lnurlPayLink: "",
-  playerPayLinkCreated: false,
-  inviteVoucherId: "",
-  rewardVoucherId: "",
-  rewardVoucher: "",
-  inviteLink: "",
   minPlayersCount: "2",
   maxPlayersCount: "6",
-  playersCount: "0",
-  userBalance: 0,
-  marketLiquidity: 0,
-  marketData: {},
-  voucherPaymentHash: "",
-  paidVoucher: false,
-  cumulatedFines: 0,
-  fundingInvoice: {
-    paymentReq: null,
-    paymentHash: null,
-    minMax: [0, 2100000000000000],
-    lnurl: null,
-    units: ['sat'],
-    unit: 'sat',
-    data: {
-      amount: null,
-      memo: 'Bitcoin Monopoly: initial funding invoice'
-    }
+  // Hack to copy command to pay funding invoice from local regtest node
+  payInvoiceCommand: "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice ",
+  //////////////////////////////////////////////////////////////////////////////
+  // Data persisted in database which needs to be fetched only once at reload
+  //////////////////////////////////////////////////////////////////////////////
+  marketData: {
+    id: null, // player_user_id
+    wallets: [] // db.players[player_user_id] or fetch player.wallets from LNBits API?
+  }, // marketData.id is game_id, use it to fetch marketData.wallets from LNBits API
+  player: {
+    index: null, // db.players[player_user_id].player_index
+    name: null, // db.players[player_user_id].player_wallet_name
+    id: null, // player_user_id
+    wallet_id: null, // db.players[player_user_id].player_wallet_id
+    wallets: [] // db.players[player_user_id] or fetch player.wallets from LNBits API?
   },
-  playerInvoice: {
-    qr: null,
-    amount: null
+  started: false, // db.games[game_id].started
+  created: false, // db.games[game_id].admin_user_id == player_user_id
+  imported: false, // db.games[game_id].admin_user_id != player_user_id
+  // joined: false, // db.players[player_user_id].joined
+  timestamp: null, // db.players[player_user_id].time
+  fundingStatus: 'pending', // db.games[game_id].initial_funding > 0
+  initialFunding: "0", // db.games[game_id].initial_funding
+  initialPlayerBalance: "0", // db.games[game_id].initial_player_balance
+  lnurlPayLinkId: null, // db.games[game_id].pay_link_id
+  lnurlPayLink: null, // db.games[game_id].pay_link
+  playerPayLinkCreated: false, // db.players[player_user_id].player_pay_link_id && db.players[player_user_id].player_pay_link
+  inviteVoucherId: null, // db.games[game_id].invite_voucher_id
+  rewardVoucherId: null, // db.games[game_id].reward_voucher_id
+  firstLightningCardThisTurn: true, // db.players[player_user_id].first_lightning_card_this_turn
+  firstProtocolCardThisTurn: true, // db.players[player_user_id].first_protocol_card_this_turn
+  firstStartClaimThisTurn: true, // db.players[player_user_id].first__start_claim_this_turn
+  playerWallet: {
+    payments: {}// db.payments[player_wallet_id]
   },
-  freeMarketInvoice: {
-    qr: null,
-    amount: null
-  },
+  // Disabled for now, may be useful later for transactions history
+  /*
   freeMarketWallet: {
     payments: {}
   },
-  playerWallet: {
-    payments: {}
-  },
-  player: {
-    index: null, // Monopoly database player index
-    name: "", // Monopoly database player name
-    id: "", // LNBits user_id
-    wallet_id: "", // LNBits wallet_id
-    wallets: []
-  },
-  players: {},
+ */
+  players: {}, // db.players (get with fetchPlayers(game))
   playersData: {
     columns: [
       {
@@ -127,12 +71,65 @@ export const newGame = {
         sortable: true
       },
     ],
-    rows: []
+    rows: [] // db.players (get with fetchPlayers(game))
   },
-  properties: {},
-  propertiesCount: {},
+  playersCount: 0, // db.players (get with fetchPlayers(game))
+  properties: {}, // db.properties (get with fetchProperties(game))
+  propertiesCount: {}, // db.properties (get with fetchProperties(game))
+  propertiesCarouselSlide: "", // Set with fetchProperties(game) on reload
+  //////////////////////////////////////////////////////////////////////////////
+  // Data persisted in database which needs to be fetched regularly during game
+  //////////////////////////////////////////////////////////////////////////////
+  playerTurn: 0, // db.games[game_id].player_turn (get with fetchPlayerTurn(game))
+  marketLiquidity: 0, // db.games[game_id].market_liquidity (get with fetchMarketLiquidity(game))
+  userBalance: 0, // db.players[player_user_id].player_balance (get with fetchPlayerBalance(game))
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Other data (not persisted in database)
+  //////////////////////////////////////////////////////////////////////////////
+  rewardVoucher: null,
+  inviteLink: null,
+  showInviteButton: false,
+  showFundingView: false,
+  showFundingDialog: false,
+  showInviteQR: false,
+  showExplanationText: false,
+  showPayInvoiceDialog: false,
+  showPlayerInvoiceDialog: false,
+  showPropertyDialog: false,
+  showPropertyInvoiceDialog: false,
+  showPropertyPurchaseDialog: false,
+  showPropertyUpgradeDialog: false,
+  showSaleInvoiceDialog: false,
+  showFreeBitcoinClaimDialog: false,
+  showStartClaimDialog: false,
+  showLightningCard: false,
+  showProtocolCard: false,
+  showWrenchAttackDialog: false,
+  showPayFineSpinner: false,
+  showPayInvoiceSpinner: false,
+  showNotYourTurnPopUp: false,
+  showAlreadyClaimedStartBonusPopUp: false,
+  showNetworkFeeInvoiceDialog: false,
+  showNetworkFeeInvoice: false,
   propertyToShow: {},
-  propertiesCarouselSlide: "",
+  lightningCardToShow: null,
+  protocolCardToShow: null,
+  wrenchAttackAmountSats: null,
+  saleInvoiceCreated: false,
+  purchaseInvoiceCreated: false,
+  upgradeInvoiceCreated: false,
+  invoice: null,
+  invoiceRecipientIndex: null,
+  invoiceAmount: null,
+  fundingInvoiceAmount: null,
+  playerInvoiceAmount: null,
+  freeMarketInvoiceAmount: null,
+  customNetworkFeeInvoiceAmount: null,
+  customNetworkFeeMultiplier: null,
+  cumulatedFines: 0,
+  voucherPaymentHash: null, // Used to check if LNURL vouchers have been successfully claimed... not useful to persist in db
+  paidVoucher: false, // Used to check if LNURL vouchers have been successfully claimed... not useful to persist in db
   propertyPurchase: {},
   propertyPurchaseData: null,
   propertyUpgrade: {},
@@ -140,14 +137,32 @@ export const newGame = {
   propertySaleData: null,
   networkFeeInvoiceData: null,
   networkFeeInvoice: {},
-  // orPaymentToMarket: false,
   fineAmountSats: 0,
   customFineMultiplier: 0,
   rewardAmountSats: 0,
   customRewardMultiplier: 0,
-  // Hack to copy command to pay invoice from local node
-  payInvoiceCommand: "lncli -n regtest --lnddir=\"/Users/maximesuard/Dev/Bitcoin/lnd-regtest-2\" --rpcserver=localhost:11009 payinvoice "
-
+  // Only stored in local storage, should we store in db so that game creator can copy/paste url in another browser
+  // before game is funded?
+  fundingInvoice: {
+    paymentReq: null,
+    paymentHash: null,
+    minMax: [0, 2100000000000000],
+    lnurl: null,
+    units: ['sat'],
+    unit: 'sat',
+    data: {
+      amount: null,
+      memo: 'Bitcoin Monopoly: initial funding invoice'
+    }
+  },
+  // Never stored (only created for copy/paste)
+  playerInvoice: {
+    qr: null,
+    amount: null,
+    paymentReq: null,
+    paymentHash: null,
+    invoiceAmount: null
+  }
 }
 
 export const inviteGame = {

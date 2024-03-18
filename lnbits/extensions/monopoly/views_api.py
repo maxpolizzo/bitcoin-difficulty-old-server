@@ -13,6 +13,7 @@ from loguru import logger
 from . import monopoly_ext
 from .crud import (
     create_game,
+    create_free_market_wallet,
     create_player,
     create_player_wallet,
     update_first_player_name,
@@ -31,6 +32,8 @@ from .crud import (
     get_game_with_pay_link,
     get_game_with_invoice,
     get_player_balance,
+    get_player,
+    get_player_by_user_id,
     get_players,
     get_players_count,
     get_max_players_count,
@@ -46,22 +49,32 @@ from .crud import (
     get_next_lightning_card_index,
     get_next_protocol_card_index,
     update_cumulated_fines,
+    update_first_start_claim_this_turn,
     get_cumulated_fines,
     reset_cumulated_fines,
     update_player_pay_link,
     get_player_pay_link,
     increment_game_player_turn,
     get_game_player_turn,
-    join_player
+    join_player,
+    register_payment,
+    get_free_market_wallet
 )
 from lnbits.core.crud import update_user_extension
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, IncrementPlayerTurn, JoinPlayerData
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerData, UpdateFirstPlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, UpdatePlayerBalance, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, InitCardsIndex, UpdateCardIndex, UpdatePlayerFirstStartClaimThisTurn, UpdateCumulatedFines, ResetCumulatedFines, UpdatePlayerPayLink, PlayerPayLink, IncrementPlayerTurn, JoinPlayerData, Payment, CreateFreeMarketWallet
 
 # Setters
 @monopoly_ext.post("/api/v1/games", status_code=HTTPStatus.CREATED)
 async def api_monopoly_games_create(data: CreateGameData):
     game = await create_game(data)
     return game
+
+@monopoly_ext.post("/api/v1/free_market_wallet", status_code=HTTPStatus.CREATED)
+async def api_monopoly_free_market_wallet_create(data: CreateFreeMarketWallet):
+    # Create free market wallet
+    wallet = await create_free_market_wallet(data)
+    logger.info(f"Created free market wallet ({data.game_creator_id} {wallet.id})")
+    return wallet
 
 @monopoly_ext.post("/api/v1/player", status_code=HTTPStatus.CREATED)
 async def api_monopoly_first_player_create(data: CreateFirstPlayerData):
@@ -117,6 +130,7 @@ async def api_monopoly_games_update_paylink(data: UpdateGamePayLinkData):
     payLink = await update_game_pay_link(data)
     return payLink
 
+# Never used?
 @monopoly_ext.post("/api/v1/games/invoice", status_code=HTTPStatus.CREATED)
 async def api_monopoly_games_update_invoice(data: UpdateGameInvoiceData):
     invoice = await update_game_invoice(data)
@@ -136,6 +150,16 @@ async def api_monopoly_players_update_balance(data: UpdatePlayerBalance):
 async def api_monopoly_players_update_pay_link(data: UpdatePlayerPayLink):
     updated_player_pay_link = await update_player_pay_link(data)
     return update_player_pay_link
+
+@monopoly_ext.put("/api/v1/players/update_first_start_claim_this_turn", status_code=HTTPStatus.CREATED)
+async def api_monopoly_update_first_start_claim_this_turn(data: UpdatePlayerFirstStartClaimThisTurn):
+    first_start_claim_this_turn = await update_first_start_claim_this_turn(data)
+    return first_start_claim_this_turn
+
+@monopoly_ext.post("/api/v1/payments", status_code=HTTPStatus.CREATED)
+async def api_monopoly_payment_register(data: Payment):
+    payment = await register_payment(data)
+    return payment
 
 @monopoly_ext.post("/api/v1/property", status_code=HTTPStatus.CREATED)
 async def api_monopoly_property_register(data: Property):
@@ -196,6 +220,16 @@ async def api_monopoly_game_with_pay_link(game_id: str):
 @monopoly_ext.get("/api/v1/game_with_invoice", status_code=HTTPStatus.OK)
 async def api_monopoly_game_with_invoice(game_id: str):
     return [game for game in await get_game_with_invoice(game_id)]
+
+@monopoly_ext.get("/api/v1/free_market_wallet", status_code=HTTPStatus.OK)
+async def api_monopoly_free_market_wallet(game_id: str):
+    wallet = await get_free_market_wallet(game_id)
+    return wallet
+
+@monopoly_ext.get("/api/v1/player_by_user_id", status_code=HTTPStatus.OK)
+async def api_monopoly_player(game_id: str, player_id: str):
+    player = await get_player_by_user_id(game_id, player_id)
+    return player
 
 @monopoly_ext.get("/api/v1/players", status_code=HTTPStatus.OK)
 async def api_monopoly_players(game_id: str):

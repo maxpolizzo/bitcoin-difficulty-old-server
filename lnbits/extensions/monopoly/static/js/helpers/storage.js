@@ -54,8 +54,8 @@ export function saveGameRecord(game) {
   }
 }
 
-export function loadGameData(gameRecord) {
-  console.log(gameRecord)
+export function loadGameDataFromLocalStorage(gameRecord) {
+  console.log("Loading saved game from local storage: " + window.game_id);
   const game = newGame;
   // Update game object with values found in local storage
   Object.keys(game).forEach((key) => {

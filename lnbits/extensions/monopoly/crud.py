@@ -1,7 +1,7 @@
 import random
 from . import db
 from typing import Optional
-from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, MarketLiquidity, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, CumulatedFines, UpdatePlayerPayLink, PlayerPayLink, IncrementPlayerTurn
+from .models import CreateGameData, CreateFirstPlayerData, UpdateFirstPlayerName, UpdatePlayerName, UpdateMarketLiquidityData, UpdateGameFundingData, StartGameData, UpdateVoucherData, UpdateGamePayLinkData, UpdateGameInvoiceData, CreatePlayerData, InvitePlayerData, UpdatePlayerBalance, Game, MarketLiquidity, PlayerBalance, GameFunding, GameStarted, Voucher, PayLink, Invoice, GameWithPayLink, GameWithInvoice, Player, Property, UpdatePropertyOwner, UpdatePropertyIncome, UpgradeProperty, CardIndex, InitCardsIndex, UpdateCardIndex, UpdateCumulatedFines, ResetCumulatedFines, CumulatedFines, UpdatePlayerPayLink, PlayerPayLink, IncrementPlayerTurn, UpdatePlayerFirstLightningCardThisTurn, UpdatePlayerFirstProtocolCardThisTurn, UpdatePlayerFirstStartClaimThisTurn, Payment, CreateFreeMarketWallet, FreeMarketWallet
 from lnbits.core.models import User, Wallet
 from lnbits.core.crud import (
     create_account,
@@ -12,16 +12,16 @@ from lnbits.core.crud import (
 )
 
 # Setters
-async def create_game(data: CreateGameData) -> Game:
+async def create_game(data: CreateGameData) -> CreateGameData:
     await db.execute(
         """
-        INSERT INTO monopoly.games (admin_user_id, game_id, max_players_count, cumulated_fines, player_turn, available_player_names)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO monopoly.games (admin_user_id, game_id, free_market_wallet_id, free_market_wallet_inkey, free_market_wallet_adminkey, max_players_count, cumulated_fines, player_turn, available_player_names)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (data.admin_user_id, data.game_id, data.max_players_count, data.cumulated_fines, 0, data.available_player_names),
+        (data.admin_user_id, data.game_id, data.free_market_wallet_id, data.free_market_wallet_inkey, data.free_market_wallet_adminkey, data.max_players_count, data.cumulated_fines, 0, data.available_player_names),
     )
 
-    game_created = await get_game(data.game_id)
+    game_created = await get_created_game(data.game_id)
     assert game_created, "Newly created game couldn't be retrieved"
     return game_created
 
@@ -32,9 +32,9 @@ async def update_market_liquidity(data: UpdateMarketLiquidityData) -> MarketLiqu
             """,
             (data.balance, data.game_id),
     )
-    game_updated = await get_game(data.game_id)
-    assert game_updated, "Newly updated game couldn't be retrieved"
-    return game_updated
+    market_liquidity = await get_game_market_liquidity(data.game_id)
+    assert market_liquidity, "Newly updated market liquidity couldn't be retrieved"
+    return market_liquidity
 
 async def update_game_funding(data: UpdateGameFundingData) -> GameFunding:
      await db.execute(
@@ -50,10 +50,31 @@ async def update_game_funding(data: UpdateGameFundingData) -> GameFunding:
 async def increment_game_player_turn(data: IncrementPlayerTurn) -> int:
     players_count = await get_players_count(data.game_id)
     player_turn = await get_game_player_turn(data.game_id)
+    await update_first_start_claim_this_turn(
+        UpdatePlayerFirstStartClaimThisTurn(
+            game_id=data.game_id,
+            player_index=player_turn[0],
+            first_start_claim_this_turn=True
+        )
+    )
+    await update_player_first_lightning_card_this_turn(
+        UpdatePlayerFirstLightningCardThisTurn(
+            game_id=data.game_id,
+            player_index=player_turn[0],
+            first_lightning_card_this_turn=True
+        )
+    )
+    await update_player_first_protocol_card_this_turn(
+        UpdatePlayerFirstProtocolCardThisTurn(
+            game_id=data.game_id,
+            player_index=player_turn[0],
+            first_protocol_card_this_turn=True
+        )
+    )
+
     new_player_turn = player_turn[0] + 1
     if(new_player_turn > players_count[0]):
         new_player_turn = 1
-
     await db.execute(
           """
           UPDATE monopoly.games SET player_turn = ? WHERE game_id = ?
@@ -112,10 +133,9 @@ async def update_game_pay_link(data: UpdateGamePayLinkData) -> PayLink:
             (data.pay_link_id, data.pay_link, data.game_id),
     )
 
-    game_updated = await get_game(data.game_id)
-    assert game_updated, "Newly updated game couldn't be retrieved"
-    return game_updated
-
+    game_pay_link = await get_game_pay_link(data.game_id)
+    assert game_pay_link, "Game pay link couldn't be retrieved"
+    return game_pay_link
 
 async def update_game_invoice(data: UpdateGameInvoiceData) -> Invoice:
     await db.execute(
@@ -184,6 +204,16 @@ async def create_player_wallet(data: CreateFirstPlayerData) -> Player:
     )
     assert player_created, "Invited player couldn't be retrieved"
     return player_created
+
+async def create_free_market_wallet(data: CreateFreeMarketWallet) -> Wallet:
+    user = await get_user(data.game_creator_id)
+    assert user, "Game creator couldn't be retrieved"
+
+    wallet = await create_wallet(user_id=data.game_creator_id, wallet_name="Free Market")
+    assert wallet, "Newly created wallet couldn't be retrieved"
+
+    return wallet
+
 
 async def update_first_player_name(data: UpdateFirstPlayerName) -> Wallet:
     await update_wallet(wallet_id=data.player_wallet_id, new_name=data.player_wallet_name)
@@ -267,6 +297,52 @@ async def update_player_pay_link(data: UpdatePlayerPayLink) -> Player:
     player_updated = await get_player(data.player_wallet_id)
     assert player_updated, "Newly updated player couldn't be retrieved"
     return player_updated
+
+async def update_first_start_claim_this_turn(data: UpdatePlayerFirstStartClaimThisTurn) -> bool:
+    await db.execute(
+            """
+            UPDATE monopoly.players SET first_start_claim_this_turn = ? WHERE game_id = ? AND player_index = ?
+           """,
+           (data.first_start_claim_this_turn, data.game_id, data.player_index),
+    )
+    first_start_claim_this_turn_updated = await get_first_start_claim_this_turn(data)
+    assert first_start_claim_this_turn_updated, "Newly updated first start claim this turn couldn't be retrieved"
+    return first_start_claim_this_turn_updated
+
+async def update_player_first_lightning_card_this_turn(data: UpdatePlayerFirstLightningCardThisTurn) -> bool:
+    await db.execute(
+            """
+            UPDATE monopoly.players SET first_lightning_card_this_turn = ? WHERE game_id = ? AND player_index = ?
+           """,
+           (data.first_lightning_card_this_turn, data.game_id, data.player_index),
+    )
+    first_lightning_card_this_turn_updated = await get_first_lightning_card_this_turn(data)
+    assert first_lightning_card_this_turn_updated, "Newly updated first lightning card this turn couldn't be retrieved"
+    return first_lightning_card_this_turn_updated
+
+async def update_player_first_protocol_card_this_turn(data: UpdatePlayerFirstProtocolCardThisTurn) -> bool:
+    await db.execute(
+            """
+            UPDATE monopoly.players SET first_protocol_card_this_turn = ? WHERE game_id = ? AND player_index = ?
+           """,
+           (data.first_protocol_card_this_turn, data.game_id, data.player_index),
+    )
+    first_protocol_card_this_turn_updated = await get_first_protocol_card_this_turn(data)
+    assert first_protocol_card_this_turn_updated, "Newly updated first protocol card this turn couldn't be retrieved"
+    return first_protocol_card_this_turn_updated
+
+async def register_payment(data: Payment) -> Payment:
+    await db.execute(
+            """
+            INSERT INTO monopoly.payments (game_id, player_wallet_id, amount, date_time, is_in, is_out, memo, payment_hash, bolt11)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (data.game_id, data.player_wallet_id, data.amount, data.date_time, data.is_in, data.is_out, data.memo, data.payment_hash, data.bolt11),
+        )
+
+    payment_registered = await get_payment(data.payment_hash)
+    assert payment_registered, "Payment couldn't be retrieved"
+    return payment_registered
 
 async def register_property(data: Property) -> Property:
     await db.execute(
@@ -353,8 +429,22 @@ async def update_next_card_index(data: UpdateCardIndex) -> CardIndex:
     next_card_index = 0
     if (data.card_type == "lightning"):
         card_index = await get_next_lightning_card_index(data.game_id)
+        await update_player_first_lightning_card_this_turn(
+            UpdatePlayerFirstLightningCardThisTurn(
+                game_id=data.game_id,
+                player_index=data.player_index,
+                first_lightning_card_this_turn=False
+            )
+        )
     elif (data.card_type == "protocol"):
         card_index = await get_next_protocol_card_index(data.game_id)
+        await update_player_first_protocol_card_this_turn(
+            UpdatePlayerFirstProtocolCardThisTurn(
+                game_id=data.game_id,
+                player_index=data.player_index,
+                first_protocol_card_this_turn=False
+            )
+        )
 
     assert card_index, "Card index couldn't be retrieved"
 
@@ -406,6 +496,22 @@ async def reset_cumulated_fines(data: ResetCumulatedFines) -> CumulatedFines:
 
 
 # Getters
+async def get_created_game(game_id: str) -> CreateGameData:
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    return CreateGameData(**row) if row else None
+
+async def get_free_market_wallet(game_id: str) -> FreeMarketWallet:
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    return FreeMarketWallet(**row) if row else None
+
+async def get_game_pay_link(game_id: str) -> PayLink:
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    return PayLink(**row) if row else None
+
+async def get_game_market_liquidity(game_id: str) -> MarketLiquidity:
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    return MarketLiquidity(**row) if row else None
+
 async def get_game(game_id: str) -> Game:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
     return Game(**row) if row else None
@@ -428,6 +534,10 @@ async def get_game_with_invoice(game_id: str) -> GameWithInvoice:
 
 async def get_player(player_wallet_id: str) -> Player:
     row = await db.fetchone("SELECT * FROM monopoly.players WHERE player_wallet_id = ?", (player_wallet_id,))
+    return Player(**row) if row else None
+
+async def get_player_by_user_id(game_id: str, player_id: str) -> Player:
+    row = await db.fetchone("SELECT * FROM monopoly.players WHERE game_id = ? AND player_user_id = ?", (game_id, player_id))
     return Player(**row) if row else None
 
 async def get_player_balance(player_wallet_id: str) -> PlayerBalance:
@@ -473,3 +583,19 @@ async def get_next_protocol_card_index(game_id: str) -> CardIndex:
 async def get_cumulated_fines(game_id: str) -> CumulatedFines:
     row = await db.fetchone("SELECT cumulated_fines FROM monopoly.games WHERE game_id = ?", (game_id))
     return row
+
+async def get_first_start_claim_this_turn(data: UpdatePlayerFirstStartClaimThisTurn) -> bool:
+    row = await db.fetchone("SELECT first_start_claim_this_turn FROM monopoly.players WHERE game_id = ? AND player_index = ?", (data.game_id, data.player_index))
+    return row
+
+async def get_first_lightning_card_this_turn(data: UpdatePlayerFirstLightningCardThisTurn) -> bool:
+    row = await db.fetchone("SELECT first_lightning_card_this_turn FROM monopoly.players WHERE game_id = ? AND player_index = ?", (data.game_id, data.player_index))
+    return row
+
+async def get_first_protocol_card_this_turn(data: UpdatePlayerFirstProtocolCardThisTurn) -> bool:
+    row = await db.fetchone("SELECT first_protocol_card_this_turn FROM monopoly.players WHERE game_id = ? AND player_index = ?", (data.game_id, data.player_index))
+    return row
+
+async def get_payment(payment_hash: str) -> Payment:
+    row = await db.fetchone("SELECT * FROM monopoly.payments WHERE payment_hash = ?", (payment_hash))
+    return Payment(**row) if row else None

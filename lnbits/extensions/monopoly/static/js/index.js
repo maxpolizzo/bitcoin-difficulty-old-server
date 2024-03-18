@@ -15,8 +15,7 @@ import {
 import {
   decodeInvoice,
   withdrawFromLNURL,
-  createPlayerPayLNURL,
-  timeout
+  createPlayerPayLNURL
 } from './helpers/utils.js'
 import {
   onGameFunded,
@@ -24,13 +23,13 @@ import {
   fetchPlayerTurn
 } from './calls/database.js'
 import {
-  initGameData
+  loadGame
 } from './helpers/init.js'
 import {
-  fetchGameRecords,
   saveGameRecord,
-  loadGameData,
-  saveGameData
+  loadGameDataFromLocalStorage,
+  saveGameData,
+  fetchGameRecords
 } from './helpers/storage.js'
 import {
   fetchPlayerBalance,
@@ -58,9 +57,7 @@ import {
   checkPlayerTurn,
   checkPlayersBalances,
   checkFundingInvoicePaid,
-  checkPaymentsToFreeMarket,
   checkPaymentsToPlayer,
-  checkPlayerInvoicePaid,
   checkFreeMarketInvoicePaid
 } from './calls/intervals.js'
 import { decodeLNURL } from './helpers/utils.js'
@@ -68,54 +65,19 @@ import { decodeLNURL } from './helpers/utils.js'
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
 
-const savedGameRecords = fetchGameRecords()
-let game = newGame;
-// Load current game
-if(window.user.id && window.game_id && savedGameRecords.gameRecords[window.user.id][window.game_id]) {
-  console.log("Loading saved game: " + window.game_id);
-  game = loadGameData(savedGameRecords.gameRecords[window.user.id][window.game_id]);
-  game = initGameData(game);
-}
-
-// Open camera if specified
-let camera = cameraData;
-camera.deviceId = game.cameraDeviceId;
-camera.trackFunction = paintOutline;
-if(window.open_camera === "true") {
-  camera.show = true
-}
-
-// If not already created, create a static LNURL pay link to be used for sending sats to player
-if(game.imported && !game.playerPayLinkCreated) {
-  const playerPayLinkCreated = await createPlayerPayLNURL(game);
-  if(playerPayLinkCreated) {
-    game.playerPayLinkCreated = true; // Already saved in local storage
-    // No need to save payLinkId and payLink in local storage (will be fetched from database by other players)
-  } else {
-    LNbits.utils.notifyApiError("Error creating player pay link")
-  }
-}
-
-if(game.imported && !game.joined) {
-  game.joined = true
-  saveGameData(game, 'joined', game.joined)
-}
-
-if(game.fundingStatus == 'success' && !game.started && !game.showInviteButton) {
-  // Show invite button only after redirection following onGameFunded() call
-  game.showInviteButton = true
-}
-
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
+  mounted(){
+    this.loadGame();
+  },
   data: function() {
-    // const initializedGame = initGameData(game)
     return {
-      gameRecords: savedGameRecords.gameRecords,
-      gameRecordsData: savedGameRecords.gameRecordsData,
-      game: game,
-      camera: camera,
+      loading: true,
+      gameRecords: {},
+      gameRecordsData: {},
+      game: newGame,
+      camera: cameraData,
       qrCodeDialog: {
         data: null,
         show: false
@@ -150,13 +112,30 @@ new Vue({
     }
   },
   methods: {
+    loadGame: async function() {
+      const savedGameRecords = fetchGameRecords()
+      this.gameRecords = savedGameRecords.gameRecords
+      this.gameRecordsData = savedGameRecords.gameRecordsData
+      this.game = await loadGame(savedGameRecords)
+      // Open camera if specified
+      let camera = cameraData;
+      camera.deviceId = this.game.cameraDeviceId;
+      camera.trackFunction = paintOutline;
+      if(window.open_camera === "true") {
+        camera.show = true
+      }
+      this.camera = camera;
+      this.loading = false;
+    },
     // Methods for QR code scanning
     onInitCamera: async function() {
       // Start closeTimeout after which camera will be closed unless a QR code is detected
+      /*
       this.camera.closeTimeout = setTimeout(() => {
         this.closeCamera()
         this.camera.data = null;
       }, 10000)
+      */
       // Select video device (see: https://oberhofer.co/mediastreamtrack-and-its-capabilities/)
       const devices = await navigator.mediaDevices.enumerateDevices();
       this.camera.candidateDevices = [];
@@ -231,7 +210,7 @@ new Vue({
         });
         // If no error occured, save deviceId in local storage
         this.game.cameraDeviceId = this.camera.deviceId;
-        saveGameData(this.game, 'cameraDeviceId', game.cameraDeviceId)
+        saveGameData(this.game, 'cameraDeviceId', this.game.cameraDeviceId)
       } catch(err) {
         console.error(err)
         this.camera.error = err
@@ -253,14 +232,14 @@ new Vue({
     reloadCamera: async function(retry ) {
       console.log("Reloading camera")
       this.closeCamera()
-      this.loadExistingGame(this.game.marketData.id, true)
+      this.reloadCurrentGame(this.game.marketData.id, true)
     },
     closeCamera: function() {
       this.camera.show = false;
       this.camera.scanEnabled = false;
       this.camera.firstQRDetected = false;
       // Clear closeCamera timeout
-      clearTimeout(this.camera.closeTimeout)
+      // clearTimeout(this.camera.closeTimeout)
       // Stop camera
       if(this.camera.stream) {
         let tracks = this.camera.stream.getTracks()
@@ -275,7 +254,7 @@ new Vue({
       this.camera = cameraData;
       if(window.open_camera === "true") {
         window.open_camera = null
-        window.history.pushState({}, document.title, "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id);
+        window.history.pushState({}, document.title, "/monopoly/game?usr=" + this.game.player.id + "&game_id=" + this.game.marketData.id);
       }
     },
     onError: function(err) {
@@ -298,9 +277,12 @@ new Vue({
       this.game.propertiesCarouselSlide = onUpdatePropertiesCarouselSlide(this.game, newSlide, oldSlide)
       saveGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
     },
-    loadExistingGame: async function (gameId, openCamera = false) {
+    reloadCurrentGame: async function (gameId, openCamera = false) {
       console.log("Loading saved game: " + gameId);
-      const game = loadGameData(this.gameRecords[window.user.id][gameId]);
+      const savedGameRecords = fetchGameRecords()
+      this.gameRecords = savedGameRecords.gameRecords
+      this.gameRecordsData = savedGameRecords.gameRecordsData
+      const game = loadGameDataFromLocalStorage(this.gameRecords[window.user.id][gameId]);
       // this.game = initGameData(game);
       let href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
       if(openCamera) {
@@ -311,11 +293,12 @@ new Vue({
     },
     // Logic to create a new game and a dedicated wallet for game creator (called from index.html)
     createGame: async function () {
+      // Game creator player_id
       this.game.player.id = this.g.user.id;
       // Create free market wallet and dedicated player wallet for game creator
       await this.createFreeMarketWallet();
       // Check for payments to free market wallet
-      this.checkPaymentsToFreeMarket();
+      // this.checkPaymentsToFreeMarket();
       // Create a static LNURL pay link to be used for funding the free market
       await this.createFreeMarketPayLNURL();
       // Start checking free market balance
@@ -323,38 +306,40 @@ new Vue({
       // Display the view for initial free market funding
       this.game.showFundingView = true;
       // Save game data in local storage
-      saveGameData(game, 'showFundingView', this.game.showFundingView)
+      saveGameData(this.game, 'showFundingView', this.game.showFundingView)
       // Redirect to game.html
       window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + this.game.player.id + "&game_id=" + this.game.marketData.id;
     },
     // Logic to create free market wallet
     createFreeMarketWallet: async function () {
-      // Create free market wallet
+      // Create free market wallet belonging to game creator
       let res = await LNbits.api
         .request(
           'POST',
-          '/usermanager/api/v1/users',
-          this.g.user.wallets[0].inkey,
+          '/monopoly/api/v1/free_market_wallet',
+          '',
           {
-            admin_id: this.g.user.id,
-            user_name: "Free market",
-            wallet_name: "Free market liquidity",
-            email: "",
-            password: ""
-          }
+            game_creator_id: this.game.player.id
+          },
+          // this.g.user.wallets[0].inkey
         )
       if(res.data) {
-        this.game.marketData = res.data
         console.log("Monopoly: Free market wallet created successfully")
+        this.game.marketData.id = res.data.id // Save game_id
+        this.game.marketData.wallets.push(res.data)  // Save free market wallet
         // Register game in database
         res = await LNbits.api
           .request(
             'POST',
             '/monopoly/api/v1/games',
-            this.g.user.wallets[0].inkey,
+            '',
+            // this.g.user.wallets[0].inkey,
             {
-              admin_user_id: this.g.user.id, // LNBits user_id of game creator
               game_id: this.game.marketData.id, // wallet_id of game's free market wallet
+              admin_user_id: this.game.player.id, // LNBits user_id of game creator (is this needed?)
+              free_market_wallet_id: this.game.marketData.id,
+              free_market_wallet_inkey: this.game.marketData.wallets[0].inkey,
+              free_market_wallet_adminkey: this.game.marketData.wallets[0].adminkey,
               max_players_count: this.game.maxPlayersCount,
               cumulated_fines: 0,
               available_player_names: playerNames,
@@ -428,7 +413,7 @@ new Vue({
       }
       // Create LNURL pay link
       let res = await LNbits.api
-        .request('POST', '/lnurlp/api/v1/links', this.game.marketData.wallets[0].adminkey, payLNURLData);
+        .request('POST', '/lnurlp/api/v1/links', this.game.marketData.wallets[0].inkey, payLNURLData);
       if(res.data) {
         const payLinkId = res.data.id
         const payLink = res.data.lnurl
@@ -556,6 +541,7 @@ new Vue({
         this.game.playerInvoiceAmount = null;
       }
     },
+    // is this really useful?
     copyPlayerInvoice: async function() {
       // Generate an actual LN invoice to copy
       this.game.playerInvoice.paymentReq = null
@@ -578,9 +564,11 @@ new Vue({
           this.game.playerInvoice.paymentReq = res.data.payment_request
           this.game.playerInvoice.paymentHash = res.data.payment_hash
           // Save player invoice in local storage
-          saveGameData(this.game, 'playerInvoice', this.game.playerInvoice)
+          // Not necessary?
+          // saveGameData(this.game, 'playerInvoice', this.game.playerInvoice)
           // Once invoice has been created and saved, start checking for payments
-          this.checkPlayerInvoicePaid(this.game)
+
+          // this.checkPlayerInvoicePaid(this.game)
           // Copy player invoice paymentReq to clipboard
           await navigator.clipboard.writeText(this.game.playerInvoice.paymentReq)
         } else {
@@ -590,6 +578,7 @@ new Vue({
         LNbits.utils.notifyApiError('Error: invalid game.playerInvoice.amount')
       }
     },
+    /*
     // Logic to create a simplified invoice for free market to request funds
     createFreeMarketInvoice: async function (invoiceReason = null) {
       if(this.game.freeMarketInvoiceAmount && this.game.freeMarketInvoiceAmount > 0) {
@@ -634,6 +623,7 @@ new Vue({
         LNbits.utils.notifyApiError('Error: invalid game.freeMarketInvoice.amount')
       }
     },
+
     // Logic to create a static LNURL withdraw link to be used as an offer for buying a property
     createPlayerWithdrawLNURL: async function () {
       const voucherData = {
@@ -657,6 +647,7 @@ new Vue({
         LNbits.utils.notifyApiError(res.error)
       }
     },
+    */
     // Logic to display the free market funding dialog component
     showFundingDialog: function () {
       this.game.showFundingDialog = true
@@ -671,7 +662,7 @@ new Vue({
       // Delete game voucher now that all players joined and claimed their sats
       await this.deleteInviteVoucher()
       // Stop checking for new players
-      clearInterval(game.playersChecker)
+      clearInterval(this.game.playersChecker)
       // Initialize Lightning and Protocol cards indexes
       await this.initializeCards()
       // Start checking player turn
@@ -725,9 +716,11 @@ new Vue({
     checkFundingInvoicePaid: function (invoiceReason = null) {
       checkFundingInvoicePaid(this.game, invoiceReason)
     },
+    /*
     checkPaymentsToFreeMarket: function () {
       checkPaymentsToFreeMarket(this.game)
     },
+    */
     checkPaymentsToPlayer: function () {
       checkPaymentsToPlayer(this.game)
     },
@@ -770,12 +763,14 @@ new Vue({
     closePlayerInvoiceDialog: async function () {
       this.game.showPlayerInvoiceDialog = false
     },
+    /*
     showFreeMarketInvoiceDialog: async function () {
       this.game.showFreeMarketInvoiceDialog = true
     },
     closeFreeMarketInvoiceDialog: async function () {
       this.game.showFreeMarketInvoiceDialog = false
     },
+    */
     // Functions interfaces
     checkPlayerBalance: async function () {
       await checkPlayerBalance(this.game)
@@ -881,12 +876,14 @@ new Vue({
       this.game.saleInvoiceCreated = true;
       this.game.playerInvoiceAmount = null;
     },
+    /*
     createOfferVoucher: async function (property) {
       this.erasePropertyInvoices()
       this.game.showPropertyDialog = false;
       this.game.offerVoucher = true;
       this.game.showPropertyInvoiceDialog = true;
     },
+    */
     closePropertyDialog: function () {
       this.game.showPropertyDialog = false;
       this.game.propertyToShow = {};
@@ -931,15 +928,15 @@ new Vue({
       this.game.playerInvoice = newGame.playerInvoice;
       this.game.fundingInvoice.paymentReq = null;
       this.game.fundingInvoice = newGame.fundingInvoice;
-      this.game.playerVoucherId = null;
-      this.game.playerVoucher = null;
+      // this.game.playerVoucherId = null;
+      // this.game.playerVoucher = null;
       this.game.networkFeeInvoiceCreated = false;
       this.game.networkFeeInvoiceData = null;
       this.game.networkFeeInvoice = {};
       this.game.saleInvoiceCreated = false;
       this.game.upgradeInvoice = false;
       this.game.purchaseInvoiceCreated = false;
-      this.game.offerVoucher = false;
+      // this.game.offerVoucher = false;
       this.game.upgradeInvoiceCreated = false;
       this.game.propertyUpgradeData = null;
     },
@@ -1300,6 +1297,7 @@ new Vue({
                   this.game.player.wallets[0].inkey,
                   {
                     game_id: this.game.marketData.id,
+                    player_index: this.game.player.index,
                     card_type: "lightning",
                   }
               )
@@ -1342,6 +1340,7 @@ new Vue({
                   this.game.player.wallets[0].inkey,
                   {
                     game_id: this.game.marketData.id,
+                    player_index: this.game.player.index,
                     card_type: "protocol"
                   }
               )
@@ -1439,9 +1438,9 @@ new Vue({
     payFine: async function(card) {
       this.game.showPayFineSpinner = true
       if(card.fineType && card.fineType === "custom") {
-        this.game.fineAmountSats = Math.floor(card.fineMultiplier * game.customFineMultiplier)
+        this.game.fineAmountSats = Math.floor(card.fineMultiplier * this.game.customFineMultiplier)
       } else if(card.fineType && card.fineType === "pct_balance") {
-        this.game.fineAmountSats = Math.floor(card.fineMultiplier * game.userBalance)
+        this.game.fineAmountSats = Math.floor(card.fineMultiplier * this.game.userBalance)
       } else if (card.fineType && card.fineType === "pct_most_recent_tx") {
         this.game.fineAmountSats = Math.floor(card.fineMultiplier * 100) // Implement once tx history is implemented
       }
@@ -1496,11 +1495,11 @@ new Vue({
     },
     claimReward: async function(card) {
       if(card.rewardType && card.rewardType === "custom") {
-        this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * game.customRewardMultiplier)
+        this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * this.game.customRewardMultiplier)
       } else if(card.rewardType && card.rewardType === "fixed") {
         this.game.rewardAmountSats = Math.floor(card.rewardAmount)
       } else if (card.rewardType && card.rewardType === "pct_total_liquidity") {
-        this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * game.initialFunding)
+        this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * this.game.initialFunding)
       }
       let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallets[0])
       // Claim reward
@@ -1584,6 +1583,22 @@ new Vue({
       console.log("Claiming start bonus...")
       await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallets[0], this.game.startClaimAmount, 'start bonus')
       console.log("Start bonus claimed successfully")
+      let res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/players/update_first_start_claim_this_turn',
+          this.game.player.wallets[0].inkey,
+          {
+            game_id: this.game.marketData.id,
+            player_index: this.game.player.index,
+            first_start_claim_this_turn: false
+          }
+        )
+      if(res.data) {
+        console.log("First start claim this turn updated successfully")
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
       this.game.firstStartClaimThisTurn = false;
       saveGameData(this.game, 'firstStartClaimThisTurn', this.game.firstStartClaimThisTurn)
       this.game.showStartClaimDialog = false;
@@ -1606,7 +1621,7 @@ new Vue({
       this.camera.show = true
       if(window.open_camera !== "true") {
         window.open_camera = "true"
-        window.history.pushState({}, document.title, "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id + "&open_camera=true");
+        window.history.pushState({}, document.title, "/monopoly/game?usr=" + this.game.player.id + "&game_id=" + this.game.marketData.id + "&open_camera=true");
       }
     },
     hasCamera: function () {
@@ -1639,11 +1654,13 @@ new Vue({
         }
       } else {
         // Reset closeCamera timeout
+        /*
         clearTimeout(this.camera.closeTimeout)
         this.camera.closeTimeout = setTimeout(() => {
           this.closeCamera()
           this.camera.data = null;
         }, 10000)
+        */
       }
     },
     decodeQR: function () {

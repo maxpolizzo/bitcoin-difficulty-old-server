@@ -5,7 +5,9 @@ import {
   playPlayerPaymentReceivedSound,
   playMarketPaymentReceivedSound
 } from '../helpers/audio.js'
+// import  { registerPayment } from './database.js'
 
+/*
 export async function fetchPaymentsToFreeMarket(game) {
   const res = await LNbits.api.getPayments(game.marketData.wallets[0]);
 
@@ -54,8 +56,9 @@ export async function fetchPaymentsToFreeMarket(game) {
     LNbits.utils.notifyApiError(res.error)
   }
 }
+*/
 
-export async function fetchPaymentsToPlayer(game) {
+export async function fetchPaymentsToPlayer(game, reloadFromDatabase = false) {
   // if(game.imported || (game.created && game.showInviteButton) || game.started) {
     const res = await LNbits.api.getPayments(game.player.wallets[0]);
     if(res.data) {
@@ -66,16 +69,24 @@ export async function fetchPaymentsToPlayer(game) {
         .sort((a, b) => {
           return b.time - a.time
         })
-      payments.forEach((payment) => {
+      // payments.forEach(async (payment) => {
+      for (let index in payments) {
+        const payment = payments[index]
         if(game.playerWallet.payments[payment.payment_hash]) {
           if(game.playerWallet.payments[payment.payment_hash].pending && !payment.pending) {
             game.playerWallet.payments[payment.payment_hash].pending = false
             if(payment.isIn) {
               console.log("Player wallet received a payment")
-              // Play sound
-              playPlayerPaymentReceivedSound()
+              // Register payment in database
+              // await registerPayment(game, payment);
+              if(!reloadFromDatabase) {
+                // Play sound
+                playPlayerPaymentReceivedSound()
+              }
             } else  {
               console.log("Player wallet sent a payment")
+              // Register payment in database
+              // await registerPayment(game, payment);
             }
           }
         } else {
@@ -89,14 +100,20 @@ export async function fetchPaymentsToPlayer(game) {
             }
             if(payment.isIn) {
               console.log("Player wallet received a payment")
-              // Play sound
-              playPlayerPaymentReceivedSound()
+              // Register payment in database
+              // await registerPayment(game, payment);
+              if(!reloadFromDatabase) {
+                // Play sound
+                playPlayerPaymentReceivedSound()
+              }
             } else  {
               console.log("Player wallet sent a payment")
+              // Register payment in database
+              // await registerPayment(game, payment);
             }
           }
         }
-      })
+      }
       // Save payments to player in local storage
       saveGameData(game, 'playerWallet', game.playerWallet)
     } else {
@@ -137,13 +154,14 @@ export async function fetchFundingInvoicePaid(game, invoiceReason = null) {
     LNbits.utils.notifyApiError(res.error)
   }
 }
-
+// Is this useful?
+/*
 export async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
   const res = await LNbits.api.getPayment(game.player.wallets[0], game.playerInvoice.paymentHash);
   if(res.data) {
     if (res.data.paid) {
       console.log("Player invoice paid!")
-      playPlayerPaymentReceivedSound()
+      // playPlayerPaymentReceivedSound() // Not necessary: sound already played in fetchPaymentsToPlayer
       // Clear payment checker interval
       clearInterval(game.playerInvoice.paymentChecker)
       // Erase previous player invoice
@@ -158,6 +176,7 @@ export async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
     LNbits.utils.notifyApiError(res.error)
   }
 }
+*/
 
 export async function fetchFreeMarketInvoicePaid(game, invoiceReason = null) {
   const res = await LNbits.api.getPayment(game.marketData.wallets[0], game.freeMarketInvoice.paymentHash);
@@ -196,7 +215,8 @@ export async function fetchPlayerBalance(game) {
         .request(
           'PUT',
           '/monopoly/api/v1/players/balance',
-          game.player.wallets[0].inkey,
+          // game.player.wallets[0].inkey,
+          '',
           {
             player_wallet_id: game.player.wallets[0].id,
             player_balance: game.userBalance
@@ -219,7 +239,7 @@ export async function fetchPlayerBalance(game) {
 export async function fetchMarketLiquidity(game) {
   const liquidityBefore = game.marketLiquidity
   if(game.created) {
-    // Game creator fetches free maerket balance from LNBits API and registers it in database
+    // Game creator fetches free market balance from LNBits API and registers it in database
     let res = await LNbits.api.getWallet({
       inkey: game.marketData.wallets[0].inkey
     })
@@ -234,7 +254,8 @@ export async function fetchMarketLiquidity(game) {
           .request(
             'PUT',
             '/monopoly/api/v1/games/market-liquidity',
-            game.marketData.wallets[0].inkey,
+            // game.marketData.wallets[0].inkey,
+            '',
             {
               game_id: game.marketData.id,
               balance: game.marketLiquidity

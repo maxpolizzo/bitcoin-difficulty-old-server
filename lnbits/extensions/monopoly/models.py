@@ -5,9 +5,20 @@ from typing import Optional
 class CreateGameData(BaseModel):
     game_id: str = Query(...)
     admin_user_id: str = Query(...)
+    free_market_wallet_id: str = Query(...)
+    free_market_wallet_inkey: str = Query(...)
+    free_market_wallet_adminkey: str = Query(...)
     max_players_count: int
     cumulated_fines: int
     available_player_names: str =  Query(...)
+
+class CreateFreeMarketWallet(BaseModel):
+    game_creator_id: str = Query(...)
+
+class FreeMarketWallet(BaseModel):
+    free_market_wallet_id: str = Query(...)
+    free_market_wallet_inkey: str = Query(...)
+    free_market_wallet_adminkey: str = Query(...)
 
 class CreateFirstPlayerData(BaseModel):
     game_id: str = Query(...)
@@ -78,8 +89,21 @@ class InvitePlayerData(BaseModel):
 class Game(BaseModel):
     game_id: str = Query(...)
     admin_user_id: str = Query(...)
+    market_liquidity: int
+    pay_link_id: Optional[str] = None
+    pay_link: Optional[str] = None
+    invite_voucher_id: Optional[str] = None
+    reward_voucher_id: Optional[str] = None
+    initial_funding: Optional[int] = None
+    initial_player_balance: Optional[int] = None
+    started: bool
     max_players_count: int
+    available_player_names: str = Query(...)
+    payment_req: Optional[str] = None
+    payment_hash: Optional[str] = None
+    cumulated_fines: int
     player_turn: int
+    time: str = Query(...)
 
 class MarketLiquidity(BaseModel):
     market_liquidity: int
@@ -165,7 +189,13 @@ class InitCardsIndex(BaseModel):
 
 class UpdateCardIndex(BaseModel):
     game_id: str
+    player_index: int
     card_type: str
+
+class UpdatePlayerFirstStartClaimThisTurn(BaseModel):
+    game_id: str
+    player_index: int
+    first_start_claim_this_turn: bool
 
 class UpdateCumulatedFines(BaseModel):
     game_id: str
@@ -189,3 +219,25 @@ class PlayerPayLink(BaseModel):
 
 class IncrementPlayerTurn(BaseModel):
     game_id: str
+
+class UpdatePlayerFirstLightningCardThisTurn(BaseModel):
+    game_id: str
+    player_index: int
+    first_lightning_card_this_turn: bool
+
+class UpdatePlayerFirstProtocolCardThisTurn(BaseModel):
+    game_id: str
+    player_index: int
+    first_protocol_card_this_turn: bool
+
+class Payment(BaseModel):
+    game_id: str
+    player_wallet_id: str
+    amount: int
+    date_time: str
+    is_in: bool
+    is_out: bool
+    memo: str
+    payment_hash: str
+    bolt11: str
+
