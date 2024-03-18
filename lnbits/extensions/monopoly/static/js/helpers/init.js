@@ -1,6 +1,6 @@
 import { properties } from '../data/properties.js'
 import { fetchMarketLiquidity, fetchPlayerBalance } from '../calls/api.js'
-import { fetchPlayers, fetchPlayerTurn } from '../calls/database.js'
+import {fetchPlayers, fetchPlayerTurn, loadGameDataFromDatabase} from '../calls/database.js'
 import {
   checkPlayersBalances,
   checkPlayers,
@@ -9,11 +9,53 @@ import {
   checkProperties,
   checkMarketLiquidity,
   checkGameStarted,
-  checkPaymentsToFreeMarket,
   checkPaymentsToPlayer
 } from '../calls/intervals.js'
+import { loadGameDataFromLocalStorage, saveGameRecord } from './storage.js'
+import { newGame } from '../data/data.js'
+import { createPlayerPayLNURL } from './utils.js'
 
-export function initGameData(game) {
+export async function loadGame(savedGameRecords) {
+  let game;
+  // Load  game and player wallet
+  if(window.user.id && window.game_id) {
+    if(
+      savedGameRecords &&
+      savedGameRecords.gameRecords &&
+      savedGameRecords.gameRecords[window.user.id] &&
+      savedGameRecords.gameRecords[window.user.id][window.game_id]
+    ) {
+      game = loadGameDataFromLocalStorage(savedGameRecords.gameRecords[window.user.id][window.game_id]);
+      game = initGameData(game);
+    } else {
+      game = await loadGameDataFromDatabase(window.game_id, window.user.id)
+      // Save game in local storage
+      await saveGameRecord(game)
+    }
+    game = await initGameData(game);
+  } else {
+    game = newGame;
+  }
+  // If not already created, create a static LNURL pay link to be used for sending sats to player
+  if(game.imported && !game.playerPayLinkCreated) {
+    const playerPayLinkCreated = await createPlayerPayLNURL(game); // Is this await actually working?
+    if(playerPayLinkCreated) {
+      game.playerPayLinkCreated = true; // Already saved in local storage
+      // No need to save payLinkId and payLink in local storage (will be fetched from database by other players)
+    } else {
+      LNbits.utils.notifyApiError("Error creating player pay link")
+    }
+  }
+  // Show invite button if needed
+  if(game.fundingStatus === 'success' && !game.started && !game.showInviteButton) {
+    // Show invite button only after redirection following onGameFunded() call
+    game.showInviteButton = true
+  }
+
+  return game
+}
+
+function initGameData(game) {
     // Initialize game properties map
     game.properties["for-sale"] = properties;
     // Start checking game funding balance
@@ -49,11 +91,6 @@ export function initGameData(game) {
       checkMarketLiquidity(game).then(() => {
         console.log("Periodically checking game funding balance...")
       })
-      if(game.created) {
-        checkPaymentsToFreeMarket(game).then(() => {
-          console.log("Periodically checking for payments to free market wallet...")
-        })
-      }
       if(!game.started) {
         checkGameStarted(game).then(() => {
           console.log("Periodically checking if game creator started the game...")

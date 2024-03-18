@@ -1,12 +1,15 @@
 async def m001_initial(db):
     """
-    Initial games table.
+    Games table.
     """
     await db.execute(
        f"""
        CREATE TABLE monopoly.games (
            game_id TEXT PRIMARY KEY,
            admin_user_id TEXT NOT NULL,
+           free_market_wallet_id TEXT NOT NULL,
+           free_market_wallet_inkey TEXT NOT NULL,
+           free_market_wallet_adminkey TEXT NOT NULL,
            market_liquidity {db.big_int},
            pay_link_id TEXT,
            pay_link TEXT,
@@ -27,7 +30,7 @@ async def m001_initial(db):
     )
 
     """
-    Initial players table.
+    Players table.
     """
     await db.execute(
       f"""
@@ -41,14 +44,16 @@ async def m001_initial(db):
           player_pay_link_id TEXT,
           player_pay_link TEXT,
           game_id TEXT NOT NULL,
-          joined BOOLEAN DEFAULT false,
+          first_start_claim_this_turn BOOLEAN DEFAULT true,
+          first_lightning_card_this_turn BOOLEAN DEFAULT true,
+          first_protocol_card_this_turn BOOLEAN DEFAULT true,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     """
     )
 
     """
-    Initial properties table.
+    Properties table.
     """
     await db.execute(
       f"""
@@ -65,7 +70,7 @@ async def m001_initial(db):
     )
 
     """
-    Initial lightning and protocol cards table.
+    Lightning and protocol cards table.
     """
     await db.execute(
       f"""
@@ -75,6 +80,25 @@ async def m001_initial(db):
           next_index INTEGER NOT NULL,
           player_index INTEGER NOT NULL,
           time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    """
+    )
+
+    """
+    Payments table.
+    """
+    await db.execute(
+      f"""
+      CREATE TABLE monopoly.payments (
+          game_id TEXT NOT NULL,
+          player_wallet_id TEXT NOT NULL,
+          amount INTEGER NOT NULL,
+          date_time TEXT NOT NULL,
+          is_in BOOLEAN NOT NULL,
+          is_out BOOLEAN NOT NULL,
+          memo TEXT NOT NULL,
+          payment_hash TEXT NOT NULL,
+          bolt11 TEXT NOT NULL
       );
     """
     )

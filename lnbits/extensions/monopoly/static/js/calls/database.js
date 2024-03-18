@@ -1,56 +1,66 @@
+import { newGame } from '../data/data.js'
 import { properties } from '../data/properties.js'
 import { createGameVouchers } from './api.js'
 import {playNextPlayerTurnSound, playPlayerJoinedSound, playStartGameSound} from '../helpers/audio.js'
 import { saveGameData } from '../helpers/storage.js'
 import { timeout } from '../helpers/utils.js'
 
-export async function onGameFunded (game) {
+export async function onGameFunded (game, reload = false) {
   game.showFundingDialog = false
   game.showFundingView = false
   game.fundingStatus = 'success'
   game.initialFunding = game.marketLiquidity
   game.initialPlayerBalance = 1500 // 1500 sats initial player balance
-  // Register initial funding and initial player balance in database
-  const res = await LNbits.api
-    .request(
-      'PUT',
-      '/monopoly/api/v1/games/funding',
-      game.player.wallets[0].inkey,
-      {
-        game_id: game.marketData.id,
-        initial_funding: game.initialFunding,
-        initial_player_balance: game.initialPlayerBalance
-      }
-    )
-  if(res.data) {
-    // Save game data into local storage
-    saveGameData(game, 'showFundingDialog', game.showFundingDialog)
-    saveGameData(game, 'showFundingView', game.showFundingView)
-    saveGameData(game, 'fundingStatus', game.fundingStatus)
-    saveGameData(game, 'initialFunding', game.initialFunding)
-    saveGameData(game, 'initialPlayerBalance', game.initialPlayerBalance)
-    console.log("Monopoly: game has been funded")
+  if(reload && game.inviteVoucherId && game.rewardVoucherId) {
+    console.log("onGameFunded RELOAD")
+    game.showInviteButton = true
+    return game
   } else {
-    LNbits.utils.notifyApiError(res.error)
+    console.log("onGameFunded REGULAR")
+    // Register initial funding and initial player balance in database
+    const res = await LNbits.api
+      .request(
+        'PUT',
+        '/monopoly/api/v1/games/funding',
+        game.player.wallets[0].inkey,
+        {
+          game_id: game.marketData.id,
+          initial_funding: game.initialFunding,
+          initial_player_balance: game.initialPlayerBalance
+        }
+      )
+    if(res.data) {
+      // Save game data into local storage
+      saveGameData(game, 'showFundingDialog', game.showFundingDialog)
+      saveGameData(game, 'showFundingView', game.showFundingView)
+      saveGameData(game, 'fundingStatus', game.fundingStatus)
+      saveGameData(game, 'initialFunding', game.initialFunding)
+      saveGameData(game, 'initialPlayerBalance', game.initialPlayerBalance)
+      console.log("Monopoly: game has been funded")
+    } else {
+      LNbits.utils.notifyApiError(res.error)
+    }
+    // Create LNURl vouchers to be claimed by players
+    await createGameVouchers(game)
+    // Redirect to game.html
+    window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
   }
-  // Create LNURl vouchers to be claimed by players
-  await createGameVouchers(game)
-  // Redirect to game.html
-  window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
 }
 
 export async function fetchGameStarted(game) {
+  /*
   let inkey
   if(game.player.wallets.length) {
     inkey = game.player.wallets[0].inkey // Case where player wallet has already been created
   } else {
     inkey = game.marketData.wallets[0].inkey  // Case where player wallet has not yet been created
   }
+  */
   let res = await LNbits.api
     .request(
       'GET',
       '/monopoly/api/v1/game-started?game_id=' + game.marketData.id,
-      inkey,
+      // inkey,
     )
   if(res.data) {
     let gameStarted = res.data[0][1]
@@ -78,7 +88,7 @@ export async function fetchPlayers(game) {
     .request(
       'GET',
       '/monopoly/api/v1/players?game_id=' + game.marketData.id,
-      game.player.wallets[0].inkey
+      // game.player.wallets[0].inkey
     )
   if(res.data) {
     let playersCount = 0
@@ -120,7 +130,7 @@ export async function fetchPlayersBalances(game) {
     .request(
       'GET',
       '/monopoly/api/v1/players?game_id=' + game.marketData.id,
-      game.player.wallets[0].inkey
+      // game.player.wallets[0].inkey
     )
   if(res.data) {
     let balanceChanged = false;
@@ -157,7 +167,7 @@ export async function fetchPlayerTurn(game) {
       .request(
           'GET',
           '/monopoly/api/v1/player_turn?game_id=' + game.marketData.id,
-          game.player.wallets[0].inkey
+          // game.player.wallets[0].inkey
       )
   if(res.data) {
     let nextPlayerTurn = res.data["player_turn"]
@@ -188,7 +198,7 @@ export async function fetchProperties(game) {
     .request(
       'GET',
       '/monopoly/api/v1/properties?game_id=' + game.marketData.id,
-      game.player.wallets[0].inkey
+      // game.player.wallets[0].inkey
     )
   if(res.data) {
     if(res.data.length) {
@@ -305,4 +315,138 @@ export async function fetchProperties(game) {
     LNbits.utils.notifyApiError(res.error)
   }
 }
+
+export async function registerPayment(game, payment) {
+  // register payment in database
+  let res = await LNbits.api
+    .request(
+      'POST',
+      '/monopoly/api/v1/payments',
+      "", // game.player.wallets[0].inkey,
+      {
+        game_id: game.marketData.id,
+        player_wallet_id: payment.wallet_id,
+        amount: payment.amount,
+        date_time: payment.date,
+        is_in: payment.isIn,
+        is_out: payment.isOut,
+        memo: payment.memo,
+        payment_hash: payment.payment_hash,
+        bolt11: payment.bolt11
+      }
+    )
+  if(res.data) {
+    console.log("Payment registered successfully")
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
+export async function loadGameDataFromDatabase(gameId, playerId) {
+  console.log("Loading saved game from database..." + window.game_id);
+  let game = newGame;
+  game.marketData.id = gameId;
+  // Fetch game data from database
+  let res = await LNbits.api
+    .request(
+      'GET',
+      '/monopoly/api/v1/games?game_id=' + game.marketData.id
+    )
+  if(res.data) {
+    let gameData =  {}
+    for(let index in res.data) {
+      gameData[res.data[index][0]] = res.data[index][1]
+    }
+    game.timestamp = gameData.time
+    if(gameData.admin_user_id === playerId) {
+      // Player is game creator
+      game.created = true
+      game.player.id = gameData.admin_user_id
+      game.playersCount = 1
+      game.lnurlPayLinkId = gameData.pay_link_id
+      game.lnurlPayLink = gameData.pay_link
+      // Fetch free market wallet controlled by game creator
+      // This is fetched separately for security reasons:
+      // TO DO: request an API key so that this can only be fetched by game creator (and make sure it can't be fetched
+      // by other means)
+      // API key could be admin key from game creator's other wallet wallets[0] which game creator would necessarily
+      // have created before creating the game
+      // This API key would allow game creator to reload any game created with the used_id of this wallet (recover
+      // free market wallet, player wallet and game data) and to re-generate invite links for all other players which
+      // allow to recover those players' wallets as well
+      res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/free_market_wallet?game_id=' + gameId
+        )
+      if(res.data) {
+        // Save free market wallet
+        game.marketData.wallets.push({
+          id: res.data.free_market_wallet_id,
+          inkey: res.data.free_market_wallet_inkey,
+          adminkey: res.data.free_market_wallet_adminkey
+        })
+      }
+    } else {
+      game.imported = true
+    }
+    if(gameData.initial_funding) {
+      // Game has been funded
+      game.initialFunding = gameData.initial_funding
+      game.initialPlayerBalance = gameData.initial_player_balance
+      game.inviteVoucherId = gameData.invite_voucher_id
+      game.rewardVoucherId = gameData.reward_voucher_id
+      game = await onGameFunded(game, true)
+      // Fetch player data from database
+      // TO DO: do not allow player_id and wallet_id to be fetched by anyone from database (security risk)
+      // Instead, request an API key so that this can only be fetched by game creator (and make sure it can't be fetched
+      // by other means)
+      // In order to reload the game, players need to get a recovery link from game creator. This link contains an
+      // ephemeral API key set by game creator which allows players to recover their player wallet and game data
+      res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/player_by_user_id?game_id=' + gameId + '&player_id=' + playerId
+        )
+      if(res.data) {
+        console.log(res.data)
+        game.player.id = res.data.player_user_id
+        game.player.index = res.data.player_index
+        game.player.name = res.data.player_wallet_name
+        game.player.wallet_id = res.data.player_wallet_id
+        game.player.wallets.push({
+          id: res.data.player_wallet_id,
+          name: res.data.player_wallet_name,
+          user: res.data.player_user_id,
+          // adminkey:
+          inkey: res.data.player_wallet_inkey,
+          balance_msat: res.data.player_balance * 1000
+        })
+        // Fetch player pay link from database
+        res = await LNbits.api
+          .request(
+            'GET',
+            '/monopoly/api/v1/players/pay_link?player_wallet_id=' + game.player.wallet_id
+          )
+        if(res.data) {
+          if(res.data.player_pay_link_id && res.data.player_pay_link)
+            game.playerPayLinkCreated = true
+        }
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+    } else {
+      game.showFundingView = true
+    }
+    if(gameData.started) {
+      // Game has been started
+      game.started = gameData.started
+    }
+
+    return game
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
 

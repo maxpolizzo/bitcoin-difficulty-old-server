@@ -1,10 +1,8 @@
 import {
-  fetchPaymentsToFreeMarket,
   fetchPaymentsToPlayer,
   fetchMarketLiquidity,
   fetchFundingInvoicePaid,
   fetchPlayerBalance,
-  fetchPlayerInvoicePaid,
   fetchFreeMarketInvoicePaid
 } from './api.js'
 import {
@@ -17,6 +15,7 @@ import {
 
 const PERIOD = 2000;
 
+/*
 // Logic to check periodically for payments to free market wallet
 export async function checkPaymentsToFreeMarket(game) {
   clearInterval(game.freeMarketPaymentChecker)
@@ -24,7 +23,7 @@ export async function checkPaymentsToFreeMarket(game) {
     await fetchPaymentsToFreeMarket(game)
   }, PERIOD)
 }
-
+*/
 // Logic to check periodically for payments to player wallet
 export async function checkPaymentsToPlayer(game) {
   clearInterval(game.playerPaymentChecker)
@@ -41,6 +40,8 @@ export function checkFundingInvoicePaid(game, invoiceReason = null) {
   }, PERIOD)
 }
 
+// Is this useful?
+/*
 // Logic to check periodically if player invoice has been paid
 export function checkPlayerInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.playerInvoice.paymentChecker)
@@ -48,7 +49,7 @@ export function checkPlayerInvoicePaid(game, invoiceReason = null) {
     await fetchPlayerInvoicePaid(game, invoiceReason)
   }, PERIOD)
 }
-
+*/
 // Logic to check periodically if free market invoice has been paid
 export function checkFreeMarketInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.freeMarketInvoice.paymentChecker)

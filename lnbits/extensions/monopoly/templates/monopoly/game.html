@@ -18,8 +18,10 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
 {% endblock %} {% block page %}
 <link rel="stylesheet" href="/monopoly/static/css/monopoly.css"/>
-<div id="monopoly" class="row q-col-gutter-md">
 
+<div v-if="loading">Loading</div>
+
+<div v-else id="monopoly" class="row q-col-gutter-md">
   <!-- Game view -->
   <q-page-sticky position="top" style="z-index: 999;" v-if="game.started">
     <q-header class="bg-dark" :style="reactiveStyles.header">
@@ -541,7 +543,7 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="game.showFreeMarketInvoiceDialog" @hide="closeFreeMarketInvoiceDialog">
+  <!--q-dialog v-model="game.showFreeMarketInvoiceDialog" @hide="closeFreeMarketInvoiceDialog">
 
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
 
@@ -549,7 +551,6 @@
         Request funds on behalf of the free market by showing this invoice ({% raw %}{{game.freeMarketInvoice.amount}}{% endraw %} sats)
       </div>
       <div v-if="game.freeMarketInvoice.qr" class="text-center q-mb-lg">
-        <!--a :href="'lightning:' + game.freeMarketInvoice.paymentReq"-->
           <q-responsive :ratio="1" class="q-mx-xl">
             <qrcode
               :value="game.freeMarketInvoice.qr"
@@ -557,7 +558,6 @@
               class="rounded-borders"
             ></qrcode>
           </q-responsive>
-        <!--/a-->
       </div>
       <div class="row">
         <div class="col-8 col-md-8">
@@ -581,7 +581,7 @@
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
     </q-card>
-  </q-dialog>
+  </q-dialog-->
 
   <q-dialog v-model="game.showNotYourTurnPopUp" @hide="closeNotYourTurnPopUp">
 
@@ -1168,7 +1168,7 @@
         </div>
       </div>
 
-      <div v-if="game.offerVoucher" class="row">
+      <!--div v-if="game.offerVoucher" class="row">
         <div class="col-8 col-md-8">
           <q-form @submit="createPlayerWithdrawLNURL()" class="q-gutter-md col-8 col-md-8">
             <q-input
@@ -1185,7 +1185,7 @@
             Generate
           </q-btn>
         </div>
-      </div>
+      </div-->
 
       <div class="row q-mt-lg">
         <q-btn v-if="game.purchaseInvoiceCreated" outline color="grey" @click="copyText(game.propertyPurchaseData)">Copy invoice</q-btn>
@@ -1546,6 +1546,5 @@
       </div>
     </q-card>
   </q-dialog>
-
 </div>
 {% endblock %}
