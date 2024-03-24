@@ -28,7 +28,6 @@ Vue.component('lnbits-wallet-list', {
   },
   template: `
     <q-list v-if="user && user.wallets.length" dense class="lnbits-drawer__q-list">
-      <q-item-label header>Wallets TEST</q-item-label>
       <q-item v-for="wallet in wallets" :key="wallet.id"
         clickable
         :active="activeWallet && activeWallet.id === wallet.id"

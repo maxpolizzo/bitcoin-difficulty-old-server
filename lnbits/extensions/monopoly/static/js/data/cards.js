@@ -1,4 +1,4 @@
-export const lightning_cards = {
+export const technology_cards = {
   "0": {
     id: 0,
     imgPath: "./static/images/lightning/cards/lightning_card_01.png",
@@ -74,7 +74,7 @@ export const lightning_cards = {
   },
 };
 
-export const protocol_cards = {
+export const black_swan_cards = {
   "0": {
     id: 0,
     imgPath: "./static/images/protocol/cards/protocol_card_01.png",
