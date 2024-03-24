@@ -13,27 +13,27 @@ templates = Jinja2Templates(directory="templates")
 @monopoly_ext.get("/", response_class=HTMLResponse)
 async def index(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
+    user: User = Depends(check_user_exists),
 ):
     return monopoly_renderer().TemplateResponse(
         "monopoly/index.html", {"request": request, "user": user.dict()}
     )
 
 @monopoly_ext.get("/game", response_class=HTMLResponse)
-async def index(
+async def game(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
-    game_id: str = Query(...),
+    user: User = Depends(check_user_exists),
+    wal: Optional[str] = None,
     open_camera: Optional[str] = None
 ):
     return monopoly_renderer().TemplateResponse(
-        "monopoly/game.html", {"request": request, "user": user.dict(), "game_id": game_id, "open_camera": open_camera}
+        "monopoly/game.html", {"request": request, "user": user.dict(), "wallet_id": wal, "open_camera": open_camera}
     )
 
 @monopoly_ext.get("/invite", response_class=HTMLResponse)
 async def invite(
     request: Request,
-    user: User = Depends(check_user_exists),  # type: ignore
+    user: User = Depends(check_user_exists),
     game_id: str = Query(...),
     invite_voucher: str = Query(...),
     reward_voucher: str = Query(...),

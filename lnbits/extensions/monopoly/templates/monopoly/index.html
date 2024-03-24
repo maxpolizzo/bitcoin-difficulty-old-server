@@ -8,10 +8,10 @@
 {% endblock %} {% block page %}
 <link rel="stylesheet" href="/monopoly/static/css/monopoly.css"/>
 <div id="monopoly" class="row q-col-gutter-md">
+  <!-- Welcome view -->
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
-      <!-- Welcome view -->
-      <div style="padding: 1em; font-size: 1.2em;" v-if="!game.created && !game.imported">
+      <div style="padding: 1em; font-size: 1.2em;">
         <div class="row">
           <span class="col-8 col-md-8" :style="reactiveStyles.welcomeText">
              Welcome to Bitcoin Monopoly!

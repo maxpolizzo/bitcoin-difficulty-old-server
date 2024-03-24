@@ -2,96 +2,11 @@ from pydantic import BaseModel
 from fastapi.param_functions import Query
 from typing import Optional
 
-class CreateGameData(BaseModel):
-    game_id: str = Query(...)
-    admin_user_id: str = Query(...)
-    free_market_wallet_id: str = Query(...)
-    free_market_wallet_inkey: str = Query(...)
-    free_market_wallet_adminkey: str = Query(...)
-    max_players_count: int
-    cumulated_fines: int
-    available_player_names: str =  Query(...)
-
-class CreateFreeMarketWallet(BaseModel):
-    game_creator_id: str = Query(...)
-
-class FreeMarketWallet(BaseModel):
-    free_market_wallet_id: str = Query(...)
-    free_market_wallet_inkey: str = Query(...)
-    free_market_wallet_adminkey: str = Query(...)
-
-class CreateFirstPlayerData(BaseModel):
-    game_id: str = Query(...)
-    user_id: str = Query(...)
-
-class UpdateFirstPlayerData(BaseModel):
-    game_id: str = Query(...)
-    player_wallet_id: str = Query(...)
-
-class UpdateFirstPlayerName(BaseModel):
-    player_wallet_id: str = Query(...)
-    player_wallet_name: str = Query(...)
-
-class UpdatePlayerName(BaseModel):
-    player_wallet_id: str = Query(...)
-    player_wallet_name: str = Query(...)
-
-class UpdateMarketLiquidityData(BaseModel):
-    game_id: str = Query(...)
-    balance: int
-
-class UpdateGameFundingData(BaseModel):
-    game_id: str = Query(...)
-    initial_funding: int
-    initial_player_balance: int
-
-class StartGameData(BaseModel):
-   game_id: str = Query(...)
-   started: bool
-
-class UpdateVoucherData(BaseModel):
-    game_id: str = Query(...)
-    voucher_id: str = Query(...)
-
-class UpdateGamePayLinkData(BaseModel):
-    game_id: str = Query(...)
-    pay_link_id: str = Query(...)
-    pay_link: str = Query(...)
-
-class UpdateGameInvoiceData(BaseModel):
-    game_id: str = Query(...)
-    payment_req: str = Query(...)
-    payment_hash : str = Query(...)
-
-class UpdatePlayerBalance(BaseModel):
-    player_wallet_id: str = Query(...)
-    player_balance: int
-
-class CreatePlayerData(BaseModel):
-    player_index: int
-    player_user_id: str = Query(...)
-    player_wallet_id: str = Query(...)
-    player_wallet_name: str = Query(...)
-    player_wallet_inkey: str = Query(...)
-    player_balance: int
-    game_id: str = Query(...)
-
-class JoinPlayerData(BaseModel):
-    game_id: str = Query(...)
-    player_user_id: str = Query(...)
-    player_wallet_id: str = Query(...)
-    player_wallet_name: str = Query(...)
-    player_wallet_inkey: str = Query(...)
-
-class InvitePlayerData(BaseModel):
-    game_id: str = Query(...)
-
 class Game(BaseModel):
     game_id: str = Query(...)
-    admin_user_id: str = Query(...)
-    market_liquidity: int
-    pay_link_id: Optional[str] = None
-    pay_link: Optional[str] = None
+    free_market_liquidity: Optional[int] = None
+    payment_req: Optional[str] = None
+    payment_hash: Optional[str] = None
     invite_voucher_id: Optional[str] = None
     reward_voucher_id: Optional[str] = None
     initial_funding: Optional[int] = None
@@ -99,145 +14,171 @@ class Game(BaseModel):
     started: bool
     max_players_count: int
     available_player_names: str = Query(...)
-    payment_req: Optional[str] = None
-    payment_hash: Optional[str] = None
-    cumulated_fines: int
+    cumulated_fines: Optional[int] = None
     player_turn: int
     time: str = Query(...)
 
-class MarketLiquidity(BaseModel):
-    market_liquidity: int
+class GameId(BaseModel):
+    game_id: str = Query(...)
 
-class PlayerBalance(BaseModel):
-   player_balance: int
+class GameAdminUserId(BaseModel):
+    game_id: str = Query(...)
+    admin_user_id: str = Query(...)
 
-class GameFunding(BaseModel):
-    initial_funding: int
-    initial_player_balance: int
+class CreateGame(BaseModel):
+    max_players_count: int
+    available_player_names: str =  Query(...)
 
-class GameStarted(BaseModel):
-    started: bool
+class CreatePlayerWallet(BaseModel):
+    game_id: str = Query(...)
+    is_free_market: bool
+    player_index: int
+    user: str = Query(...)
+    id: str = Query(...)
+    inkey: str = Query(...)
+    adminkey: str = Query(...)
 
-class Voucher(BaseModel):
-    voucher_id: str = Query(...)
+class PlayerWallet(BaseModel):
+    game_id: str = Query(...)
+    is_free_market: bool
+    player_index: int
+    user: str = Query(...)
+    id: str = Query(...)
+    inkey: str = Query(...)
+    adminkey: str = Query(...)
+    pay_link_id: Optional[str] = None
+    pay_link: Optional[str] = None
+
+class PlayerWalletInfo(BaseModel):
+    game_id: str = Query(...)
+    is_free_market: bool
+    player_index: int
+
+class RegisterWalletPayLink(BaseModel):
+    game_id: str = Query(...)
+    wallet_id: str = Query(...)
+    pay_link_id: str = Query(...)
+    pay_link: str = Query(...)
 
 class PayLink(BaseModel):
     pay_link_id: str = Query(...)
     pay_link: str = Query(...)
 
-class Invoice(BaseModel):
-    payment_req: str = Query(...)
-    payment_hash : str = Query(...)
-
-class GameWithPayLink(BaseModel):
+class UpdateFreeMarketLiquidity(BaseModel):
     game_id: str = Query(...)
-    admin_user_id: str = Query(...)
-    initial_funding: int
-    initial_player_balance: int
-    max_players_count: int
-    pay_link_id: str = Query(...)
-    pay_link: str = Query(...)
+    free_market_liquidity: int
 
-class GameWithInvoice(BaseModel):
+class FreeMarketLiquidity(BaseModel):
+    free_market_liquidity: int
+
+class GameStarted(BaseModel):
+    started: bool
+
+class CreateFirstPlayer(BaseModel):
     game_id: str = Query(...)
-    admin_user_id: str = Query(...)
-    payment_req: str = Query(...)
-    payment_hash : str = Query(...)
+    user_id: str = Query(...)
+
+class CreatePlayer(BaseModel):
+    game_id: str = Query(...)
+    player_index: int
+    player_name: str
 
 class Player(BaseModel):
-    player_index: str
-    player_user_id: str
-    player_wallet_id: str
-    player_wallet_name: str
-    player_wallet_inkey: str
-    player_balance: int
     game_id: str
+    player_index: int
+    player_name: str
+    player_balance: int
+
+class NewPlayerData(BaseModel):
+    player_index: int
+    name: str
+    user: str = Query(...)
+    id: str = Query(...)
+    inkey: str = Query(...)
+    adminkey: str = Query(...)
+
+class UpdatePlayerBalance(BaseModel):
+    game_id: str = Query(...)
+    player_index: int
+    balance: int
+
+class PlayerBalance(BaseModel):
+   balance: int
+
+class CreateVoucher(BaseModel):
+    game_id: str = Query(...)
+    voucher_id: str = Query(...)
+
+class UpdateGameFunding(BaseModel):
+    game_id: str = Query(...)
+    initial_funding: int
+    initial_player_balance: int
 
 class Property(BaseModel):
-    property_id: int
-    property_color: str
-    property_owner_id: str
-    property_mining_capacity: int
-    property_mining_income: int
     game_id: str
+    property_id: int
+    color: str
+    player_index: int
+    mining_capacity: int
+    mining_income: int
 
-class UpdatePropertyOwner(BaseModel):
-    game_id: str
-    property_color: str
-    property_id: int
-    new_owner: str
+class InvitedPlayer(BaseModel):
+    id: str = Query(...)
+    name: str = Query(...)
+
+class GameInvite(BaseModel):
+    game_id: str = Query(...)
+    free_market_liquidity: Optional[int] = None
+    initial_funding: Optional[int] = None
+    initial_player_balance: Optional[int] = None
+    max_players_count: int
+
+class JoinGame(BaseModel):
+    game_id: str = Query(...)
+    user_id: str = Query(...)
+    wallet_id: str = Query(...)
+    player_index: Optional[int] = None
+    player_name: str = Query(...)
+
+class InitializeCards(BaseModel):
+    game_id: str = Query(...)
+    technology_cards_max_index: int
+    black_swan_cards_max_index: int
+
+class Card(BaseModel):
+    game_id: str = Query(...)
+    card_type: str = Query(...)
+    ids: str = Query(...)
+    card_index: int
+    max_index: int
+
+class PickCard(BaseModel):
+    game_id: str = Query(...)
+    card_type: str = Query(...)
+    player_index: int
+
+class PlayerIndex(BaseModel):
+    game_id: str = Query(...)
+    player_index: int
+
+class GetPayLink(BaseModel):
+    game_id: str = Query(...)
+    pay_link_player_index: int
 
 class UpdatePropertyIncome(BaseModel):
     game_id: str
-    property_color: str
+    player_index: int
+    color: str
     property_id: int
     income_increment: int
 
-class UpgradeProperty(BaseModel):
+class UpgradeMiners(BaseModel):
     game_id: str
-    property_color: str
+    player_index: int
+    color: str
     property_id: int
-
-class CardIndex(BaseModel):
-    game_id: str
-    card_type: str
-    next_index: int
-    player_index: int
-
-class InitCardsIndex(BaseModel):
-    game_id: str
-
-class UpdateCardIndex(BaseModel):
-    game_id: str
-    player_index: int
-    card_type: str
-
-class UpdatePlayerFirstStartClaimThisTurn(BaseModel):
-    game_id: str
-    player_index: int
-    first_start_claim_this_turn: bool
 
 class UpdateCumulatedFines(BaseModel):
     game_id: str
+    player_index: int
     fine: int
-
-class CumulatedFines(BaseModel):
-    game_id: str
-    cumulated_fines: int
-
-class ResetCumulatedFines(BaseModel):
-    game_id: str
-
-class UpdatePlayerPayLink(BaseModel):
-    player_wallet_id: str
-    player_pay_link_id: str
-    player_pay_link: str
-
-class PlayerPayLink(BaseModel):
-    player_pay_link_id: str
-    player_pay_link: str
-
-class IncrementPlayerTurn(BaseModel):
-    game_id: str
-
-class UpdatePlayerFirstLightningCardThisTurn(BaseModel):
-    game_id: str
-    player_index: int
-    first_lightning_card_this_turn: bool
-
-class UpdatePlayerFirstProtocolCardThisTurn(BaseModel):
-    game_id: str
-    player_index: int
-    first_protocol_card_this_turn: bool
-
-class Payment(BaseModel):
-    game_id: str
-    player_wallet_id: str
-    amount: int
-    date_time: str
-    is_in: bool
-    is_out: bool
-    memo: str
-    payment_hash: str
-    bolt11: str
-

@@ -13,27 +13,25 @@ export const newGame = {
   //////////////////////////////////////////////////////////////////////////////
   // Data persisted in database which needs to be fetched only once at reload
   //////////////////////////////////////////////////////////////////////////////
-  marketData: {
-    id: null, // player_user_id
-    wallets: [] // db.players[player_user_id] or fetch player.wallets from LNBits API?
-  }, // marketData.id is game_id, use it to fetch marketData.wallets from LNBits API
+  id: null,
+  freeMarketWallet: null,
+  freeMarketWalletPayLinkId: null,
+  freeMarketWalletPayLink: null,
+  freeMarketLiquidity: 0,
   player: {
     index: null, // db.players[player_user_id].player_index
     name: null, // db.players[player_user_id].player_wallet_name
-    id: null, // player_user_id
-    wallet_id: null, // db.players[player_user_id].player_wallet_id
-    wallets: [] // db.players[player_user_id] or fetch player.wallets from LNBits API?
+    // id: null, // player_user_id
+    // wallet_id: null, // db.players[player_user_id].player_wallet_id
+    wallet: null // db.players[player_user_id] or fetch player.wallets from LNBits API?
   },
   started: false, // db.games[game_id].started
   created: false, // db.games[game_id].admin_user_id == player_user_id
   imported: false, // db.games[game_id].admin_user_id != player_user_id
-  // joined: false, // db.players[player_user_id].joined
   timestamp: null, // db.players[player_user_id].time
   fundingStatus: 'pending', // db.games[game_id].initial_funding > 0
-  initialFunding: "0", // db.games[game_id].initial_funding
+  initialFunding: null, // db.games[game_id].initial_funding
   initialPlayerBalance: "0", // db.games[game_id].initial_player_balance
-  lnurlPayLinkId: null, // db.games[game_id].pay_link_id
-  lnurlPayLink: null, // db.games[game_id].pay_link
   playerPayLinkCreated: false, // db.players[player_user_id].player_pay_link_id && db.players[player_user_id].player_pay_link
   inviteVoucherId: null, // db.games[game_id].invite_voucher_id
   rewardVoucherId: null, // db.games[game_id].reward_voucher_id
@@ -43,12 +41,6 @@ export const newGame = {
   playerWallet: {
     payments: {}// db.payments[player_wallet_id]
   },
-  // Disabled for now, may be useful later for transactions history
-  /*
-  freeMarketWallet: {
-    payments: {}
-  },
- */
   players: {}, // db.players (get with fetchPlayers(game))
   playersData: {
     columns: [
@@ -81,8 +73,7 @@ export const newGame = {
   // Data persisted in database which needs to be fetched regularly during game
   //////////////////////////////////////////////////////////////////////////////
   playerTurn: 0, // db.games[game_id].player_turn (get with fetchPlayerTurn(game))
-  marketLiquidity: 0, // db.games[game_id].market_liquidity (get with fetchMarketLiquidity(game))
-  userBalance: 0, // db.players[player_user_id].player_balance (get with fetchPlayerBalance(game))
+  playerBalance: 0, // db.players[player_user_id].player_balance (get with fetchPlayerBalance(game))
 
   //////////////////////////////////////////////////////////////////////////////
   // Other data (not persisted in database)

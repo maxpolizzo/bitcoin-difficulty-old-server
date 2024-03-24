@@ -5,31 +5,24 @@ import {
 } from './helpers/storage.js'
 import {
   checkMaxNumberOfPlayersReached,
-  claimInviteVoucher
+  claimInviteVoucher,
+  createPlayerPayLNURL
 } from './helpers/utils.js'
 import { reactiveStyles } from '../css/styles.js'
 
 let game = inviteGame
 game.player.id = window.user.id;
-game.player.wallet_id = window.user.wallets[0].id
+game.player.wallet = window.user.wallets[0]
 game.player.name = window.user.wallets[0].name;
-game.player.wallets.push(window.user.wallets[0]);
-// Get game invite data
-const gameId = window.invite_vars.game_id;
+// Get invite_vars
+game.id = window.invite_vars.game_id
+// Invite and reward vouchers are passed in the invite URL and cannot be obtained by other means
 const inviteVoucher = window.invite_vars.invite_voucher;
 game.rewardVoucher = window.invite_vars.reward_voucher.toString();
-// Set game's market data
-game.marketData = {
-  id: gameId,
-}
-
-// Fetch game data, claim invite voucher and redirect to index.html
+// Fetch game data, claim invite voucher and redirect to game.html
 enableMonopolyExtension(window.user.id).then(async () => {
   await fetchGameData(game);
 })
-
-// const claimedVoucher = JSON.parse(localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.paidVoucher'));
-// const inviteVoucherPaymentHash = localStorage.getItem('monopoly.game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '.inviteVoucherPaymentHash');
 
 new Vue({
   el: '#vue',
@@ -37,8 +30,6 @@ new Vue({
   data: {
     game: game,
     inviteVoucher: inviteVoucher,
-    // inviteVoucherPaymentHash: inviteVoucherPaymentHash,
-    // claimedVoucher: claimedVoucher,
     maxNumberOfPlayersReached: false,
     joiningGame: false,
     joinedGame: false
@@ -46,16 +37,19 @@ new Vue({
   methods: {
     joinGame: async function() {
       this.joiningGame = true;
-      this.maxNumberOfPlayersReached = await checkMaxNumberOfPlayersReached(game.marketData.id)
+      this.maxNumberOfPlayersReached = await checkMaxNumberOfPlayersReached(game)
       // Join game if current_players_count < max_players_count
       if(!this.maxNumberOfPlayersReached && !this.joinedGame) {
-          this.joinedGame = true // Prevent claiming multiple times
-          // Claim invite voucher
-          await claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallets[0]);
-          // Join game
-          await joinGame(this.game);
-          // Redirect to game view
-          redirect(this.game);
+        this.joinedGame = true // Prevents claiming multiple times from the same invite (still possible to claim
+        // multiple times by calling invite link several times)
+        // Claim invite voucher
+        await claimInviteVoucher(this.inviteVoucher, this.game, this.game.player.wallet);
+        // Join game
+        await joinGame(this.game);
+        // Redirect to game view
+        redirect(this.game);
+      } else {
+        // Display error message
       }
     }
   },
@@ -83,15 +77,15 @@ async function fetchGameData (game) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/game_with_pay_link?game_id=' + game.marketData.id,
+      '/monopoly/api/v1/game_invite?game_id=' + game.id,
       window.user.wallets[0].inkey
     )
   if(res.data) {
-    game.initialFunding = res.data[2][1]
-    game.initialPlayerBalance = res.data[3][1]
-    game.players.playersCount = res.data[4][1]
-    game.lnurlPayId = res.data[5][1]
-    game.lnurlPayLink = res.data[6][1]
+    console.log(res.data)
+    game.freeMarketLiquidity = res.data.free_market_liquidity
+    game.initialFunding = res.data.initial_funding
+    game.initialPlayerBalance = res.data.initial_player_balance
+    game.maxPlayersCount = res.data.max_players_count
     console.log("Successfully fetched game data from database")
     game.timestamp = Date.now()
     // Save game in local storage
@@ -100,56 +94,48 @@ async function fetchGameData (game) {
     LNbits.utils.notifyApiError(res.error)
   }
 }
-/*
-function saveGameRecord(game) {
-  // Check local storage for existing game records
-  let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
-  let gameRecord
-  if(existingGameRecords && existingGameRecords.length) {
-    for(let i = 0; i < existingGameRecords.length; i++) {
-      if(
-        existingGameRecords[i].split('_')[1] === game.marketData.id &&
-        existingGameRecords[i].split('_')[2] === game.player.id
-      ) {
-        gameRecord = existingGameRecords[i]
-        break
-      }
-    }
-  }
-  // console.log(gameRecord)
-  if(!gameRecord) { // If game is not already registered in local storage
-    console.log("Saving game record...")
-    // Register new game record in local storage
-    game.timestamp = Date.now()
-    if(existingGameRecords && existingGameRecords.length) {
-      existingGameRecords.push('game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '_' + game.timestamp)
-    } else {
-      existingGameRecords = ['game_' + game.marketData.id + '_' + game.player.id + '_' + game.player.wallet_id + '_' + game.timestamp]
-    }
-    localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
-  }
-}
-*/
 
 async function joinGame(game) {
+  // Register new player in database
   let res = await LNbits.api
       .request(
           'POST',
-          '/monopoly/api/v1/join',
+          '/monopoly/api/v1/join-game',
           window.user.wallets[0].inkey,
           {
-            game_id: game.marketData.id,
-            player_user_id: game.player.id,
-            player_wallet_id: game.player.wallets[0].id,
-            player_wallet_name: game.player.wallets[0].name,
-            player_wallet_inkey: game.player.wallets[0].inkey,
+            game_id: game.id,
+            user_id: game.player.id,
+            wallet_id: game.player.wallet.id,
+            player_name: game.player.name
           }
       )
   if(res.data) {
+    console.log(res.data)
     // Save player index in local storage
     game.player.index = parseInt(res.data.player_index);
     saveGameData(game, 'player', game.player)
     console.log(game.player.name +  " successfully joined the game")
+    // Create and save player pay link
+    const playerPayLinkCreated = await createPlayerPayLNURL(game);
+    if(playerPayLinkCreated) {
+      game.playerPayLinkCreated = true; // Already saved in local storage
+    } else {
+      LNbits.utils.notifyApiError("Error creating player pay link")
+    }
+    // Get free market wallet pay link from database
+    res = await LNbits.api
+      .request(
+        'GET',
+        '/monopoly/api/v1/player_pay_link?game_id=' + game.id + '&pay_link_player_index=0',
+        game.player.wallet.inkey
+      )
+    if(res.data) {
+      console.log("Free market wallet pay link: " + res.data.pay_link)
+      game.freeMarketWalletPayLink = res.data.pay_link
+      saveGameData(game, 'freeMarketWalletPayLink', game.freeMarketWalletPayLink)
+    } else {
+      LNbits.utils.notifyApiError(res.error)
+    }
     return game
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -158,5 +144,5 @@ async function joinGame(game) {
 
 function redirect(game) {
   // Redirect to game.html
-  window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&game_id=" + game.marketData.id;
+  window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&wal=" + game.player.wallet.id;
 }

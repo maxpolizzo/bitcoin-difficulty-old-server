@@ -5,12 +5,9 @@ import {
   playPlayerPaymentReceivedSound,
   playMarketPaymentReceivedSound
 } from '../helpers/audio.js'
-// import  { registerPayment } from './database.js'
 
-/*
-export async function fetchPaymentsToFreeMarket(game) {
-  const res = await LNbits.api.getPayments(game.marketData.wallets[0]);
-
+export async function fetchPaymentsToPlayer(game, reloadFromDatabase = false) {
+  const res = await LNbits.api.getPayments(game.player.wallet);
   if(res.data) {
     const payments = res.data
       .map(obj => {
@@ -19,111 +16,51 @@ export async function fetchPaymentsToFreeMarket(game) {
       .sort((a, b) => {
         return b.time - a.time
       })
-    payments.forEach((payment) => {
-      if(game.freeMarketWallet.payments[payment.payment_hash]) {
-        if(game.freeMarketWallet.payments[payment.payment_hash].pending && !payment.pending) {
-          game.freeMarketWallet.payments[payment.payment_hash].pending = false
+    for (let index in payments) {
+      const payment = payments[index]
+      if(game.playerWallet.payments[payment.payment_hash]) {
+        if(game.playerWallet.payments[payment.payment_hash].pending && !payment.pending) {
+          game.playerWallet.payments[payment.payment_hash].pending = false
           if(payment.isIn) {
-            console.log("Free market wallet received a payment")
-            // Play sound
-            // playMarketPaymentReceivedSound()
+            console.log("Player wallet received a payment")
+            if(!reloadFromDatabase) {
+              // Play sound
+              playPlayerPaymentReceivedSound()
+            }
           } else  {
-            console.log("Free market wallet sent a payment")
+            console.log("Player wallet sent a payment")
           }
         }
       } else {
         if(payment.pending) {
-          game.freeMarketWallet.payments[payment.payment_hash] = {
+          game.playerWallet.payments[payment.payment_hash] = {
             pending: true
           }
         } else {
-          game.freeMarketWallet.payments[payment.payment_hash] = {
+          game.playerWallet.payments[payment.payment_hash] = {
             pending: false
           }
           if(payment.isIn) {
-            console.log("Free market wallet received a payment")
-            // Play sound
-            // playMarketPaymentReceivedSound()
+            console.log("Player wallet received a payment")
+            if(!reloadFromDatabase) {
+              // Play sound
+              playPlayerPaymentReceivedSound()
+            }
           } else  {
-            console.log("Free market wallet sent a payment")
+            console.log("Player wallet sent a payment")
           }
         }
       }
-    })
-    // Save payments to free market in local storage
-    saveGameData(game, 'freeMarketWallet', game.freeMarketWallet)
+    }
+    // Save payments to player in local storage
+    saveGameData(game, 'playerWallet', game.playerWallet)
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
 }
-*/
-
-export async function fetchPaymentsToPlayer(game, reloadFromDatabase = false) {
-  // if(game.imported || (game.created && game.showInviteButton) || game.started) {
-    const res = await LNbits.api.getPayments(game.player.wallets[0]);
-    if(res.data) {
-      const payments = res.data
-        .map(obj => {
-          return LNbits.map.payment(obj)
-        })
-        .sort((a, b) => {
-          return b.time - a.time
-        })
-      // payments.forEach(async (payment) => {
-      for (let index in payments) {
-        const payment = payments[index]
-        if(game.playerWallet.payments[payment.payment_hash]) {
-          if(game.playerWallet.payments[payment.payment_hash].pending && !payment.pending) {
-            game.playerWallet.payments[payment.payment_hash].pending = false
-            if(payment.isIn) {
-              console.log("Player wallet received a payment")
-              // Register payment in database
-              // await registerPayment(game, payment);
-              if(!reloadFromDatabase) {
-                // Play sound
-                playPlayerPaymentReceivedSound()
-              }
-            } else  {
-              console.log("Player wallet sent a payment")
-              // Register payment in database
-              // await registerPayment(game, payment);
-            }
-          }
-        } else {
-          if(payment.pending) {
-            game.playerWallet.payments[payment.payment_hash] = {
-              pending: true
-            }
-          } else {
-            game.playerWallet.payments[payment.payment_hash] = {
-              pending: false
-            }
-            if(payment.isIn) {
-              console.log("Player wallet received a payment")
-              // Register payment in database
-              // await registerPayment(game, payment);
-              if(!reloadFromDatabase) {
-                // Play sound
-                playPlayerPaymentReceivedSound()
-              }
-            } else  {
-              console.log("Player wallet sent a payment")
-              // Register payment in database
-              // await registerPayment(game, payment);
-            }
-          }
-        }
-      }
-      // Save payments to player in local storage
-      saveGameData(game, 'playerWallet', game.playerWallet)
-    } else {
-      LNbits.utils.notifyApiError(res.error)
-    }
-  // }
-}
 
 export async function fetchFundingInvoicePaid(game, invoiceReason = null) {
-  const res = await LNbits.api.getPayment(game.marketData.wallets[0], game.fundingInvoice.paymentHash);
+  const res = await LNbits.api.getPayment(game.freeMarketWallet, game.fundingInvoice.paymentHash);
   if(res.data) {
     if (res.data.paid) {
       console.log("Funding invoice paid!")
@@ -137,151 +74,114 @@ export async function fetchFundingInvoicePaid(game, invoiceReason = null) {
       // Save funding invoice template in local storage
       saveGameData(game, 'fundingInvoiceAmount', game.fundingInvoiceAmount)
       saveGameData(game, 'fundingInvoice', game.fundingInvoice)
-      /*
-      if(invoiceReason) {
-        console.log(invoiceReason)
-        switch(invoiceReason.type) {
-          case "property_upgrade":
-          // update property's mining capacity
-          default:
-            console.warn("Unknown invoice reason: " + invoiceReason.type)
-        }
-      }
-      */
-    } else
-      await fetchMarketLiquidity(game)
-  } else {
-    LNbits.utils.notifyApiError(res.error)
-  }
-}
-// Is this useful?
-/*
-export async function fetchPlayerInvoicePaid(game, invoiceReason = null) {
-  const res = await LNbits.api.getPayment(game.player.wallets[0], game.playerInvoice.paymentHash);
-  if(res.data) {
-    if (res.data.paid) {
-      console.log("Player invoice paid!")
-      // playPlayerPaymentReceivedSound() // Not necessary: sound already played in fetchPaymentsToPlayer
-      // Clear payment checker interval
-      clearInterval(game.playerInvoice.paymentChecker)
-      // Erase previous player invoice
-      game.playerInvoiceAmount = 0
-      game.playerInvoice = newGame.playerInvoice
-      // Save player invoice template in local storage
-      saveGameData(game, 'playerInvoiceAmount', game.playerInvoiceAmount)
-      saveGameData(game, 'playerInvoice', game.playerInvoice)
-    } else
-      await fetchPlayerBalance(game)
-  } else {
-    LNbits.utils.notifyApiError(res.error)
-  }
-}
-*/
-
-export async function fetchFreeMarketInvoicePaid(game, invoiceReason = null) {
-  const res = await LNbits.api.getPayment(game.marketData.wallets[0], game.freeMarketInvoice.paymentHash);
-  if(res.data) {
-    if (res.data.paid) {
-      console.log("Free market invoice paid!")
-      // playMarketPaymentReceivedSound()
-      // Clear payment checker interval
-      clearInterval(game.freeMarketInvoice.paymentChecker)
-      // Erase previous player invoice
-      game.freeMarketInvoiceAmount = 0
-      game.freeMarketInvoice = newGame.freeMarketInvoice
-      // Save free market invoice template in local storage
-      saveGameData(game, 'freeMarketInvoiceAmount', game.freeMarketInvoiceAmount)
-      saveGameData(game, 'freeMarketInvoice', game.freeMarketInvoice)
-    } else
-      await fetchMarketLiquidity(game)
-  } else {
-    LNbits.utils.notifyApiError(res.error)
-  }
-}
-
-export async function fetchPlayerBalance(game) {
-  const balanceBefore = game.userBalance
-  let res = await LNbits.api.getWallet({
-    inkey: game.player.wallets[0].inkey
-  })
-  if(res.data) {
-    const userBalance = Math.round(res.data.balance / 1000).toString()
-    if(userBalance !== balanceBefore) {
-      game.userBalance = userBalance
-      // Save user balance in local storage
-      saveGameData(game, 'userBalance', game.userBalance)
-      // Save user balance in database
-      res = await LNbits.api
-        .request(
-          'PUT',
-          '/monopoly/api/v1/players/balance',
-          // game.player.wallets[0].inkey,
-          '',
-          {
-            player_wallet_id: game.player.wallets[0].id,
-            player_balance: game.userBalance
-          }
-        );
-      // Refresh wallet balance in LNBits left panel
-      EventHub.$emit('update-wallet-balance', [
-        game.player.wallets[0].id,
-        userBalance
-      ])
-      if(res.error) {
-        LNbits.utils.notifyApiError(res.error)
-      }
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
 }
 
-export async function fetchMarketLiquidity(game) {
-  const liquidityBefore = game.marketLiquidity
-  if(game.created) {
-    // Game creator fetches free market balance from LNBits API and registers it in database
+export async function fetchWalletsBalances(game, wallets) {
+  // Fetch player balance
+  if(game.player.wallet && game.player.wallet.id) {
     let res = await LNbits.api.getWallet({
-      inkey: game.marketData.wallets[0].inkey
+      inkey: game.player.wallet.inkey
     })
     if(res.data) {
-      const marketLiquidity = Math.round(res.data.balance / 1000).toString()
-      if(marketLiquidity !== liquidityBefore) {
-        game.marketLiquidity = marketLiquidity
-        // Save free market liquidity in local storage
-        saveGameData(game, 'marketLiquidity', game.marketLiquidity)
-        // Save game funding balance in database
+      const balanceBefore = game.playerBalance
+      const playerBalance = Math.round(res.data.balance / 1000).toString()
+      if(playerBalance !== balanceBefore) {
+        game.playerBalance = playerBalance
+        // Update user balance in local storage
+        saveGameData(game, 'playerBalance', game.playerBalance)
+        // Update user balance in database
         res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/games/market-liquidity',
-            // game.marketData.wallets[0].inkey,
-            '',
+            '/monopoly/api/v1/player/balance',
+            game.player.wallet.inkey,
             {
-              game_id: game.marketData.id,
-              balance: game.marketLiquidity
+              game_id: game.id,
+              player_index: game.player.index,
+              balance: game.playerBalance
             }
           );
         if(res.error) {
           LNbits.utils.notifyApiError(res.error)
         }
+        // Refresh wallet balance in LNBits left panel
+        /*
+        EventHub.$emit('update-wallet-balance', [
+          game.player.wallet.id,
+          game.playerBalance
+        ])
+        */
+        // Implemented the following  hack because using 'update-wallet-balance' event would reset other wallets
+        // live_fsat to their fsat value which is not updated for some reason
+        wallets.forEach((wallet) => {
+          if(wallet.id === game.player.wallet.id) {
+            wallet.fsat = game.playerBalance
+            wallet.live_fsat = game.playerBalance
+          }
+        })
       }
     } else {
       LNbits.utils.notifyApiError(res.error)
     }
-  } else if(game.imported) {
-    // Invited players fetch game funding balance from database
+  }
+  // Fetch free market wallet balance
+  const freeMarketLiquidityBefore = game.freeMarketLiquidity
+  if(game.freeMarketWallet && game.freeMarketWallet.id) {
+    // Game creator fetches free market balance from LNBits API and registers it in database
+    let res = await LNbits.api.getWallet({
+      inkey: game.freeMarketWallet.inkey
+    })
+    if(res.data) {
+      const freeMarketLiquidity = Math.round(res.data.balance / 1000).toString()
+      if(freeMarketLiquidity !== freeMarketLiquidityBefore) {
+        game.freeMarketLiquidity = freeMarketLiquidity
+        // Update free market liquidity in local storage
+        saveGameData(game, 'freeMarketLiquidity', game.freeMarketLiquidity)
+        // Update free market liquidity in database
+        res = await LNbits.api
+          .request(
+            'PUT',
+            '/monopoly/api/v1/game/free-market-liquidity',
+            game.freeMarketWallet.adminkey,
+            {
+              game_id: game.id,
+              free_market_liquidity: game.freeMarketLiquidity
+            }
+          );
+        if(res.error) {
+          LNbits.utils.notifyApiError(res.error)
+        }
+        // Refresh wallet balance in LNBits left panel
+        // Implemented the following hack because using 'update-wallet-balance' event would reset other wallets
+        // live_fsat to their fsat value which is not updated for some reason
+        wallets.forEach((wallet) => {
+          if(wallet.id === game.freeMarketWallet.id) {
+            wallet.fsat = game.freeMarketLiquidity
+            wallet.live_fsat = game.freeMarketLiquidity
+          }
+        })
+      }
+    } else {
+      LNbits.utils.notifyApiError(res.error)
+    }
+  } else if(game.initialFunding) {
+    // Invited players fetch free market balance from database
     let res = await LNbits.api
       .request(
         'GET',
-        '/monopoly/api/v1/market-liquidity?game_id=' + game.marketData.id,
-        game.player.wallets[0].inkey,
+        '/monopoly/api/v1/free-market-liquidity?game_id=' + game.id,
+        game.player.wallet.inkey,
       )
     if(res.data) {
-      const marketLiquidity = res.data[0][1]
-      if(marketLiquidity !== liquidityBefore) {
-        game.marketLiquidity = marketLiquidity
+      const freeMarketLiquidity = res.data[0][1]
+      if(freeMarketLiquidity !== freeMarketLiquidityBefore) {
+        game.freeMarketLiquidity = freeMarketLiquidity
         // Save free market liquidity in local storage
-        saveGameData(game, 'marketLiquidity', game.marketLiquidity)
+        saveGameData(game, 'freeMarketLiquidity', game.freeMarketLiquidity)
       }
     } else {
       LNbits.utils.notifyApiError(res.error)
@@ -309,7 +209,12 @@ export async function createRewardVoucher(game) {
   }
   // Create LNURL withdraw link
   let res = await LNbits.api
-    .request('POST', '/withdraw/api/v1/links', game.marketData.wallets[0].adminkey, voucherData);
+    .request(
+      'POST',
+      '/withdraw/api/v1/links',
+      game.freeMarketWallet.adminkey,
+      voucherData
+    );
   if(res.data) {
     const voucherId = res.data.id
     const voucher = res.data.lnurl
@@ -317,16 +222,16 @@ export async function createRewardVoucher(game) {
     res = await LNbits.api
       .request(
         'POST',
-        '/monopoly/api/v1/games/reward_voucher',
-        game.player.wallets[0].inkey,
+        '/monopoly/api/v1/game/reward-voucher',
+        game.freeMarketWallet.adminkey,
         {
-          game_id: game.marketData.id,
+          game_id: game.id,
           voucher_id: voucherId
         }
       )
-    if(res.data) {
+    if(res.status === 201) {
       console.log("Monopoly: reward voucher created successfully")
-      // Save lnurl voucher Id in local storage
+      // Save lnurl voucher id in local storage
       game.rewardVoucherId = voucherId;
       saveGameData(game, 'rewardVoucherId', game.rewardVoucherId)
       // Save lnurl voucher in local storage
@@ -355,7 +260,12 @@ export async function createInviteVoucher(game) {
   }
   // Create LNURL withdraw link
   let res = await LNbits.api
-    .request('POST', '/withdraw/api/v1/links', game.marketData.wallets[0].adminkey, voucherData);
+    .request(
+      'POST',
+      '/withdraw/api/v1/links',
+      game.freeMarketWallet.adminkey,
+      voucherData
+    );
   if(res.data) {
     const voucherId = res.data.id
     const voucher = res.data.lnurl
@@ -363,20 +273,22 @@ export async function createInviteVoucher(game) {
     res = await LNbits.api
       .request(
         'POST',
-        '/monopoly/api/v1/games/invite_voucher',
-        game.player.wallets[0].inkey,
+        '/monopoly/api/v1/game/invite-voucher',
+        game.freeMarketWallet.adminkey,
         {
-          game_id: game.marketData.id,
+          game_id: game.id,
           voucher_id: voucherId
         }
       )
-    if(res.data) {
+    if(res.status === 201) {
       console.log("Monopoly: invite voucher created successfully")
-      // Save lnurl voucher Id in local storage
+      // Save lnurl voucher id in local storage
       game.inviteVoucherId = voucherId;
       saveGameData(game, 'inviteVoucherId', game.inviteVoucherId)
+      // Show invite button
+      game.showInviteButton = true
       // Claim LNURL voucher for game creator
-      await claimInviteVoucher(voucher, game, game.player.wallets[0]);
+      await claimInviteVoucher(voucher, game, game.player.wallet);
     } else {
       LNbits.utils.notifyApiError(res.error)
     }
@@ -391,7 +303,7 @@ export async function deleteInviteVoucher(game) {
     console.log("Deleting LNURL voucher " + game.inviteVoucherId)
     // Delete LNURL withdraw link
     let res = await LNbits.api
-      .request('DELETE', '/withdraw/api/v1/links/' + game.inviteVoucherId, game.marketData.wallets[0].adminkey);
+      .request('DELETE', '/withdraw/api/v1/links/' + game.inviteVoucherId, game.freeMarketWallet.adminkey);
     if(res.data.success) {
       game.inviteVoucherId = null
       // Save game data to local storage

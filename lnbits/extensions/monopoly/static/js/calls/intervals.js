@@ -1,9 +1,7 @@
 import {
   fetchPaymentsToPlayer,
-  fetchMarketLiquidity,
   fetchFundingInvoicePaid,
-  fetchPlayerBalance,
-  fetchFreeMarketInvoicePaid
+  fetchWalletsBalances
 } from './api.js'
 import {
   fetchGameStarted,
@@ -15,60 +13,37 @@ import {
 
 const PERIOD = 2000;
 
-/*
-// Logic to check periodically for payments to free market wallet
-export async function checkPaymentsToFreeMarket(game) {
-  clearInterval(game.freeMarketPaymentChecker)
-  game.freeMarketPaymentChecker = setInterval(async () => {
-    await fetchPaymentsToFreeMarket(game)
-  }, PERIOD)
-}
-*/
 // Logic to check periodically for payments to player wallet
 export async function checkPaymentsToPlayer(game) {
   clearInterval(game.playerPaymentChecker)
+  await fetchPaymentsToPlayer(game)
   game.playerPaymentChecker = setInterval(async () => {
     await fetchPaymentsToPlayer(game)
   }, PERIOD)
 }
 
 // Logic to check periodically if game funding invoice has been paid
-export function checkFundingInvoicePaid(game, invoiceReason = null) {
+export async function checkFundingInvoicePaid(game, invoiceReason = null) {
   clearInterval(game.fundingInvoice.paymentChecker)
+  await fetchFundingInvoicePaid(game, invoiceReason)
   game.fundingInvoice.paymentChecker = setInterval(async () => {
     await fetchFundingInvoicePaid(game, invoiceReason)
   }, PERIOD)
 }
 
-// Is this useful?
-/*
-// Logic to check periodically if player invoice has been paid
-export function checkPlayerInvoicePaid(game, invoiceReason = null) {
-  clearInterval(game.playerInvoice.paymentChecker)
-  game.playerInvoice.paymentChecker = setInterval(async () => {
-    await fetchPlayerInvoicePaid(game, invoiceReason)
-  }, PERIOD)
-}
-*/
-// Logic to check periodically if free market invoice has been paid
-export function checkFreeMarketInvoicePaid(game, invoiceReason = null) {
-  clearInterval(game.freeMarketInvoice.paymentChecker)
-  game.freeMarketInvoice.paymentChecker = setInterval(async () => {
-    await fetchFreeMarketInvoicePaid(game, invoiceReason)
-  }, PERIOD)
-}
-
-// Logic to check market liquidity periodically (game funding balance)
-export async function checkMarketLiquidity(game) {
-  clearInterval(game.marketLiquidityChecker)
-  game.marketLiquidityChecker = setInterval(async () => {
-    await fetchMarketLiquidity(game)
+// Logic to check wallets balance periodically
+export async function checkWalletsBalances(game, wallets) {
+  clearInterval(game.walletsBalancesChecker)
+  await fetchWalletsBalances(game, wallets)
+  game.walletsBalancesChecker = setInterval(async () => {
+    await fetchWalletsBalances(game, wallets)
   }, PERIOD)
 }
 
 // Logic to check periodically if game has been started by creator
 export async function checkGameStarted(game) {
   clearInterval(game.gameStartedChecker)
+  await fetchGameStarted(game)
   game.gameStartedChecker = setInterval(async () => {
     await fetchGameStarted(game)
   }, PERIOD)
@@ -77,6 +52,7 @@ export async function checkGameStarted(game) {
 // Logic to check periodically for new players joining the game
 export async function checkPlayers(game) {
   clearInterval(game.playersChecker) // Interval should be cleared again when game starts
+  await fetchPlayers(game)
   game.playersChecker = setInterval(async () => {
     await fetchPlayers(game)
   }, PERIOD)
@@ -84,23 +60,17 @@ export async function checkPlayers(game) {
 
 // Logic to check periodically for new current player turn
 export async function checkPlayerTurn(game) {
-  clearInterval(game.playerTurnChecker) // Interval should be cleared again when game starts
+  clearInterval(game.playerTurnChecker)
+  await fetchPlayerTurn(game)
   game.playerTurnChecker = setInterval(async () => {
     await fetchPlayerTurn(game)
-  }, PERIOD)
-}
-
-// Logic to check player balance periodically
-export async function checkPlayerBalance(game) {
-  clearInterval(game.userBalanceChecker)
-  game.userBalanceChecker = setInterval(async () => {
-    await fetchPlayerBalance(game)
   }, PERIOD)
 }
 
 // Logic to check other players balances periodically
 export async function checkPlayersBalances(game) {
   clearInterval(game.playersBalancesChecker)
+  await fetchPlayersBalances(game)
   game.playersBalancesChecker = setInterval(async () => {
     await fetchPlayersBalances(game)
   }, PERIOD)
@@ -109,6 +79,7 @@ export async function checkPlayersBalances(game) {
 // Logic to check properties ownership periodically
 export async function checkProperties(game) {
   clearInterval(game.propertiesChecker)
+  await fetchProperties(game)
   game.propertiesChecker = setInterval(async () => {
     await fetchProperties(game)
   }, PERIOD)
