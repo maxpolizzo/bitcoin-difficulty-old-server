@@ -39,6 +39,7 @@ from .crud import (
     create_invite_voucher,
     update_player_balance,
     get_game_started,
+    get_game_time,
     get_player_turn,
     get_properties,
     get_game_invite,
@@ -295,14 +296,21 @@ async def api_monopoly_game(
     game_id: str,
     player_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
 ):
-    return [game for game in await get_game(game_id)]
+    return await get_game(game_id)
+
+@monopoly_ext.get("/api/v1/game-time", status_code=HTTPStatus.OK)
+async def api_monopoly_game(
+    game_id: str,
+    player_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
+):
+    return await get_game_time(game_id)
 
 @monopoly_ext.get("/api/v1/free-market-liquidity", status_code=HTTPStatus.OK)
 async def api_monopoly_free_market_liquidity(
     game_id: str,
     player_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
 ):
-    return [free_market_liquidity for free_market_liquidity in await get_free_market_liquidity(game_id)]
+    return await get_free_market_liquidity(game_id)
 
 @monopoly_ext.get("/api/v1/wallet", status_code=HTTPStatus.OK)
 async def api_monopoly_wallet(
@@ -317,8 +325,7 @@ async def api_monopoly_wallet_info(
     wallet_id: str,
     player_apikey_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
 ):
-    player_wallet_info = await get_player_wallet_info(wallet_id)
-    return player_wallet_info
+    return await get_player_wallet_info(wallet_id)
 
 @monopoly_ext.get("/api/v1/game-started", status_code=HTTPStatus.OK)
 async def api_monopoly_game_started(

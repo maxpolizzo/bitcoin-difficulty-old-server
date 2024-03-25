@@ -40,18 +40,25 @@
         </div>
         <!-- Game records table -->
         <div class="q-pa-md">
+          <div v-if="loading" class="offset-5 col-2 offset-md-5 col-md-2" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
+            <q-spinner
+              color="orange"
+              size="2em"
+            />
+          </div>
           <q-table
+            v-else
             title="Saved games"
             dense
-            :data="gameRecordsData.rows"
-            :columns="gameRecordsData.columns"
+            :data="gameRecords.rows"
+            :columns="gameRecords.columns"
             row-key="name"
             :rows-per-page-options="[25]"
             hide-bottom
           >
-            <template v-slot:body-cell-link="props">
+            <template v-slot:body-cell-load="props">
               <q-td :props="props">
-                <q-btn dense round flat color="grey" icon="play_circle" @click="loadExistingGame(props.row.gameId)"></q-btn>
+                <q-btn dense round flat color="grey" icon="play_circle" @click="loadSavedGame(props.row)"></q-btn>
               </q-td>
             </template>
           </q-table>

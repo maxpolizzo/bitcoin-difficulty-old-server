@@ -7,6 +7,7 @@ import {
   newGame,
   cameraData,
   playerNames,
+  gameRecordsData
 } from './data/data.js'
 import { reactiveStyles } from '../css/styles.js'
 import {
@@ -18,17 +19,18 @@ import {
   createPlayerPayLNURL
 } from './helpers/utils.js'
 import {
-  onGameFunded,
+  getGamePlayerFromGameRecord,
+  getGameRecordsFromDatabase,
+  onGameFunded
 } from './calls/database.js'
 import {
-  loadGame,
-  initGameData,
+  loadGameFromURL,
+  initGameData
 } from './helpers/init.js'
 import {
-  saveGameRecord,
-  loadGameDataFromLocalStorage,
-  saveGameData,
-  fetchGameRecords
+  storeGameRecord,
+  storeGameData,
+  getGameRecordsFromLocalStorage
 } from './helpers/storage.js'
 import {
   deleteInviteVoucher
@@ -65,13 +67,16 @@ new Vue({
   el: '#vue',
   mixins: [windowMixin],
   mounted(){
-    this.loadGame();
+    if(window.user.id && window.wal) {
+      this.loadGameFromURL();
+    } else if (window.user) {
+      this.getSavedGames()
+    }
   },
   data: function() {
     return {
       loading: true,
       gameRecords: {},
-      gameRecordsData: {},
       game: newGame,
       camera: cameraData,
       qrCodeDialog: {
@@ -108,11 +113,9 @@ new Vue({
     }
   },
   methods: {
-    loadGame: async function() {
-      const savedGameRecords = fetchGameRecords()
-      this.gameRecords = savedGameRecords.gameRecords
-      this.gameRecordsData = savedGameRecords.gameRecordsData
-      this.game = await loadGame(savedGameRecords, this.$children[0].$children[3].$children[0].user.wallets)
+    loadGameFromURL: async function() {
+      await this.getSavedGames()
+      this.game = await loadGameFromURL(this.gameRecords.rows, this.$children[0].$children[3].$children[0].user.wallets)
       // Open camera if specified
       let camera = cameraData;
       camera.deviceId = this.game.cameraDeviceId;
@@ -122,6 +125,30 @@ new Vue({
       }
       this.camera = camera;
       this.loading = false;
+    },
+    getSavedGames: async function () {
+      this.loading = true
+      let gameRecordsRows = await getGameRecordsFromDatabase(window.user)
+      gameRecordsRows = getGameRecordsFromLocalStorage(gameRecordsRows)
+      this.gameRecords = gameRecordsData
+      let gameRecordsMap = {}
+      gameRecordsRows.forEach((gameRecord) => {
+        if(!gameRecordsMap[gameRecord.gameId]) {
+          gameRecordsMap[gameRecord.gameId] = gameRecord
+        } else if(gameRecord.location === 'storage') {
+          // Prioritize  'storage' game records over 'database' game records
+          gameRecordsMap[gameRecord.gameId] = gameRecord
+        }
+      })
+      Object.keys(gameRecordsMap).forEach((gameId) => {
+        this.gameRecords.rows.push(gameRecordsMap[gameId])
+      })
+      this.loading = false
+    },
+    loadSavedGame: async function(gameRecord) {
+      let gamePlayer = await getGamePlayerFromGameRecord(gameRecord)
+      // Redirect to game.html
+      window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" +  window.user.id + "&wal=" +  gamePlayer.walletId;
     },
     // Methods for QR code scanning
     onInitCamera: async function() {
@@ -205,7 +232,7 @@ new Vue({
         });
         // If no error occured, save deviceId in local storage
         this.game.cameraDeviceId = this.camera.deviceId;
-        saveGameData(this.game, 'cameraDeviceId', this.game.cameraDeviceId)
+        storeGameData(this.game, 'cameraDeviceId', this.game.cameraDeviceId)
       } catch(err) {
         console.error(err)
         this.camera.error = err
@@ -227,7 +254,7 @@ new Vue({
     reloadCamera: async function(retry ) {
       console.log("Reloading camera")
       this.closeCamera()
-      this.reloadCurrentGame(this.game.id, true)
+      this.reloadGame(this.game.id, true)
     },
     closeCamera: function() {
       this.camera.show = false;
@@ -274,14 +301,9 @@ new Vue({
     },
     onUpdatePropertiesCarouselSlide: function(newSlide, oldSlide) {
       this.game.propertiesCarouselSlide = onUpdatePropertiesCarouselSlide(this.game, newSlide, oldSlide)
-      saveGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
+      storeGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
     },
-    reloadCurrentGame: async function (gameId, openCamera = false) {
-      console.log("Loading saved game: " + gameId);
-      const savedGameRecords = fetchGameRecords()
-      this.gameRecords = savedGameRecords.gameRecords
-      this.gameRecordsData = savedGameRecords.gameRecordsData
-      const game = loadGameDataFromLocalStorage(this.gameRecords[window.user.id][window.wal]);
+    reloadGame: async function (gameId, openCamera = false) {
       let href = ""
       if(this.game.freeMarketWallet && this.game.freeMarketWallet.id) {
         href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&wal=" + game.freeMarketWallet.id;
@@ -324,11 +346,11 @@ new Vue({
         // Create a static LNURL pay link to be used for funding the free market
         await this.createFreeMarketPayLNURL();
         // Save new game in local storage
-        saveGameRecord(this.game)
+        storeGameRecord(this.game)
         // Display the view for initial free market wallet funding
         this.game.showFundingView = true;
         // Save game data in local storage
-        saveGameData(this.game, 'showFundingView', this.game.showFundingView)
+        storeGameData(this.game, 'showFundingView', this.game.showFundingView)
         // Redirect to game.html
         window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + this.game.player.id + "&wal=" + this.game.freeMarketWallet.id;
       } else {
@@ -406,8 +428,8 @@ new Vue({
           // Save lnurl pay link in local storage
           this.game.freeMarketWalletPayLinkId = payLinkId;
           this.game.freeMarketWalletPayLink = payLink;
-          saveGameData(this.game, 'freeMarketWalletPayLinkId', this.game.freeMarketWalletPayLinkId)
-          saveGameData(this.game, 'freeMarketWalletPayLink', this.game.freeMarketWalletPayLink)
+          storeGameData(this.game, 'freeMarketWalletPayLinkId', this.game.freeMarketWalletPayLinkId)
+          storeGameData(this.game, 'freeMarketWalletPayLink', this.game.freeMarketWalletPayLink)
         } else {
           LNbits.utils.notifyApiError(res.error)
         }
@@ -437,7 +459,7 @@ new Vue({
           this.game.fundingInvoice.paymentReq = res.data.payment_request
           this.game.fundingInvoice.paymentHash = res.data.payment_hash
           // Save funding invoice in local storage
-          saveGameData(this.game, 'fundingInvoice', this.game.fundingInvoice)
+          storeGameData(this.game, 'fundingInvoice', this.game.fundingInvoice)
           // Once invoice has been created and saved, start checking for payments
           this.checkFundingInvoicePaid(invoiceReason)
 
@@ -500,8 +522,8 @@ new Vue({
           "name": this.game.player.name,
           "url": "/wallet?usr=" + this.g.user.id + "&wal=" + this.game.player.wallet.id
         })
-        saveGameData(this.game, 'player', this.game.player)
-        saveGameData(this.game, 'playersCount', this.game.playersCount)
+        storeGameData(this.game, 'player', this.game.player)
+        storeGameData(this.game, 'playersCount', this.game.playersCount)
       }
     },
     // Logic to create a static LNURL pay link to be used for sending sats to player
@@ -641,7 +663,7 @@ new Vue({
         this.game.started = true;
         playStartGameSound()
         // Save game status in local storage
-        saveGameData(this.game, 'started', this.game.started)
+        storeGameData(this.game, 'started', this.game.started)
         console.log("GAME STARTED")
         this.game = initGameData(this.game);
       }
@@ -991,7 +1013,7 @@ new Vue({
           }
           // Switch carouselSlide value to property color to display newly purchased property
           this.game.propertiesCarouselSlide = this.game.propertyPurchase.property.color
-          saveGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
+          storeGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
         } catch(err) {
           this.game.showPayInvoiceSpinner = false
           this.game.purchasingProperty = false
@@ -1184,7 +1206,7 @@ new Vue({
         let cardIndex = res.data
         if(this.game.firstLightningCardThisTurn) {
           this.game.firstLightningCardThisTurn = false
-          saveGameData(this.game, 'firstLightningCardThisTurn', this.game.firstLightningCardThisTurn)
+          storeGameData(this.game, 'firstLightningCardThisTurn', this.game.firstLightningCardThisTurn)
         }
         console.log("Showing Lightning card at index " + cardIndex)
         console.log(technology_cards[cardIndex].imgPath)
@@ -1212,7 +1234,7 @@ new Vue({
         let cardIndex = res.data
         if(this.game.firstProtocolCardThisTurn) {
           this.game.firstProtocolCardThisTurn = false
-          saveGameData(this.game, 'firstProtocolCardThisTurn', this.game.firstProtocolCardThisTurn)
+          storeGameData(this.game, 'firstProtocolCardThisTurn', this.game.firstProtocolCardThisTurn)
         }
         console.log("Showing Protocol card at index " + cardIndex)
         console.log(black_swan_cards[cardIndex].imgPath)
@@ -1465,7 +1487,7 @@ new Vue({
         LNbits.utils.notifyApiError(res.error)
       }
       this.game.firstStartClaimThisTurn = false;
-      saveGameData(this.game, 'firstStartClaimThisTurn', this.game.firstStartClaimThisTurn)
+      storeGameData(this.game, 'firstStartClaimThisTurn', this.game.firstStartClaimThisTurn)
       this.game.showStartClaimDialog = false;
     },
     getLowestBalancePlayerName: function () {

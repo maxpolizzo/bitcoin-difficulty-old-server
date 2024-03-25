@@ -11,7 +11,7 @@ import {
   fetchProperties
 } from './database.js'
 
-const PERIOD = 2000;
+const PERIOD = 10000;
 
 // Logic to check periodically for payments to player wallet
 export async function checkPaymentsToPlayer(game) {

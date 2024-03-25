@@ -1,4 +1,4 @@
-import { saveGameData } from '../helpers/storage.js'
+import { storeGameData } from '../helpers/storage.js'
 
 export async function timeout(fn, ms) {
   return new Promise((resolve, reject) => {
@@ -78,7 +78,7 @@ export async function createPlayerPayLNURL(game) {
       console.log(game.player.name +  " LNURL pay link created successfully " + payLink)
       const playerPayLinkCreated = true
       // Saving game.playerPayLinkCreated in local storage
-      saveGameData(game, 'playerPayLinkCreated', playerPayLinkCreated)
+      storeGameData(game, 'playerPayLinkCreated', playerPayLinkCreated)
       return playerPayLinkCreated;
     } else {
       LNbits.utils.notifyApiError(res.error)
@@ -133,7 +133,7 @@ export async function withdrawFromLNURL(lnurlData, game, wallet, amount, type) {
       } else if (res.data.lnurl_response === true) {
         console.log(`Invoice sent to ${lnurlData.domain}!`)
         // Store payment hash in local storage
-        saveGameData(game, type + 'VoucherPaymentHash', res.data.payment_hash)
+        storeGameData(game, type + 'VoucherPaymentHash', res.data.payment_hash)
         // Check for invoice payment
         return await checkForPayment(res.data.payment_hash, game, wallet)
       }
@@ -160,7 +160,7 @@ export async function checkForPayment(paymentHash, game, wallet) {
 
 export function onPaymentReceived(paymentChecker, game) {
   clearInterval(paymentChecker)
-  saveGameData(game, 'paidVoucher', true)
+  storeGameData(game, 'paidVoucher', true)
   console.log("Successfully claimed LNURL voucher")
 }
 

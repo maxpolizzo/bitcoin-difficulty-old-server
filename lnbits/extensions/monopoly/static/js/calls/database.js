@@ -1,8 +1,8 @@
-import { newGame } from '../data/data.js'
+import {gameRecordsData, newGame} from '../data/data.js'
 import { properties } from '../data/properties.js'
 import { createGameVouchers } from './api.js'
 import {playNextPlayerTurnSound, playPlayerJoinedSound, playStartGameSound} from '../helpers/audio.js'
-import { saveGameData } from '../helpers/storage.js'
+import { storeGameData } from '../helpers/storage.js'
 import { timeout } from '../helpers/utils.js'
 
 
@@ -36,11 +36,11 @@ export async function onGameFunded (game) {
     )
   if(res.status === 201) {
     // Save game data into local storage
-    saveGameData(game, 'showFundingDialog', game.showFundingDialog)
-    saveGameData(game, 'showFundingView', game.showFundingView)
-    saveGameData(game, 'fundingStatus', game.fundingStatus)
-    saveGameData(game, 'initialFunding', game.initialFunding)
-    saveGameData(game, 'initialPlayerBalance', game.initialPlayerBalance)
+    storeGameData(game, 'showFundingDialog', game.showFundingDialog)
+    storeGameData(game, 'showFundingView', game.showFundingView)
+    storeGameData(game, 'fundingStatus', game.fundingStatus)
+    storeGameData(game, 'initialFunding', game.initialFunding)
+    storeGameData(game, 'initialPlayerBalance', game.initialPlayerBalance)
     console.log("Monopoly: game has been funded")
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -63,7 +63,7 @@ export async function fetchGameStarted(game) {
       // device is idle while game starts
       game.started = gameStarted
       // Save game status in local storage
-      saveGameData(game, 'started', game.started)
+      storeGameData(game, 'started', game.started)
       // Clear interval
       clearInterval(game.gameStartedChecker)
       if(game.started && !game.gameStartedUpdated) {
@@ -92,7 +92,7 @@ export async function fetchPlayers(game) {
         game.newPlayerUpdated = false // This is a lock to avoid playing playerJoined sound multiple times if player
         // device is idle while another player joins
         game.players[player.player_index] = player
-        saveGameData(game, 'players', game.players)
+        storeGameData(game, 'players', game.players)
         game.playersData.rows.push(
           {
             name: player.player_name,
@@ -100,7 +100,7 @@ export async function fetchPlayers(game) {
             index: player.player_index
           }
         )
-        saveGameData(game, 'playersData', game.playersData)
+        storeGameData(game, 'playersData', game.playersData)
         if(player.player_index > game.player.index && !game.newPlayerUpdated) {
           // Play sound when players join the game after current player
           await timeout(playPlayerJoinedSound, 500) // Wait 500 ms between different players to have distinct sounds
@@ -111,7 +111,7 @@ export async function fetchPlayers(game) {
     if(playersCount !== game.playersCount) {
       game.playersCount = playersCount
       // Save game data in  local storage
-      saveGameData(game, 'playersCount', game.playersCount)
+      storeGameData(game, 'playersCount', game.playersCount)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -147,8 +147,8 @@ export async function fetchPlayersBalances(game) {
     })
     if(balanceChanged) {
       // Save game data in  local storage
-      saveGameData(game, 'players', game.players)
-      saveGameData(game, 'playersData', game.playersData)
+      storeGameData(game, 'players', game.players)
+      storeGameData(game, 'playersData', game.playersData)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
@@ -169,14 +169,14 @@ export async function fetchPlayerTurn(game) {
       game.playerTurnUpdated = false // This is a lock to avoid playing nextPlayerTurn sound multiple times if player
       // device is idle while player turn changes
       game.playerTurn = nextPlayerTurn
-      saveGameData(game, 'playerTurn', game.playerTurn)
+      storeGameData(game, 'playerTurn', game.playerTurn)
       if(game.playerTurn === game.player.index && !game.playerTurnUpdated) {
         game.firstLightningCardThisTurn = true
         game.firstProtocolCardThisTurn = true
         game.firstStartClaimThisTurn = true
-        saveGameData(game, 'firstLightningCardThisTurn', game.firstLightningCardThisTurn)
-        saveGameData(game, 'firstProtocolCardThisTurn', game.firstProtocolCardThisTurn)
-        saveGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
+        storeGameData(game, 'firstLightningCardThisTurn', game.firstLightningCardThisTurn)
+        storeGameData(game, 'firstProtocolCardThisTurn', game.firstProtocolCardThisTurn)
+        storeGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
         playNextPlayerTurnSound();
       }
       game.playerTurnUpdated = true
@@ -300,12 +300,102 @@ export async function fetchProperties(game) {
       game.properties = gameProperties;
       game.propertiesCount = gamePropertiesCount;
       // Save game data in local storage
-      saveGameData(game, 'properties', game.properties)
-      saveGameData(game, 'propertiesCount', game.propertiesCount)
+      storeGameData(game, 'properties', game.properties)
+      storeGameData(game, 'propertiesCount', game.propertiesCount)
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
+}
+
+export async function getGamePlayersFromUser(user){
+  let gamePlayers = []
+  for(let index in user.wallets) {
+    let res = await LNbits.api
+      .request(
+        'GET',
+        '/monopoly/api/v1/wallet?wallet_id=' + user.wallets[index].id,
+        user.wallets[index].adminkey,
+      )
+    if(res.data) {
+      gamePlayers.push({
+          gameId: res.data.game_id,
+          playerIndex: res.data.player_index,
+          wallet_inkey: user.wallets[index].inkey,
+        }
+      )
+    }
+  }
+  return gamePlayers
+}
+
+export async function getGamePlayerFromUserAndWallet(user, walletId){
+  let wallet
+  user.wallets.forEach((userWallet) => {
+    if(userWallet.id === walletId) {
+      wallet = userWallet
+    }
+  })
+  let gamePlayer
+  let res = await LNbits.api
+    .request(
+      'GET',
+      '/monopoly/api/v1/wallet?wallet_id=' + walletId,
+      wallet.adminkey,
+    )
+  if(res.data) {
+    gamePlayer = {
+      gameId: res.data.game_id,
+      playerIndex: res.data.player_index,
+    }
+  }
+  return gamePlayer
+}
+
+export async function getGamePlayerFromGameRecord(gameRecord) {
+  let gamePlayer
+  // Figure out which user wallet is the player wallet for considered game record
+  for(let index in window.user.wallets) {
+    let candidateGamePlayer = await getGamePlayerFromUserAndWallet(window.user, window.user.wallets[index].id)
+    if(
+      candidateGamePlayer &&
+      candidateGamePlayer.gameId === gameRecord.gameId &&
+      candidateGamePlayer.playerIndex.toString() === gameRecord.playerIndex
+    ) {
+      gamePlayer = {
+        ...candidateGamePlayer,
+        walletId: window.user.wallets[index].id
+      }
+    }
+  }
+
+  return gamePlayer
+}
+
+export async function getGameRecordsFromDatabase(user, game){
+  // Fetch saved games from database
+  let gamePlayers = await getGamePlayersFromUser(user);
+  let gameRecords = []
+  for(let index in gamePlayers) {
+    // Fetch game time
+    let res = await LNbits.api
+      .request(
+        'GET',
+        '/monopoly/api/v1/game-time?game_id=' + gamePlayers[index].gameId,
+        gamePlayers[index].wallet_inkey,
+      )
+    if(res.data) {
+      gameRecords.push(
+        {
+          gameId: gamePlayers[index].gameId,
+          playerIndex: gamePlayers[index].playerIndex.toString(),
+          dateTime: new Date(parseInt(res.data.time + '000', 10)).toString().split(' GMT')[0],
+          location: 'database'
+        }
+      )
+    }
+  }
+  return gameRecords
 }
 
 export async function loadGameDataFromDatabase(user, walletId) {
@@ -379,20 +469,16 @@ export async function loadGameDataFromDatabase(user, walletId) {
       inkey(game)
     )
   if(res.data) {
-    let gameData =  {}
-    for(let index in res.data) {
-      gameData[res.data[index][0]] = res.data[index][1]
-    }
-    game.timestamp = gameData.time
-    game.started = gameData.started
+    game.timestamp = res.data.time + '000'
+    game.started = res.data.started
 
-    if(gameData.initial_funding) {
+    if(res.data.initial_funding) {
       // Game has been funded
       game.fundingStatus = 'success'
-      game.initialFunding = gameData.initial_funding
-      game.initialPlayerBalance = gameData.initial_player_balance
-      game.inviteVoucherId = gameData.invite_voucher_id
-      game.rewardVoucherId = gameData.reward_voucher_id
+      game.initialFunding = res.data.initial_funding
+      game.initialPlayerBalance = res.data.initial_player_balance
+      game.inviteVoucherId = res.data.invite_voucher_id
+      game.rewardVoucherId = res.data.reward_voucher_id
       if(game.inviteVoucherId && game.rewardVoucherId) {
         game.showInviteButton = true
       }
