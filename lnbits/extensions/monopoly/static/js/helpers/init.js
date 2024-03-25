@@ -1,6 +1,7 @@
 import { properties } from '../data/properties.js'
 import {
-  loadGameDataFromDatabase
+  loadGameDataFromDatabase,
+  getGamePlayerFromUserAndWallet
 } from '../calls/database.js'
 import {
   checkPlayersBalances,
@@ -11,38 +12,44 @@ import {
   checkPaymentsToPlayer,
   checkWalletsBalances
 } from '../calls/intervals.js'
-import { loadGameDataFromLocalStorage, saveGameRecord } from './storage.js'
-import { newGame } from '../data/data.js'
+import { loadGameDataFromLocalStorage, storeGameRecord } from './storage.js'
 
-export async function loadGame(savedGameRecords, wallets) {
+export async function loadGameFromURL(gameRecords, wallets) {
   let game;
-  // Load  game and player wallet
-  if(window.user.id && window.wal) {
-    if(
-      savedGameRecords &&
-      savedGameRecords.gameRecords &&
-      savedGameRecords.gameRecords[window.user.id] &&
-      savedGameRecords.gameRecords[window.user.id][window.wal]
-    ) {
-      game = loadGameDataFromLocalStorage(savedGameRecords.gameRecords[window.user.id][window.wal]);
+  // Load  game and player wallet from URL user and wallet ids
+  if(gameRecords && gameRecords.length) {
+    // Figure out which game ids and player indexes correspond to URL's user id and wallet ids
+    let gamePlayer = await getGamePlayerFromUserAndWallet(window.user, window.wal)
+    let gameRecordToLoad = {}
+    gameRecords.forEach((gameRecord) => {
+      if(gameRecord.gameId === gamePlayer.gameId && gameRecord.playerIndex === gamePlayer.playerIndex.toString()) {
+        gameRecordToLoad = gameRecord
+      }
+    })
+    // Load game from local storage if possible
+    if(gameRecordToLoad.location === 'storage') {
+      // Load game data from local storage if possible
+      game = loadGameDataFromLocalStorage(gameRecordToLoad);
     } else {
-      // Recover game data from database:
+      // Load game data from database
       game = await loadGameDataFromDatabase(
         window.user,
         window.wal
       )
       // Save game in local storage
-      await saveGameRecord(game)
+      await storeGameRecord(game)
     }
-    game = await initGameData(game, wallets);
   } else {
-    game = newGame;
+    console.error("No game records found")
   }
   // Show invite button if needed
   if(game.fundingStatus === 'success' && !game.started && !game.showInviteButton) {
     // Show invite button only after redirection following onGameFunded() call
     game.showInviteButton = true
   }
+  // Initialize game
+  game = await initGameData(game, wallets);
+
   return game
 }
 

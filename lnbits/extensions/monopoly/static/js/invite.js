@@ -1,7 +1,7 @@
 import { inviteGame } from './data/data.js'
 import {
-  saveGameRecord,
-  saveGameData
+  storeGameRecord,
+  storeGameData
 } from './helpers/storage.js'
 import {
   checkMaxNumberOfPlayersReached,
@@ -89,7 +89,7 @@ async function fetchGameData (game) {
     console.log("Successfully fetched game data from database")
     game.timestamp = Date.now()
     // Save game in local storage
-    saveGameRecord(game)
+    storeGameRecord(game)
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
@@ -113,7 +113,7 @@ async function joinGame(game) {
     console.log(res.data)
     // Save player index in local storage
     game.player.index = parseInt(res.data.player_index);
-    saveGameData(game, 'player', game.player)
+    storeGameData(game, 'player', game.player)
     console.log(game.player.name +  " successfully joined the game")
     // Create and save player pay link
     const playerPayLinkCreated = await createPlayerPayLNURL(game);
@@ -132,7 +132,7 @@ async function joinGame(game) {
     if(res.data) {
       console.log("Free market wallet pay link: " + res.data.pay_link)
       game.freeMarketWalletPayLink = res.data.pay_link
-      saveGameData(game, 'freeMarketWalletPayLink', game.freeMarketWalletPayLink)
+      storeGameData(game, 'freeMarketWalletPayLink', game.freeMarketWalletPayLink)
     } else {
       LNbits.utils.notifyApiError(res.error)
     }

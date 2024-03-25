@@ -14,6 +14,7 @@ from .models import (
     GameId,
     GameAdminUserId,
     GameStarted,
+    GameTime,
     Player,
     CreatePlayerWallet,
     PlayerWallet,
@@ -515,15 +516,15 @@ async def reset_cumulated_fines(data: PlayerIndex):
 
 # Getters
 async def get_game(game_id: str) -> Game:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return Game(**row) if row else None
 
 async def get_game_admin_user_id(game_id: str) -> GameAdminUserId:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return GameAdminUserId(**row) if row else None
 
 async def get_player_wallet(wallet_id: str) -> PlayerWallet:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
     return PlayerWallet(**row) if row else None
 
 async def get_player_wallet_by_player_index(game_id: str, player_index: int) -> PlayerWallet:
@@ -531,20 +532,24 @@ async def get_player_wallet_by_player_index(game_id: str, player_index: int) -> 
     return PlayerWallet(**row) if row else None
 
 async def get_wallet_pay_link(wallet_id: str) -> PayLink:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
     return PayLink(**row) if row else None
 
 async def get_free_market_liquidity(game_id: str) -> FreeMarketLiquidity:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return FreeMarketLiquidity(**row) if row else None
 
 async def get_player_wallet_info(wallet_id: str) -> PlayerWalletInfo:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
     return PlayerWalletInfo(**row) if row else None
 
 async def get_game_started(game_id: str) -> GameStarted:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return GameStarted(**row) if row else None
+
+async def get_game_time(game_id: str) -> GameTime:
+    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
+    return GameTime(**row) if row else None
 
 async def get_player(game_id: str, player_index: int) -> Player:
     row = await db.fetchone("SELECT * FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))

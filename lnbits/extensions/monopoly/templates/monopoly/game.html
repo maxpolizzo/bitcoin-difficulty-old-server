@@ -19,7 +19,12 @@
 {% endblock %} {% block page %}
 <link rel="stylesheet" href="/monopoly/static/css/monopoly.css"/>
 
-<div v-if="loading">Loading</div>
+<div v-if="loading" style="margin-left: -10em; margin-top: 10em; margin-bottom: 2em; display: flex; justify-content: center;">
+  <q-spinner
+    color="orange"
+    size="5em"
+  />
+</div>
 
 <div v-else id="monopoly" class="row q-col-gutter-md">
   <!-- Game view -->

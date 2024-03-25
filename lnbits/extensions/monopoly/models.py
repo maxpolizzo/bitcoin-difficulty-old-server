@@ -74,6 +74,9 @@ class FreeMarketLiquidity(BaseModel):
 class GameStarted(BaseModel):
     started: bool
 
+class GameTime(BaseModel):
+    time: str = Query(...)
+
 class CreateFirstPlayer(BaseModel):
     game_id: str = Query(...)
     user_id: str = Query(...)

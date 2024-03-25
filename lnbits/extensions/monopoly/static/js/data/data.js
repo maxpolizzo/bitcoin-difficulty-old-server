@@ -187,18 +187,27 @@ export const gameRecordsData = {
     {
       name: 'dateTime',
       required: true,
-      label: 'Date created',
+      label: '',
       align: 'left',
       field: 'dateTime',
       format: val => `${val}`,
       sortable: true
     },
     {
-      name: 'link',
+      name: 'type',
       required: true,
-      label: 'Load game',
+      label: '',
       align: 'left',
-      field: 'link',
+      field: 'playerIndex',
+      format: val => `${val === '0' ? 'Created' : 'Joined'}`,
+      sortable: true
+    },
+    {
+      name: 'load',
+      required: true,
+      label: '',
+      align: 'left',
+      field: '',
       format: val => `${val}`
     },
   ],
