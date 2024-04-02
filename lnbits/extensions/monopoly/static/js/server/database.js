@@ -1,4 +1,4 @@
-import {gameRecordsData, newGame} from '../data/data.js'
+import { newGame } from '../data/data.js'
 import { properties } from '../data/properties.js'
 import { createGameVouchers } from './api.js'
 import {playNextPlayerTurnSound, playPlayerJoinedSound, playStartGameSound} from '../helpers/audio.js'
@@ -328,27 +328,28 @@ export async function getGamePlayerFromGameRecord(gameRecord) {
   return gamePlayer
 }
 
-export async function getGameRecordsFromDatabase(){
-  // Fetch saved games from database
-  let gamePlayers = await getGamePlayersFromUser();
+export async function getGameRecordsFromDatabase(gamePlayers){
   let gameRecords = []
+  // Fetch saved games from database
   for(let index in gamePlayers) {
-    // Fetch game time
-    let res = await LNbits.api
-      .request(
-        'GET',
-        '/monopoly/api/v1/game-time?game_id=' + gamePlayers[index].gameId,
-        window.user.wallets[gamePlayers[index].walletIndex].inkey,
-      )
-    if(res.data) {
-      gameRecords.push(
-        {
-          gameId: gamePlayers[index].gameId,
-          playerIndex: gamePlayers[index].playerIndex.toString(),
-          dateTime: new Date(parseInt(res.data.time + '000', 10)).toString().split(' GMT')[0],
-          location: 'database'
-        }
-      )
+    if(gamePlayers[index].playerIndex !== "1") { // Do not use first player game record, instead use free market wallet's one
+      // Fetch game time
+      let res = await LNbits.api
+        .request(
+          'GET',
+          '/monopoly/api/v1/game-time?game_id=' + gamePlayers[index].gameId,
+          window.user.wallets[gamePlayers[index].walletIndex].inkey,
+        )
+      if(res.data) {
+        gameRecords.push(
+          {
+            gameId: gamePlayers[index].gameId,
+            playerIndex: gamePlayers[index].playerIndex,
+            dateTime: new Date(parseInt(res.data.time + '000', 10)).toString().split(' GMT')[0],
+            location: 'database'
+          }
+        )
+      }
     }
   }
   return gameRecords

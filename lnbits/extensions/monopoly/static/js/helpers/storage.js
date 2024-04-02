@@ -1,6 +1,6 @@
 import { newGame } from '../data/data.js'
 
-export function getGameRecordsFromLocalStorage(gameRecords = []) {
+export function getGameRecordsFromLocalStorage(gamePlayers, gameRecords = []) {
   // Fetch existing game records in local storage
   let storedGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
   if(storedGameRecords && storedGameRecords.length) {
@@ -8,14 +8,18 @@ export function getGameRecordsFromLocalStorage(gameRecords = []) {
       const gameId = storedGameRecords[j].split('_')[0];
       const playerIndex = storedGameRecords[j].split('_')[1];
       const dateTime = new Date(parseInt(storedGameRecords[j].split('_')[2])).toString().split(' GMT')[0];
-      gameRecords.push(
-        {
-          gameId,
-          playerIndex,
-          dateTime,
-          location: 'storage'
+      gamePlayers.forEach((player) => {
+        if(playerIndex === player.playerIndex) {
+          gameRecords.push(
+            {
+              gameId,
+              playerIndex,
+              dateTime,
+              location: 'storage'
+            }
+          )
         }
-      )
+      })
     }
   }
   return gameRecords;
