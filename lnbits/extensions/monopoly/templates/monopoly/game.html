@@ -97,7 +97,7 @@
               <q-btn  v-else disabled row icon="qr_code_2" size="1em" :style="reactiveStyles.inviteButton" @click="showInviteQR"></q-btn>
             </div>
             <div class="col-2 col-md-2" style="margin-top: 1em;">
-              <q-btn v-if="game.playersCount >= game.minPlayersCount" row color="orange" icon="play_circle" size="1em" @click="startGame()"></q-btn>
+              <q-btn v-if="game.playersCount >= game.minPlayersCount && game.enableStartGame" row color="orange" icon="play_circle" size="1em" @click="startGame()"></q-btn>
               <q-btn v-else disabled row icon="play_circle" size="1em" @click="startGame()"></q-btn>
             </div>
             <div v-if="game.playersCount < game.minPlayersCount" class="col-12 col-md-12" style="margin-top: 1em;">

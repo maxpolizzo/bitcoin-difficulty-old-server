@@ -181,7 +181,7 @@ export async function getFreeMarketWalletPayLink(gameData){
   return res.data.pay_link
 }
 
-/*
+
 export async function fetchGameStarted(game) {
   let res = await LNbits.api
     .request(
@@ -191,26 +191,23 @@ export async function fetchGameStarted(game) {
     )
   if(res.data) {
     let gameStarted = res.data[0][1]
-    if(gameStarted && !game.started) {
-      game.gameStartedUpdated = false // This is a lock to avoid playing startGame sound multiple times if player
+    if(gameStarted !== game.started) {
       // device is idle while game starts
       game.started = gameStarted
       // Save game status in local storage
       storeGameData(game, 'started', game.started)
-      // Clear interval
-      clearInterval(game.gameStartedChecker)
-      if(game.started && !game.gameStartedUpdated) {
+      if(game.started) {
         console.log("GAME STARTED")
         playStartGameSound()
       }
-      game.gameStartedUpdated = true
     }
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
+
+  return game
 }
-*/
-/*
+
 export async function fetchPlayerTurn(game) {
   // Fetch player turn from database
   let res = await LNbits.api
@@ -220,13 +217,11 @@ export async function fetchPlayerTurn(game) {
         inkey(game)
       )
   if(res.data) {
-    let nextPlayerTurn = res.data["player_turn"]
-    if(nextPlayerTurn !== game.playerTurn)  {
-      game.playerTurnUpdated = false // This is a lock to avoid playing nextPlayerTurn sound multiple times if player
-      // device is idle while player turn changes
-      game.playerTurn = nextPlayerTurn
+    let playerTurn = res.data["player_turn"]
+    if(playerTurn !== game.playerTurn)  {
+      game.playerTurn = playerTurn
       storeGameData(game, 'playerTurn', game.playerTurn)
-      if(game.playerTurn === game.player.index && !game.playerTurnUpdated) {
+      if(game.playerTurn === game.player.index) {
         game.firstLightningCardThisTurn = true
         game.firstProtocolCardThisTurn = true
         game.firstStartClaimThisTurn = true
@@ -235,11 +230,14 @@ export async function fetchPlayerTurn(game) {
         storeGameData(game, 'firstStartClaimThisTurn', game.firstStartClaimThisTurn)
         playNextPlayerTurnSound();
       }
-      game.playerTurnUpdated = true
     }
+  } else if(res.error) {
+    LNbits.utils.notifyApiError(res.error)
   }
+
+  return game
 }
-*/
+
 export async function fetchProperties(game) {
   let res = await LNbits.api
     .request(

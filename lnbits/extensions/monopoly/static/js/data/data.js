@@ -81,6 +81,7 @@ export const newGame = {
   showFundingView: false,
   showFundingDialog: false,
   showInviteQR: false,
+  enableStartGame: false,
   showExplanationText: false,
   showPayInvoiceDialog: false,
   showPlayerInvoiceDialog: false,
