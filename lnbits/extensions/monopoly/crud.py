@@ -203,14 +203,6 @@ async def pick_player_name(game_id: str) -> str:
     # Return picked player name
     return available_player_names[picked_index]
 
-async def create_reward_voucher(data: CreateVoucher):
-    await db.execute(
-            """
-            UPDATE monopoly.games SET reward_voucher_id = ? WHERE game_id = ?
-            """,
-            (data.voucher_id, data.game_id),
-    )
-
 async def create_invite_voucher(data: CreateVoucher):
     await db.execute(
             """

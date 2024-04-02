@@ -50,7 +50,6 @@ new Vue({
       this.game.player.clientId = window.invite_vars.client_id
       // Invite and reward vouchers are passed in the invite URL and cannot be obtained by other means
       this.inviteVoucher = window.invite_vars.invite_voucher;
-      this.game.rewardVoucher = window.invite_vars.reward_voucher.toString();
       // Fetch additional game data
       let gameInviteData = await fetchGameInviteData({
         id: this.game.id,

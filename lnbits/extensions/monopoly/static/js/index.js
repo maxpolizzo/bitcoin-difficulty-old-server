@@ -215,6 +215,13 @@ new Vue({
     },
     selectCameraDevice: async function(deviceId, deviceIndex, retry = true) {
       this.camera.error = null;
+      this.camera.constraints = {
+        "video":  {
+          "aspectRatio": 1,
+          "frameRate": { "ideal": 4, "max": 12 },
+          "facingMode": { "ideal":'environment' },
+        }
+      }
       // Select last video device (usually camera with focus)
       try {
         if(deviceId) {
@@ -227,18 +234,10 @@ new Vue({
         } else if(deviceIndex >= 0) {
           this.camera.deviceIndex = deviceIndex;
           this.camera.deviceId = this.camera.candidateDevices[this.camera.deviceIndex].deviceId
-        } else  {
-          this.camera.error = "Error: tried all candidate camera devices"
-          console.error(this.camera.error)
         }
         // Try selected device
-        this.camera.constraints = {
-          "video":  {
-            "aspectRatio": 1,
-            "frameRate": { "ideal": 4, "max": 12 },
-            "facingMode": { "ideal":'environment' },
-            "deviceId": { "exact": this.camera.deviceId }
-          }
+        if(this.camera.deviceId) {
+          this.camera.constraints["video"]["deviceId"] = this.camera.deviceId
         }
         const video = document.querySelector("video");
         this.camera.stream = await navigator.mediaDevices.getUserMedia(this.camera.constraints);
@@ -617,22 +616,10 @@ new Vue({
         )
       if(res.data) {
         const inviteVoucher = res.data.lnurl;
-        res = await LNbits.api
-          .request(
-            'GET',
-            '/withdraw/api/v1/links/' + this.game.rewardVoucherId,
-            inkey(this.game),
-          )
-        if(res.data) {
-          const rewardVoucher = res.data.lnurl;
-          // Invite and reward vouchers are passed in the invite URL and cannot be obtained by other means
-          return "https://" + window.location.hostname +
-            "/monopoly/api/v1/invite?game_id=" + this.game.id +
-            "&invite_voucher=" + inviteVoucher +
-            "&reward_voucher=" + rewardVoucher;
-        } else {
-          LNbits.utils.notifyApiError(res.error)
-        }
+        // Invite and reward vouchers are passed in the invite URL and cannot be obtained by other means
+        return "https://" + window.location.hostname +
+          "/monopoly/api/v1/invite?game_id=" + this.game.id +
+          "&invite_voucher=" + inviteVoucher
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
