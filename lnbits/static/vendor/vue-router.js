@@ -1873,7 +1873,7 @@
   function pushState (url, replace) {
     saveScrollPosition();
     // try...catch the pushState call to get around Safari
-    // DOM Exception 18 where it limits to 100 pushState calls
+    // DOM Exception 18 where it limits to 100 pushState server
     var history = window.history;
     try {
       if (replace) {

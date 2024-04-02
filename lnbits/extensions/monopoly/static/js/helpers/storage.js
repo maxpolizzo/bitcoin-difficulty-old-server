@@ -2,12 +2,12 @@ import { newGame } from '../data/data.js'
 
 export function getGameRecordsFromLocalStorage(gameRecords = []) {
   // Fetch existing game records in local storage
-  let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
-  if(existingGameRecords && existingGameRecords.length) {
-    for(let j = 0; j < existingGameRecords.length; j++) {
-      const gameId = existingGameRecords[j].split('_')[0];
-      const playerIndex = existingGameRecords[j].split('_')[1];
-      const dateTime = new Date(parseInt(existingGameRecords[j].split('_')[2])).toString().split(' GMT')[0];
+  let storedGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
+  if(storedGameRecords && storedGameRecords.length) {
+    for(let j = 0; j < storedGameRecords.length; j++) {
+      const gameId = storedGameRecords[j].split('_')[0];
+      const playerIndex = storedGameRecords[j].split('_')[1];
+      const dateTime = new Date(parseInt(storedGameRecords[j].split('_')[2])).toString().split(' GMT')[0];
       gameRecords.push(
         {
           gameId,
@@ -22,48 +22,48 @@ export function getGameRecordsFromLocalStorage(gameRecords = []) {
 }
 
 export function storeGameRecord(game) {
-  // Save game record to local storage
-  let existingGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
-  let gameAlreadySaved = false;
-  if(existingGameRecords && existingGameRecords.length) {
-    existingGameRecords.forEach((gameRecordString) => {
-      if(game.freeMarketWallet && game.freeMarketWallet.id) {
+  // Store game record to local storage
+  let storedGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
+  let gameRecordAlreadyStored = false;
+  if(storedGameRecords && storedGameRecords.length) {
+    storedGameRecords.forEach((gameRecordString) => {
+      if(game.freeMarketWallet && game.freeMarketWallet.index) {
         // Game creator
         if(gameRecordString.startsWith(game.id + '_0')) {
-          gameAlreadySaved = true;
+          gameRecordAlreadyStored = true;
         }
-      } else if(game.player.wallet && game.player.wallet.id && game.player.index) {
+      } else if(game.player && parseInt(game.player.index) > 1) {
         // Other players
         if(gameRecordString.startsWith(game.id + '_' + game.player.index)) {
-          gameAlreadySaved = true;
+          gameRecordAlreadyStored = true;
         }
       }
     })
   }
-  if(!gameAlreadySaved) {
-    if(existingGameRecords && existingGameRecords.length) {
-      if(game.freeMarketWallet && game.freeMarketWallet.id) {
+  if(!gameRecordAlreadyStored) {
+    if(storedGameRecords && storedGameRecords.length) {
+      if(game.freeMarketWallet && game.freeMarketWallet.index) {
         // Game creator
-        existingGameRecords.push(game.id + '_0_' + game.timestamp)
-      } else if(game.player.wallet && game.player.wallet.id && game.player.index) {
+        storedGameRecords.push(game.id + '_0_' + game.timestamp)
+      } else if(game.player && parseInt(game.player.index) > 1) {
         // Other players
-        existingGameRecords.push(game.id + '_' + game.player.index + '_' + game.timestamp)
+        storedGameRecords.push(game.id + '_' + game.player.index + '_' + game.timestamp)
       }
     } else {
-      if(game.freeMarketWallet && game.freeMarketWallet.id) {
+      if(game.freeMarketWallet && game.freeMarketWallet.index) {
         // Game creator
-        existingGameRecords = [game.id + '_0_' + game.timestamp]
-      } else if(game.player.wallet && game.player.wallet.id && game.player.index) {
+        storedGameRecords = [game.id + '_0_' + game.timestamp]
+      } else if(game.player && parseInt(game.player.index) > 1) {
         // Other players
-        existingGameRecords = [game.id + '_' + game.player.index + '_' + game.timestamp]
+        storedGameRecords = [game.id + '_' + game.player.index + '_' + game.timestamp]
       }
     }
-    localStorage.setItem('monopoly.gameRecords', JSON.stringify(existingGameRecords))
-    // Save game to local storage
-    Object.keys(game).forEach((key) => {
-      storeGameData(game, key, game[key])
-    })
+    localStorage.setItem('monopoly.gameRecords', JSON.stringify(storedGameRecords))
   }
+  // Store game data to local storage
+  Object.keys(game).forEach((key) => {
+    storeGameData(game, key, game[key])
+  })
 }
 
 export function loadGameDataFromLocalStorage(gameRecord) {
@@ -85,13 +85,13 @@ export function loadGameDataFromLocalStorage(gameRecord) {
 
 export function storeGameData(game, key, data) {
   // Save game data to local storage
-  if(game.freeMarketWallet && game.freeMarketWallet.id) {
+  if(game.freeMarketWallet && game.freeMarketWallet.index) {
     // Game creator
     localStorage.setItem(
       'monopoly.' + game.id + '_0' + '.' + key.toString(),
       JSON.stringify(data)
     )
-  } else if(game.player.wallet && game.player.wallet.id && game.player.index) {
+  } else if(game.player && parseInt(game.player.index) > 1) {
     // Other players
     localStorage.setItem(
       'monopoly.' + game.id + '_' + game.player.index + '.' + key.toString(),

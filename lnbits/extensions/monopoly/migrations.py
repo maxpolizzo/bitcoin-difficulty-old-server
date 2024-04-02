@@ -18,7 +18,7 @@ async def m001_initial(db):
             max_players_count INTEGER NOT NULL,
             available_player_names TEXT NOT NULL,
             cumulated_fines {db.big_int},
-            player_turn INTEGER DEFAULT 0,
+            player_turn TEXT DEFAULT "0",
             time TIMESTAMP NOT NULL DEFAULT TIMESTAMP NOT NULL DEFAULT """+ db.timestamp_now + """
         );
     """
@@ -32,7 +32,9 @@ async def m001_initial(db):
         CREATE TABLE monopoly.wallets (
             game_id TEXT NOT NULL,
             is_free_market BOOLEAN DEFAULT false,
-            player_index INTEGER NOT NULL,
+            player_index TEXT NOT NULL,
+            client_id TEXT,
+            balance_msat {db.big_int},
             user TEXT NOT NULL,
             id TEXT PRIMARY KEY,
             inkey TEXT NOT NULL,
@@ -50,9 +52,8 @@ async def m001_initial(db):
         f"""
         CREATE TABLE monopoly.players (
             game_id TEXT NOT NULL,
-            player_index INTEGER NOT NULL,
+            player_index TEXT NOT NULL,
             player_name TEXT,
-            player_balance {db.big_int},
             pow_provided BOOLEAN DEFAULT false,
             technology_card_picked BOOLEAN DEFAULT false,
             black_swan_card_picked BOOLEAN DEFAULT false
@@ -67,9 +68,9 @@ async def m001_initial(db):
         f"""
         CREATE TABLE monopoly.properties (
             game_id TEXT NOT NULL,
-            property_id INTEGER NOT NULL,
+            property_id TEXT NOT NULL,
             color TEXT NOT NULL,
-            player_index TEXT,
+            player_index TEXT NOT NULL,
             mining_capacity INTEGER,
             mining_income INTEGER
         );

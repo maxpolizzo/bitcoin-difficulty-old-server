@@ -1,5 +1,8 @@
 import random
+import json
+
 from uuid import uuid4
+
 from lnbits.core.models import User
 from lnbits.core.crud import (
     create_account,
@@ -7,7 +10,12 @@ from lnbits.core.crud import (
     get_wallet,
     get_user
 )
-from . import db
+from lnbits.core.services import (create_invoice, pay_invoice)
+
+from . import(
+    db,
+    websocketManager
+)
 from .models import (
     CreateGame,
     Game,
@@ -26,8 +34,8 @@ from .models import (
     CreateFirstPlayer,
     CreatePlayer,
     NewPlayerData,
-    UpdatePlayerBalance,
-    PlayerBalance,
+    UpdateWalletBalance,
+    WalletBalance,
     CreateVoucher,
     UpdateGameFunding,
     InvitedPlayer,
@@ -41,7 +49,8 @@ from .models import (
     Property,
     UpdatePropertyIncome,
     UpgradeMiners,
-    UpdateCumulatedFines
+    UpdateCumulatedFines,
+    RewardClaim
 )
 
 # Setters
@@ -60,11 +69,14 @@ async def create_game(data: CreateGame, admin_user_id: str) -> Game:
 
 async def create_free_market_wallet(data: GameId, user_id: str) -> PlayerWallet:
     wallet = await create_wallet(user_id = user_id, wallet_name = "Free market")
+    ws_client_id = uuid4().hex
+
     free_market_wallet = await create_player_wallet(
         CreatePlayerWallet(
             game_id=data.game_id,
             is_free_market=True,
-            player_index=0,
+            player_index="0",
+            client_id=ws_client_id,
             user=user_id,
             id=wallet.id,
             inkey=wallet.inkey,
@@ -78,10 +90,10 @@ async def create_player_wallet(data: CreatePlayerWallet) -> PlayerWallet:
     await db.execute(
         """
         INSERT INTO monopoly.wallets (
-        game_id, is_free_market, player_index, user, id, inkey, adminkey)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        game_id, is_free_market, player_index, client_id, user, id, inkey, adminkey)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (data.game_id, data.is_free_market, data.player_index, data.user, data.id, data.inkey, data.adminkey),
+        (data.game_id, data.is_free_market, data.player_index, data.client_id, data.user, data.id, data.inkey, data.adminkey),
     )
     player_wallet = await get_player_wallet(data.id)
     assert player_wallet, "Error: player wallet couldn't be retrieved"
@@ -117,7 +129,7 @@ async def create_first_player(data: CreateFirstPlayer) -> NewPlayerData:
     first_player = await create_player(
         CreatePlayer(
             game_id=data.game_id,
-            player_index=1,
+            player_index="1",
             player_name=name,
         )
     )
@@ -126,7 +138,8 @@ async def create_first_player(data: CreateFirstPlayer) -> NewPlayerData:
         CreatePlayerWallet(
             game_id=data.game_id,
             is_free_market=False,
-            player_index=1,
+            player_index="1",
+            client_id="", # Game creator uses free market wallet websocket client id
             user=wallet.user,
             id=wallet.id,
             inkey=wallet.inkey,
@@ -134,7 +147,7 @@ async def create_first_player(data: CreateFirstPlayer) -> NewPlayerData:
         )
     )
     return NewPlayerData(
-        player_index=1,
+        player_index="1",
         name=name,
         user=first_player_wallet.user,
         id=first_player_wallet.id,
@@ -148,16 +161,24 @@ async def create_player(data: CreatePlayer) -> Player:
         INSERT INTO monopoly.players (
             game_id,
             player_index,
-            player_name,
-            player_balance
+            player_name
          )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?)
         """,
-        (data.game_id, data.player_index, data.player_name, 0),
+        (data.game_id, data.player_index, data.player_name),
     )
 
     player = await get_player(data.game_id, data.player_index)
     assert player, "Newly created player couldn't be retrieved"
+
+    # Notify other game players
+    msg = json.dumps({
+        "type": "new_player",
+        "player_index": data.player_index,
+        "player_name": data.player_name
+    })
+    await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
+
     return player
 
 async def pick_player_name(game_id: str) -> str:
@@ -181,20 +202,6 @@ async def pick_player_name(game_id: str) -> str:
     )
     # Return picked player name
     return available_player_names[picked_index]
-
-async def update_player_balance(data: UpdatePlayerBalance) -> PlayerBalance:
-    await db.execute(
-            """
-            UPDATE monopoly.players SET player_balance = ? WHERE game_id = ? AND player_index = ?
-           """,
-           (data.balance, data.game_id, data.player_index),
-    )
-
-    player = await get_player(data.game_id, data.player_index)
-    assert player, "Newly updated player couldn't be retrieved"
-    return PlayerBalance(
-        balance=player.player_balance
-    )
 
 async def create_reward_voucher(data: CreateVoucher):
     await db.execute(
@@ -233,9 +240,11 @@ async def invite_player(game_id: str) -> InvitedPlayer:
     # Create LNBits wallet for invited player
     wallet = await create_wallet(user_id=user.id, wallet_name=player_name)
     assert wallet, "Newly created wallet couldn't be retrieved"
+    ws_client_id = uuid4().hex
 
     invited_user = InvitedPlayer(
         id=user.id,
+        client_id=ws_client_id,
         name=player_name
     )
     return invited_user
@@ -245,7 +254,6 @@ async def join_game(data: JoinGame) -> Player:
     assert user, "User couldn't be retrieved"
     wallet = await get_wallet(data.wallet_id)
     assert wallet, "Newly updated wallet couldn't be retrieved"
-
     assert data.user_id == wallet.user, "User and wallet do not match"
 
     player = await create_player(
@@ -261,6 +269,7 @@ async def join_game(data: JoinGame) -> Player:
             game_id=data.game_id,
             is_free_market=False,
             player_index=data.player_index,
+            client_id=data.client_id,
             user=data.user_id,
             id=data.wallet_id,
             inkey=wallet.inkey,
@@ -270,8 +279,7 @@ async def join_game(data: JoinGame) -> Player:
     return Player(
         game_id=data.game_id,
         player_index=data.player_index,
-        player_name=data.player_name,
-        player_balance=0
+        player_name=data.player_name
     )
 
 async def initialize_cards(data: InitializeCards):
@@ -388,10 +396,10 @@ async def pick_card(data: PickCard) -> str:
     else:
         return "already_picked"
 
-async def start_game(data: GameId):
+async def start_game(data: GameId) -> int:
     players_count = await get_players_count(data.game_id)
     # Pick a random index for first player turn
-    first_player_turn = random.sample(range(1, players_count[0] + 1), 1)[0]
+    first_player_turn = str(random.sample(range(1, players_count[0] + 1), 1)[0])
 
     await db.execute(
          """
@@ -400,15 +408,27 @@ async def start_game(data: GameId):
          (True, first_player_turn, data.game_id),
     )
 
-async def next_player_turn(data: PlayerIndex) -> int:
+    # Notify other game players
+    msg = json.dumps({
+        "type": "game_started",
+        "first_player_turn": first_player_turn
+    })
+    await websocketManager.notify_other_game_players(data.game_id, "0", msg)
+
+    return first_player_turn
+
+
+async def next_player_turn(data: PlayerIndex) -> str:
     players_count = await get_players_count(data.game_id)
     player_turn = await get_player_turn(data.game_id)
 
     assert player_turn[0] == data.player_index, "Player cannot increment player_turn"
 
-    next_player_turn = player_turn[0] + 1
-    if(next_player_turn > players_count[0]):
-        next_player_turn = 1
+    next_player_turn_int = int(player_turn[0]) + 1
+    if(next_player_turn_int > players_count[0]):
+        next_player_turn_int = 1
+
+    next_player_turn = str(next_player_turn_int)
 
     # Update game player_turn
     await db.execute(
@@ -440,6 +460,13 @@ async def next_player_turn(data: PlayerIndex) -> int:
        (False, data.game_id, next_player_turn),
     )
 
+    # Notify other game players
+    msg = json.dumps({
+        "type": "next_player_turn",
+        "player_turn": next_player_turn,
+    })
+    await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
+
     return next_player_turn
 
 async def register_property(data: Property):
@@ -448,10 +475,24 @@ async def register_property(data: Property):
             INSERT INTO monopoly.properties (game_id, property_id, color, player_index, mining_capacity, mining_income)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (data.game_id, data.property_id, data.color, data.player_index, data.mining_capacity, data.mining_income),
+            (data.game_id, data.property_id, data.color, data.player_index, 0, 0),
         )
 
+    # Notify all game players
+    msg = json.dumps({
+        "type": "property_purchase",
+        "property_id": data.property_id,
+        "color": data.color,
+        "player_index": data.player_index,
+        "mining_capacity": 0,
+        "mining_income": 0
+    })
+    await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
+
+
 async def transfer_property_ownership(data: Property):
+    property = await get_property(data.game_id, data.color, data.property_id)
+
     await db.execute(
             """
             UPDATE monopoly.properties SET player_index = ? WHERE game_id = ? AND color = ? AND property_id = ?
@@ -459,19 +500,45 @@ async def transfer_property_ownership(data: Property):
            (data.player_index, data.game_id, data.color, data.property_id),
     )
 
-async def update_property_income(data: UpdatePropertyIncome):
+    # Notify other game players
+    msg = json.dumps({
+        "type": "property_purchase",
+        "property_id": data.property_id,
+        "color": data.color,
+        "player_index": data.player_index,
+        "mining_capacity": property.mining_capacity,
+        "mining_income": property.mining_income
+    })
+    await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
+
+async def update_property_income(data: UpdatePropertyIncome) -> int:
     property_to_update = await get_property(data.game_id, data.color, data.property_id)
-    new_income = property_to_update.mining_income + data.income_increment
+    new_mining_income = property_to_update.mining_income + data.income_increment
 
     await db.execute(
             """
             UPDATE monopoly.properties SET mining_income = ? WHERE game_id = ? AND color = ? AND property_id = ?
            """,
-           (new_income, data.game_id, data.color, data.property_id),
+           (new_mining_income, data.game_id, data.color, data.property_id),
     )
 
-async def upgrade_property_miners(data: UpgradeMiners):
+    # Notify other game players
+    msg = json.dumps({
+        "type": "mining_income",
+        "property_id": property_to_update.property_id,
+        "color": property_to_update.color,
+        "player_index": property_to_update.player_index,
+        "new_mining_income": new_mining_income
+    })
+    await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
+
+    return new_mining_income
+
+async def upgrade_property_miners(data: UpgradeMiners) -> int:
     property_to_upgrade = await get_property(data.game_id, data.color, data.property_id)
+
+    assert data.player_index == property_to_upgrade.player_index, "Player does not own property"
+
     new_mining_capacity = 0
     if (property_to_upgrade.mining_capacity < 4):
         new_mining_capacity = property_to_upgrade.mining_capacity + 1
@@ -487,7 +554,29 @@ async def upgrade_property_miners(data: UpgradeMiners):
           (new_mining_capacity, data.game_id, data.color, data.property_id),
     )
 
-async def update_player_pow_provided(data: PlayerIndex):
+    # Notify other game players
+    msg = json.dumps({
+        "type": "miners_purchase",
+        "property_id": data.property_id,
+        "color": data.color,
+        "player_index": data.player_index,
+        "new_mining_capacity": new_mining_capacity
+    })
+    await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
+
+    return new_mining_capacity
+
+async def provide_pow(data: PlayerIndex):
+    # TO DO: implement block reward calculation based on provided pow and difficulty
+    # Get player wallet
+    player_wallet = await get_player_wallet_by_player_index(data.game_id, data.player_index)
+    # Create invoice
+    _, payment_request = await create_invoice(wallet_id=player_wallet.id, amount=200, memo="Block reward")
+    # Get free market wallet
+    free_market_wallet = await get_player_wallet_by_player_index(data.game_id, "0")
+    # Pay invoice
+    await pay_invoice(wallet_id=free_market_wallet.id, payment_request=payment_request)
+    # Update player pow_provided
     await db.execute(
         """
         UPDATE monopoly.players SET pow_provided = ? WHERE game_id = ? AND player_index = ?
@@ -506,13 +595,35 @@ async def update_cumulated_fines(data: UpdateCumulatedFines):
        (updated_cumulated_fines, data.game_id),
     )
 
-async def reset_cumulated_fines(data: PlayerIndex):
+async def claim_cumulated_fines(data: PlayerIndex):
+    # Get cumulated fines
+    cumulated_fines = await get_cumulated_fines(data.game_id)
+    # Get player wallet
+    player_wallet = await get_player_wallet_by_player_index(data.game_id, data.player_index)
+    # Create invoice
+    _, payment_request = await create_invoice(wallet_id=player_wallet.id, amount=cumulated_fines.cumulated_fines, memo="Free Bitcoin")
+    # Get free market wallet
+    free_market_wallet = await get_player_wallet_by_player_index(data.game_id, "0")
+    # Pay invoice
+    await pay_invoice(wallet_id=free_market_wallet.id, payment_request=payment_request)
+    # Reset cumulated fines
     await db.execute(
         """
         UPDATE monopoly.games SET cumulated_fines = 0 WHERE game_id= ?
-       """,
-       (data.game_id),
+        """,
+        (data.game_id),
     )
+
+async def claim_card_reward(data: RewardClaim):
+    # TO DO: hardcode cards rewards logic in the backend to calculate reward amount instead of getting it from the client
+    # Get player wallet
+    player_wallet = await get_player_wallet_by_player_index(data.game_id, data.player_index)
+    # Create invoice
+    _, payment_request = await create_invoice(wallet_id=player_wallet.id, amount=data.amount, memo="Card reward")
+    # Get free market wallet
+    free_market_wallet = await get_player_wallet_by_player_index(data.game_id, "0")
+    # Pay invoice
+    await pay_invoice(wallet_id=free_market_wallet.id, payment_request=payment_request)
 
 # Getters
 async def get_game(game_id: str) -> Game:
@@ -527,7 +638,7 @@ async def get_player_wallet(wallet_id: str) -> PlayerWallet:
     row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
     return PlayerWallet(**row) if row else None
 
-async def get_player_wallet_by_player_index(game_id: str, player_index: int) -> PlayerWallet:
+async def get_player_wallet_by_player_index(game_id: str, player_index: str) -> PlayerWallet:
     row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE game_id = ? AND player_index = ?", (game_id, player_index))
     return PlayerWallet(**row) if row else None
 
@@ -543,6 +654,10 @@ async def get_player_wallet_info(wallet_id: str) -> PlayerWalletInfo:
     row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
     return PlayerWalletInfo(**row) if row else None
 
+async def get_wallets_info(game_id: str) -> [PlayerWalletInfo]:
+    rows = await db.fetchall("SELECT * FROM monopoly.wallets WHERE game_id = ?", (game_id))
+    return[PlayerWalletInfo(**row) for row in rows]
+
 async def get_game_started(game_id: str) -> GameStarted:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return GameStarted(**row) if row else None
@@ -551,7 +666,7 @@ async def get_game_time(game_id: str) -> GameTime:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return GameTime(**row) if row else None
 
-async def get_player(game_id: str, player_index: int) -> Player:
+async def get_player(game_id: str, player_index: str) -> Player:
     row = await db.fetchone("SELECT * FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
     return Player(**row) if row else None
 
@@ -559,7 +674,7 @@ async def get_players(game_id: str) -> [Player]:
     rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ?", (game_id))
     return[Player(**row) for row in rows]
 
-async def get_player_turn(game_id: str) -> int:
+async def get_player_turn(game_id: str) -> str:
     player_turn = await db.fetchone("SELECT player_turn FROM monopoly.games WHERE game_id = ?", (game_id))
     return player_turn
 
@@ -583,7 +698,7 @@ async def get_card(game_id: str, card_type) -> Card:
     row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, card_type))
     return Card(**row) if row else None
 
-async def get_player_card_picked(game_id: str, player_index: int, card_type: str) -> bool:
+async def get_player_card_picked(game_id: str, player_index: str, card_type: str) -> bool:
     if (card_type == "technology"):
         card_picked = await db.fetchone("SELECT technology_card_picked FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
         return card_picked

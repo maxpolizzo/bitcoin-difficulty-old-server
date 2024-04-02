@@ -1,7 +1,7 @@
 export const properties = {
   "800002": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "800002",
       name: "Whitepaper Avenue",
@@ -13,7 +13,7 @@ export const properties = {
       networkFee: [2, 10, 30, 90, 160, 250]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "800002",
       name: "Genesis Avenue",
@@ -27,7 +27,7 @@ export const properties = {
   ],
   "66ccff": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "66ccff",
       name: "Pizza Day Plaza",
@@ -39,7 +39,7 @@ export const properties = {
       networkFee: [6, 30, 90, 270, 400, 550]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "66ccff",
       name: "Cold Storage Castle",
@@ -51,7 +51,7 @@ export const properties = {
       networkFee: [6, 30, 90, 270, 400, 550]
     },
     {
-      id: 2,
+      property_id: "2",
       position: 2,
       color: "66ccff",
       name: "Miners Street",
@@ -65,7 +65,7 @@ export const properties = {
   ],
   "fd6fcf": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "fd6fcf",
       name: "Pier 51",
@@ -77,7 +77,7 @@ export const properties = {
       networkFee: [10, 50, 150, 450, 625, 750]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "fd6fcf",
       name: "Block Wars Memorial",
@@ -89,7 +89,7 @@ export const properties = {
       networkFee: [10, 50, 150, 450, 625, 750]
     },
     {
-      id: 2,
+      property_id: "2",
       position: 2,
       color: "fd6fcf",
       name: "Halving Avenue",
@@ -103,7 +103,7 @@ export const properties = {
   ],
   "fd8008": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "fd8008",
       name: "Commodity Lane",
@@ -115,7 +115,7 @@ export const properties = {
       networkFee: [14, 70, 200, 550, 750, 950]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "fd8008",
       name: "Lightning Avenue",
@@ -127,7 +127,7 @@ export const properties = {
       networkFee: [14, 70, 200, 550, 750, 950]
     },
     {
-      id: 2,
+      property_id: "2",
       position: 2,
       color: "fd8008",
       name: "Chaumian Street",
@@ -141,7 +141,7 @@ export const properties = {
   ],
   "fc0107": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "fc0107",
       name: "Elliptic Road",
@@ -153,7 +153,7 @@ export const properties = {
       networkFee: [18, 90, 250, 700, 875, 1050]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "fc0107",
       name: "Merkle Lane",
@@ -165,7 +165,7 @@ export const properties = {
       networkFee: [18, 90, 250, 700, 875, 1050]
     },
     {
-      id: 2,
+      property_id: "2",
       position: 2,
       color: "fc0107",
       name: "Mempool Road",
@@ -179,7 +179,7 @@ export const properties = {
   ],
   "ffff00": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "ffff00",
       name: "Metal Street",
@@ -191,7 +191,7 @@ export const properties = {
       networkFee: [22, 110, 330, 800, 975, 1150]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "ffff00",
       name: "Austrian Lane",
@@ -203,7 +203,7 @@ export const properties = {
       networkFee: [22, 110, 330, 800, 975, 1150]
     },
     {
-      id: 2,
+      property_id: "2",
       position: 2,
       color: "ffff00",
       name: "Freedom Gardens",
@@ -217,7 +217,7 @@ export const properties = {
   ],
   "00b050": [
       {
-        id: 0,
+        property_id: "0",
       position: 0,
         color: "00b050",
         name: "Circle Street",
@@ -229,7 +229,7 @@ export const properties = {
         networkFee: [26, 130, 390, 900, 1100, 1275]
       },
       {
-        id: 1,
+        property_id: "1",
       position: 1,
         color: "00b050",
         name: "Reserve Plaza",
@@ -241,7 +241,7 @@ export const properties = {
         networkFee: [26, 130, 390, 900, 1100, 1275]
       },
       {
-        id: 2,
+        property_id: "2",
       position: 2,
         color: "00b050",
         name: "Energy Lane",
@@ -255,7 +255,7 @@ export const properties = {
     ],
   "0070c0": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "0070c0",
       name: "Prosperity Tower",
@@ -267,7 +267,7 @@ export const properties = {
       networkFee: [35, 175, 500, 1100, 1300, 1500]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "0070c0",
       name: "Hope Island",
@@ -281,7 +281,7 @@ export const properties = {
   ],
   "bfbfbf": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "bfbfbf",
       name: "Consensus Pool",
@@ -291,7 +291,7 @@ export const properties = {
       networkFee: [25, 50, 100, 200]
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "bfbfbf",
       name: "Nodes HQ",
@@ -301,7 +301,7 @@ export const properties = {
       networkFee: [25, 50, 100, 200]
     },
     {
-      id: 2,
+      property_id: "2",
       position: 2,
       color: "bfbfbf",
       name: "Open Pool",
@@ -311,7 +311,7 @@ export const properties = {
       networkFee: [25, 50, 100, 200]
     },
     {
-      id: 3,
+      property_id: "3",
       position: 3,
       color: "bfbfbf",
       name: "Minery",
@@ -323,7 +323,7 @@ export const properties = {
   ],
   "00FFFF": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "00FFFF",
       name: "Renewable Energy Company",
@@ -333,7 +333,7 @@ export const properties = {
       networkFeeMessage: "Roll the dices and enter the result below"
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "00FFFF",
       name: "Oil Field",
@@ -345,7 +345,7 @@ export const properties = {
   ],
   "00ff00": [
     {
-      id: 0,
+      property_id: "0",
       position: 0,
       color: "00ff00",
       name: "Wrench Attack",
@@ -354,7 +354,7 @@ export const properties = {
       networkFeeMessage: "Invoice 200 sats or 10% ot the other player's balance, whichever is higher",
     },
     {
-      id: 1,
+      property_id: "1",
       position: 1,
       color: "00ff00",
       name: "Wrench Attack",

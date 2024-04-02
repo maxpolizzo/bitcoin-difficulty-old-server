@@ -54,14 +54,14 @@ export function reactiveStyles(game) {
       },
       card: (card) => {
         let cardPosition;
-        game.properties[game.player.index][card.color].forEach((_card) => {
-          if(_card.id === card.id) {
-            cardPosition = _card.position;
+        Object.keys(game.properties[game.player.index][card.color]).forEach((key) => {
+          if(game.properties[game.player.index][card.color][key].property_id === card.property_id) {
+            cardPosition = game.properties[game.player.index][card.color][key].position;
           }
         });
         let marginTopFactor = 3;
-        let marginTop = game.properties[game.player.index][card.color].length === 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
-        let marginLeft = game.properties[game.player.index][card.color].length === 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginTop = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginLeft = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
         return({
           position: `absolute`,
           zIndex: parseInt(cardPosition) + 2,
@@ -292,14 +292,14 @@ export function reactiveStyles(game) {
       },
       card: (card) => {
         let cardPosition;
-        game.properties[game.player.index][card.color].forEach((_card) => {
-          if(_card.id === card.id) {
-            cardPosition = _card.position;
+        Object.keys(game.properties[game.player.index][card.color]).forEach((key) => {
+          if(game.properties[game.player.index][card.color][key].property_id === card.property_id) {
+            cardPosition = game.properties[game.player.index][card.color][key].position;
           }
         });
         let marginTopFactor = 5.6;
-        let marginTop = game.properties[game.player.index][card.color].length === 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
-        let marginLeft = game.properties[game.player.index][card.color].length === 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginTop = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginLeft = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
         return({
           position: `absolute`,
           zIndex: parseInt(cardPosition) + 2,

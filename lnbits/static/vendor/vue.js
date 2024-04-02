@@ -696,7 +696,7 @@
         }
         return '\n\nfound in\n\n' + tree
           .map(function (vm, i) { return ("" + (i === 0 ? '---> ' : repeat(' ', 5 + i * 2)) + (Array.isArray(vm)
-              ? ((formatComponentName(vm[0])) + "... (" + (vm[1]) + " recursive calls)")
+              ? ((formatComponentName(vm[0])) + "... (" + (vm[1]) + " recursive server)")
               : formatComponentName(vm))); })
           .join('\n')
       } else {
@@ -1864,7 +1864,7 @@
       if (res && !res._isVue && isPromise(res) && !res._handled) {
         res.catch(function (e) { return handleError(e, vm, info + " (Promise/async)"); });
         // issue #9511
-        // avoid catch triggering multiple times when nested calls
+        // avoid catch triggering multiple times when nested server
         res._handled = true;
       }
     } catch (e) {
@@ -5157,7 +5157,7 @@
 
       // For props and computed properties, we define the proxy getters on
       // the Vue instances at extension time, on the extended prototype. This
-      // avoids Object.defineProperty calls for each instance created.
+      // avoids Object.defineProperty server for each instance created.
       if (Sub.options.props) {
         initProps$1(Sub);
       }

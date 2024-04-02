@@ -1,5 +1,4 @@
 // Game data templates
-// URL = https://" + window.location.hostname + "/monopoly/game?usr=" + player_user_id + "&game_id=" + game_id;
 export const newGame = {
   //////////////////////////////////////////////////////////////////////////////
   // Static data
@@ -19,10 +18,10 @@ export const newGame = {
   freeMarketWalletPayLink: null,
   freeMarketLiquidity: 0,
   player: {
+    id: null,
+    clientId: null,
     index: null, // db.players[player_user_id].player_index
     name: null, // db.players[player_user_id].player_wallet_name
-    // id: null, // player_user_id
-    // wallet_id: null, // db.players[player_user_id].player_wallet_id
     wallet: null // db.players[player_user_id] or fetch player.wallets from LNBits API?
   },
   started: false, // db.games[game_id].started
@@ -32,9 +31,7 @@ export const newGame = {
   fundingStatus: 'pending', // db.games[game_id].initial_funding > 0
   initialFunding: null, // db.games[game_id].initial_funding
   initialPlayerBalance: "0", // db.games[game_id].initial_player_balance
-  playerPayLinkCreated: false, // db.players[player_user_id].player_pay_link_id && db.players[player_user_id].player_pay_link
   inviteVoucherId: null, // db.games[game_id].invite_voucher_id
-  rewardVoucherId: null, // db.games[game_id].reward_voucher_id
   firstLightningCardThisTurn: true, // db.players[player_user_id].first_lightning_card_this_turn
   firstProtocolCardThisTurn: true, // db.players[player_user_id].first_protocol_card_this_turn
   firstStartClaimThisTurn: true, // db.players[player_user_id].first__start_claim_this_turn
