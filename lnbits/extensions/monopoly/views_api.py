@@ -36,7 +36,6 @@ from .crud import (
     get_players,
     get_players_count,
     get_max_players_count,
-    create_reward_voucher,
     create_invite_voucher,
     get_game_started,
     get_game_time,
@@ -139,13 +138,6 @@ async def api_monopoly_update_game_funding(
 ):
     await update_game_funding(data)
 
-@monopoly_ext.post("/api/v1/game/reward-voucher", status_code=HTTPStatus.CREATED)
-async def api_monopoly_create_reward_voucher(
-    data: CreateVoucher,
-    game_admin_user_id: GameAdminUserId = Depends(require_game_creator_admin_key)
-):
-    await create_reward_voucher(data)
-
 @monopoly_ext.post("/api/v1/game/invite-voucher", status_code=HTTPStatus.CREATED)
 async def api_monopoly_create_invite_voucher(
     data: CreateVoucher,
@@ -158,7 +150,6 @@ async def api_monopoly_create_invite_voucher(
 async def api_monopoly_player_invite(
     game_id: str,
     invite_voucher: str,
-    reward_voucher: str,
     request: Request
 ):
     # Make sure all expected players have not joined yet
@@ -172,7 +163,7 @@ async def api_monopoly_player_invite(
     logger.info(f"Enabling extension: monopoly for {invited_player.name} ({invited_player.id})")
     await update_user_extension(user_id=invited_player.id, extension="monopoly", active=True)
     # Redirect
-    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player.id + "&game_id=" + game_id + "&client_id=" + invited_player.client_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
+    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player.id + "&game_id=" + game_id + "&client_id=" + invited_player.client_id + "&invite_voucher=" + invite_voucher
     return RedirectResponse(redirectUrl)
 
 # Here we can only require a valid invoice key because Player has not been not created yet
