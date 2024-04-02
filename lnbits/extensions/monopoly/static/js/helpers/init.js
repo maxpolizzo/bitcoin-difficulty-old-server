@@ -4,6 +4,8 @@ import {
   assignWallets,
   fetchPlayers,
   fetchWalletsBalances,
+  fetchGameStarted,
+  fetchPlayerTurn,
   fetchProperties
 } from '../server/database.js'
 import {
@@ -64,10 +66,11 @@ export async function initGameData(game) {
   // Fetch game wallets balances
   game = await fetchWalletsBalances(game)
   // Fetch game started
-  game
-  // Fetch owned properties
+  game = await fetchGameStarted(game)
+  // Fetch owned properties and player turn
   if(game.started) {
-    game = fetchProperties(game)
+    game = await fetchPlayerTurn(game)
+    game = await fetchProperties(game)
   }
 
   return game;

@@ -8,8 +8,7 @@ import {
   playMarketPaymentReceivedSound,
   playPlayerJoinedSound,
   playStartGameSound,
-  playNextPlayerTurnSound,
-  playPurchasedPropertySound
+  playNextPlayerTurnSound
 } from '../helpers/audio.js'
 import {repositionProperties, timeout, updateGameProperties, updatePropertiesCarouselSlide} from '../helpers/utils.js'
 
@@ -69,6 +68,10 @@ export function onMessage(event, game, wallets){
         // Play sound when a new player joins the game after current player
         // Wait 500 ms between different players to have distinct sounds
         timeout(playPlayerJoinedSound, 500).then()
+      }
+      if(game.freeMarketWallet && game.freeMarketWallet.index && !game.started) {
+        // Disable start game button until invited player has claimed invite voucher
+        game.enableStartGame = false
       }
       break;
     case("new_payment"):
@@ -131,6 +134,16 @@ export function onMessage(event, game, wallets){
             storeGameData(game, 'playersData', game.playersData)
           }
         })
+        if(game.freeMarketWallet && game.freeMarketWallet.index && !game.started) {
+          // Enable start game button after all invited players have claimed invite voucher
+          let enableStartGame = true
+          Object.keys(game.players).forEach((playerIndex) => {
+            if(game.players[playerIndex].player_balance < game.initialPlayerBalance) {
+              enableStartGame = false
+            }
+          })
+          game.enableStartGame = enableStartGame
+        }
       }
       break;
     case("game_started"):

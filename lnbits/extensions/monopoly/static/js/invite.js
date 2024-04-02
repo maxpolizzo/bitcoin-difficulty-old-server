@@ -77,10 +77,6 @@ new Vue({
         this.joinedGame = true // Prevents claiming multiple times from the same invite (still possible to claim
         // multiple times by calling invite link several times)
         // Join game
-
-
-        console.log(this.game)
-
         let playerIndex = await joinGame({
           id: this.game.id,
           player: { name: this.game.player.name, clientId: this.game.player.clientId, wallet: this.game.player.wallet }
