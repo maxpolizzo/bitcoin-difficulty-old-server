@@ -2,7 +2,7 @@ import {
   cashRegisterSoundURI, //
   newPlayerJoinedURI, //
   gameStartedURI, //
-  boughtPropertyURI, //
+  purchasedPropertyURI, //
   boughtMinerURI, //
   boughtCitadelURI, // Not yet implemented
   colorCompletedURI, // Not yet implemented
@@ -53,8 +53,8 @@ export function playStartGameSound() {
   snd.play();
 }
 
-export function playBoughtPropertySound() {
-  const snd = new Audio(boughtPropertyURI);
+export function playPurchasedPropertySound() {
+  const snd = new Audio(purchasedPropertyURI);
   snd.play();
 }
 

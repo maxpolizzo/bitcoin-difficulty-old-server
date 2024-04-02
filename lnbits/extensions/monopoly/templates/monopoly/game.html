@@ -236,7 +236,7 @@
           >
 
             <q-carousel-slide
-              v-if="game.properties[game.player.index] && game.properties[game.player.index][colorGroup] && game.properties[game.player.index][colorGroup].length"
+              v-if="game.properties[game.player.index] && game.properties[game.player.index][colorGroup] && Object.keys(game.properties[game.player.index][colorGroup]) && Object.keys(game.properties[game.player.index][colorGroup]).length"
               v-for="colorGroup in Object.keys(game.properties[game.player.index])"
               :name="colorGroup"
               :key="colorGroup"
@@ -259,16 +259,16 @@
                 :style="reactiveStyles.cardsStack"
               >
                 <li
-                  v-for="card in game.properties[game.player.index][colorGroup]"
-                  :id="card.id"
+                  v-for="key in Object.keys(game.properties[game.player.index][colorGroup])"
+                  :id="game.properties[game.player.index][colorGroup][key].property_id"
                   class="row col-12 col-md-12"
-                  :style="reactiveStyles.card(card)"
-                  @click="showPropertyDetails(card)"
+                  :style="reactiveStyles.card(game.properties[game.player.index][colorGroup][key])"
+                  @click="showPropertyDetails(game.properties[game.player.index][colorGroup][key])"
                 >
                   <img
                     class="image-hover-highlight"
-                    :src=card.imgPath
-                    alt="card"
+                    :src=game.properties[game.player.index][colorGroup][key].imgPath
+                    alt="game.properties[game.player.index][colorGroup][key]"
                     draggable="false"
                     :style="reactiveStyles.cardImage"
                   >
@@ -286,33 +286,42 @@
     <div class="col-12 col-md-5" v-if="game.created || game.imported" :style="reactiveStyles.playersTableContainer">
       <q-card>
         <q-card-section>
-          <!-- Game funding balance -->
-          <div style="padding: 0.8em; font-size: 1.2em;">
-            Free market liquidity: {% raw %} {{game.freeMarketLiquidity}} {% endraw %} sats
+          <div v-if="loading" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
+            <q-spinner
+              color="orange"
+              size="2em"
+            />
           </div>
 
-          <!-- Players table -->
-          <div class="q-pa-md">
-            <q-table
-              title="Players"
-              dense
-              :data="game.playersData.rows"
-              :columns="game.playersData.columns"
-              row-key="name"
-              :rows-per-page-options="[game.maxPlayersCount]"
-              hide-bottom
-            >
-              <template v-slot:body="props">
-                <q-tr :props="props" :class="props.row.index === game.playerTurn.toString() ? 'bg-orange-4 text-bold' : ''">
-                  <q-td key="name" :props="props" >
-                    {% raw %}{{props.row.name}}{% endraw %}
-                  </q-td>
-                  <q-td key="balance" :props="props" >
-                    {% raw %}{{props.row.balance}}{% endraw %}
-                  </q-td>
-                </q-tr>
-              </template>
-            </q-table>
+          <div v-else >
+            <!-- Game funding balance -->
+            <div style="padding: 0.8em; font-size: 1.2em;">
+              Free market liquidity: {% raw %} {{game.freeMarketLiquidity}} {% endraw %} sats
+            </div>
+
+            <!-- Players table -->
+            <div class="q-pa-md">
+              <q-table
+                title="Players"
+                dense
+                :data="game.playersData.rows"
+                :columns="game.playersData.columns"
+                row-key="name"
+                :rows-per-page-options="[game.maxPlayersCount]"
+                hide-bottom
+              >
+                <template v-slot:body="props">
+                  <q-tr :props="props" :class="props.row.index === game.playerTurn ? 'bg-orange-4 text-bold' : ''">
+                    <q-td key="name" :props="props" >
+                      {% raw %}{{props.row.name}}{% endraw %}
+                    </q-td>
+                    <q-td key="balance" :props="props" >
+                      {% raw %}{{props.row.player_balance}}{% endraw %}
+                    </q-td>
+                  </q-tr>
+                </template>
+              </q-table>
+            </div>
           </div>
         </q-card-section>
       </q-card>
@@ -860,14 +869,14 @@
             v-if="game.propertyToShow.oneKwPrice"
             :style="reactiveStyles.propertyMiningCapacityLabel"
           >
-            Mining capacity: {% raw %}{{game.propertyToShow.mining_capacity}}{% endraw %} kW
+            Mining capacity: {% raw %}{{game.propertyToShow.mining_capacity ? game.propertyToShow.mining_capacity : 0}}{% endraw %} kW
           </div>
 
           <div
             v-if="game.propertyToShow.oneKwPrice"
             :style="reactiveStyles.propertyMiningIncomeLabel"
           >
-            Cumulated mining income: {% raw %}{{game.propertyToShow.mining_income}}{% endraw %} sats
+            Cumulated mining income: {% raw %}{{game.propertyToShow.mining_income ? game.propertyToShow.mining_income : 0}}{% endraw %} sats
           </div>
 
           <div

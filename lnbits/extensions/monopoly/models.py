@@ -14,8 +14,8 @@ class Game(BaseModel):
     started: bool
     max_players_count: int
     available_player_names: str = Query(...)
-    cumulated_fines: Optional[int] = None
-    player_turn: int
+    cumulated_fines: Optional[int] = 0
+    player_turn: str
     time: str = Query(...)
 
 class GameId(BaseModel):
@@ -32,7 +32,8 @@ class CreateGame(BaseModel):
 class CreatePlayerWallet(BaseModel):
     game_id: str = Query(...)
     is_free_market: bool
-    player_index: int
+    player_index: str = Query(...)
+    client_id: str = Query(...)
     user: str = Query(...)
     id: str = Query(...)
     inkey: str = Query(...)
@@ -41,7 +42,8 @@ class CreatePlayerWallet(BaseModel):
 class PlayerWallet(BaseModel):
     game_id: str = Query(...)
     is_free_market: bool
-    player_index: int
+    player_index: str = Query(...)
+    client_id: str = Query(...)
     user: str = Query(...)
     id: str = Query(...)
     inkey: str = Query(...)
@@ -52,7 +54,8 @@ class PlayerWallet(BaseModel):
 class PlayerWalletInfo(BaseModel):
     game_id: str = Query(...)
     is_free_market: bool
-    player_index: int
+    player_index: str = Query(...)
+    balance_msat: Optional[int] = 0
 
 class RegisterWalletPayLink(BaseModel):
     game_id: str = Query(...)
@@ -83,30 +86,29 @@ class CreateFirstPlayer(BaseModel):
 
 class CreatePlayer(BaseModel):
     game_id: str = Query(...)
-    player_index: int
-    player_name: str
+    player_index: str = Query(...)
+    player_name: str = Query(...)
 
 class Player(BaseModel):
-    game_id: str
-    player_index: int
-    player_name: str
-    player_balance: int
+    game_id: str = Query(...)
+    player_index: str = Query(...)
+    player_name: str = Query(...)
 
 class NewPlayerData(BaseModel):
-    player_index: int
-    name: str
+    player_index: str = Query(...)
+    name: str = Query(...)
     user: str = Query(...)
     id: str = Query(...)
     inkey: str = Query(...)
     adminkey: str = Query(...)
 
-class UpdatePlayerBalance(BaseModel):
+class UpdateWalletBalance(BaseModel):
     game_id: str = Query(...)
-    player_index: int
-    balance: int
+    player_index: str = Query(...)
+    balance_msat: str = Query(...)
 
-class PlayerBalance(BaseModel):
-   balance: int
+class WalletBalance(BaseModel):
+   balance_msat: int
 
 class CreateVoucher(BaseModel):
     game_id: str = Query(...)
@@ -118,15 +120,16 @@ class UpdateGameFunding(BaseModel):
     initial_player_balance: int
 
 class Property(BaseModel):
-    game_id: str
-    property_id: int
-    color: str
-    player_index: int
-    mining_capacity: int
-    mining_income: int
+    game_id: str = Query(...)
+    property_id: str = Query(...)
+    color: str = Query(...)
+    player_index: str = Query(...)
+    mining_capacity: Optional[int] = 0
+    mining_income: Optional[int] = 0
 
 class InvitedPlayer(BaseModel):
     id: str = Query(...)
+    client_id: str = Query(...)
     name: str = Query(...)
 
 class GameInvite(BaseModel):
@@ -138,9 +141,10 @@ class GameInvite(BaseModel):
 
 class JoinGame(BaseModel):
     game_id: str = Query(...)
+    client_id: str = Query(...)
     user_id: str = Query(...)
     wallet_id: str = Query(...)
-    player_index: Optional[int] = None
+    player_index: Optional[str] = None
     player_name: str = Query(...)
 
 class InitializeCards(BaseModel):
@@ -158,30 +162,35 @@ class Card(BaseModel):
 class PickCard(BaseModel):
     game_id: str = Query(...)
     card_type: str = Query(...)
-    player_index: int
+    player_index: str = Query(...)
 
 class PlayerIndex(BaseModel):
     game_id: str = Query(...)
-    player_index: int
+    player_index: str = Query(...)
 
 class GetPayLink(BaseModel):
     game_id: str = Query(...)
-    pay_link_player_index: int
+    pay_link_player_index: str = Query(...)
 
 class UpdatePropertyIncome(BaseModel):
-    game_id: str
-    player_index: int
-    color: str
-    property_id: int
+    game_id: str = Query(...)
+    player_index: str = Query(...)
+    color: str = Query(...)
+    property_id: str = Query(...)
     income_increment: int
 
 class UpgradeMiners(BaseModel):
-    game_id: str
-    player_index: int
-    color: str
-    property_id: int
+    game_id: str = Query(...)
+    player_index: str = Query(...)
+    color: str = Query(...)
+    property_id: str = Query(...)
 
 class UpdateCumulatedFines(BaseModel):
-    game_id: str
-    player_index: int
+    game_id: str = Query(...)
+    player_index: str = Query(...)
     fine: int
+
+class RewardClaim(BaseModel):
+     game_id: str = Query(...)
+     player_index: str = Query(...)
+     amount: int

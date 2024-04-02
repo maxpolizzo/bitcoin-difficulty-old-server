@@ -470,7 +470,7 @@
     });
 
     this._subscribers
-      .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
+      .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously server unsubscribe
       .forEach(function (sub) { return sub(mutation, this$1.state); });
 
     if (
@@ -503,7 +503,7 @@
 
     try {
       this._actionSubscribers
-        .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
+        .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously server unsubscribe
         .filter(function (sub) { return sub.before; })
         .forEach(function (sub) { return sub.before(action, this$1.state); });
     } catch (e) {

@@ -30,6 +30,7 @@ from .crud import (
     get_free_market_liquidity,
     update_game_funding,
     get_player_wallet_info,
+    get_wallets_info,
     create_first_player,
     get_player,
     get_players,
@@ -37,7 +38,6 @@ from .crud import (
     get_max_players_count,
     create_reward_voucher,
     create_invite_voucher,
-    update_player_balance,
     get_game_started,
     get_game_time,
     get_player_turn,
@@ -55,10 +55,11 @@ from .crud import (
     get_property,
     update_property_income,
     upgrade_property_miners,
-    update_player_pow_provided,
+    provide_pow,
     update_cumulated_fines,
     get_cumulated_fines,
-    reset_cumulated_fines
+    claim_cumulated_fines,
+    claim_card_reward
 )
 from .models import (
     Game,
@@ -70,7 +71,7 @@ from .models import (
     PlayerWallet,
     PlayerWalletInfo,
     CreateFirstPlayer,
-    UpdatePlayerBalance,
+    UpdateWalletBalance,
     CreateVoucher,
     UpdateGameFunding,
     JoinGame,
@@ -81,7 +82,8 @@ from .models import (
     Property,
     UpdatePropertyIncome,
     UpgradeMiners,
-    UpdateCumulatedFines
+    UpdateCumulatedFines,
+    RewardClaim
 )
 
 # Setters
@@ -130,14 +132,6 @@ async def api_monopoly_create_first_player_wallet(
     logger.info(f"Created first player")
     return first_player
 
-@monopoly_ext.put("/api/v1/player/balance", status_code=HTTPStatus.CREATED)
-async def api_monopoly_update_player_balance(
-    data: UpdatePlayerBalance,
-    playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
-):
-    balance = await update_player_balance(data)
-    return balance
-
 @monopoly_ext.put("/api/v1/game/funding", status_code=HTTPStatus.CREATED)
 async def api_monopoly_update_game_funding(
     data: UpdateGameFunding,
@@ -178,7 +172,7 @@ async def api_monopoly_player_invite(
     logger.info(f"Enabling extension: monopoly for {invited_player.name} ({invited_player.id})")
     await update_user_extension(user_id=invited_player.id, extension="monopoly", active=True)
     # Redirect
-    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player.id + "&game_id=" + game_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
+    redirectUrl = request.url._url.split("monopoly/api/v1/")[0] + "monopoly/invite?usr=" + invited_player.id + "&game_id=" + game_id + "&client_id=" + invited_player.client_id + "&invite_voucher=" + invite_voucher+ "&reward_voucher=" + reward_voucher
     return RedirectResponse(redirectUrl)
 
 # Here we can only require a valid invoice key because Player has not been not created yet
@@ -194,9 +188,10 @@ async def api_monopoly_join_game(
     player = await join_game(
         JoinGame(
             game_id=data.game_id,
+            client_id=data.client_id,
             user_id=data.user_id,
             wallet_id=data.wallet_id,
-            player_index=players_count[0] + 1,
+            player_index=str(players_count[0] + 1),
             player_name=data.player_name
         )
     )
@@ -225,12 +220,12 @@ async def api_monopoly_pick_card(
     else:
         return card_id
 
-@monopoly_ext.put("/api/v1/game/start", status_code=HTTPStatus.CREATED)
+@monopoly_ext.put("/api/v1/start-game", status_code=HTTPStatus.CREATED)
 async def api_monopoly_start_game(
     data: GameId,
     game_admin_user_id: GameAdminUserId = Depends(require_game_creator_admin_key)
 ):
-    await start_game(data)
+    return await start_game(data)
 
 @monopoly_ext.put("/api/v1/game/next_player_turn", status_code=HTTPStatus.CREATED)
 async def api_monopoly_next_player_turn(
@@ -259,22 +254,22 @@ async def api_monopoly_update_property_income(
     data: UpdatePropertyIncome,
     playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
 ):
-    await update_property_income(data)
+    return await update_property_income(data)
 
 @monopoly_ext.put("/api/v1/upgrade-property-miners", status_code=HTTPStatus.CREATED)
 async def api_monopoly_upgrade_property_miners(
     data: UpgradeMiners,
     playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
 ):
-    property = await upgrade_property_miners(data)
-    return property
+    new_mining_capacity = await upgrade_property_miners(data)
+    return new_mining_capacity
 
-@monopoly_ext.put("/api/v1/update-player-pow-provided", status_code=HTTPStatus.CREATED)
-async def api_monopoly_update_player_pow_provided(
+@monopoly_ext.put("/api/v1/provide_pow", status_code=HTTPStatus.CREATED)
+async def api_monopoly_provide_pow(
     data: PlayerIndex,
     playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
 ):
-    await update_player_pow_provided(data)
+    await provide_pow(data)
 
 @monopoly_ext.put("/api/v1/update_cumulated_fines", status_code=HTTPStatus.CREATED)
 async def api_monopoly_update_cumulated_fines(
@@ -283,12 +278,19 @@ async def api_monopoly_update_cumulated_fines(
 ):
     await update_cumulated_fines(data)
 
-@monopoly_ext.put("/api/v1/reset_cumulated_fines", status_code=HTTPStatus.CREATED)
-async def api_monopoly_reset_cumulated_fines(
+@monopoly_ext.put("/api/v1/claim_cumulated_fines", status_code=HTTPStatus.CREATED)
+async def api_monopoly_claim_cumulated_fines(
     data: PlayerIndex,
     playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
 ):
-    await reset_cumulated_fines(data)
+    await claim_cumulated_fines(data)
+
+@monopoly_ext.put("/api/v1/claim_card_reward", status_code=HTTPStatus.CREATED)
+async def api_monopoly_claim_card_reward(
+    data: RewardClaim,
+    playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
+):
+    await claim_card_reward(data)
 
 # Getters
 @monopoly_ext.get("/api/v1/game", status_code=HTTPStatus.OK)
@@ -326,6 +328,13 @@ async def api_monopoly_wallet_info(
     player_apikey_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
 ):
     return await get_player_wallet_info(wallet_id)
+
+@monopoly_ext.get("/api/v1/wallets-info", status_code=HTTPStatus.OK)
+async def api_monopoly_wallet_info(
+    game_id: str,
+    player_apikey_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
+):
+    return await get_wallets_info(game_id)
 
 @monopoly_ext.get("/api/v1/game-started", status_code=HTTPStatus.OK)
 async def api_monopoly_game_started(

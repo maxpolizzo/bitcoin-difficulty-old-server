@@ -1,4 +1,8 @@
-from fastapi import Security
+from fastapi import (
+    Security,
+    HTTPException,
+    status
+)
 from starlette.requests import Request
 from lnbits.decorators import (
     require_admin_key,
@@ -26,7 +30,7 @@ async def require_player_invoice_key(
 
     if not token:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Player invoice key required.",
         )
 
@@ -53,7 +57,7 @@ async def require_player_admin_key(
 
     if not token:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Player admin key required.",
         )
 
@@ -82,7 +86,7 @@ async def require_player_wallet_invoice_key(
 
     if not token:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Player invoice key required.",
         )
 
@@ -116,7 +120,7 @@ async def require_player_index_invoice_key(
 
     if not token:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Player invoice key required.",
         )
 
@@ -149,7 +153,7 @@ async def require_game_creator_admin_key(
 
     if not token:
         raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Player admin key required.",
         )
 

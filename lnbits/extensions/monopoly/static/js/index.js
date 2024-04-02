@@ -16,16 +16,20 @@ import {
 import {
   decodeInvoice,
   withdrawFromLNURL,
-  createPlayerPayLNURL
+  createPlayerPayLNURL, updateGameProperties, repositionProperties, updatePropertiesCarouselSlide
 } from './helpers/utils.js'
+import {
+  freeMarketWallet,
+  playerWallet,
+  inkey
+} from './helpers/helpers.js'
 import {
   getGamePlayerFromGameRecord,
   getGameRecordsFromDatabase,
   onGameFunded
-} from './calls/database.js'
+} from './server/database.js'
 import {
   loadGameFromURL,
-  initGameData
 } from './helpers/init.js'
 import {
   storeGameRecord,
@@ -34,7 +38,7 @@ import {
 } from './helpers/storage.js'
 import {
   deleteInviteVoucher
-} from './calls/api.js'
+} from './server/api.js'
 import {
   dragOptions,
   onMove,
@@ -44,21 +48,14 @@ import {
 import {
   playBlackSwanCardSound,
   playBoughtMinerSound,
-  playBoughtPropertySound,
+  playPurchasedPropertySound,
   playDevelopmentCardSound,
   playPlayerSentPaymentToFreeMarketSound,
   playStartGameSound,
-  playTaxationIsTheftSound
+  playTaxationIsTheftSound, playNextPlayerTurnSound
 } from './helpers/audio.js'
-import {
-  checkWalletsBalances,
-  checkPlayers,
-  checkPlayerTurn,
-  checkPlayersBalances,
-  checkFundingInvoicePaid,
-  checkPaymentsToPlayer,
-} from './calls/intervals.js'
 import { decodeLNURL } from './helpers/utils.js'
+import { connectWebsocket, onMessage } from './server/websocket.js'
 
 Vue.component(VueQrcode.name, VueQrcode)
 Vue.use(VueQrcodeReader)
@@ -66,15 +63,12 @@ Vue.use(VueQrcodeReader)
 new Vue({
   el: '#vue',
   mixins: [windowMixin],
-  mounted(){
-    if(window.user.id && window.wal) {
-      this.loadGameFromURL();
-    } else if (window.user) {
-      this.getSavedGames()
-    }
-  },
   data: function() {
     return {
+      websocket: {
+        url: "wss://dev.bitcoin-difficulty.io/monopoly/ws/",
+        ws: null
+      },
       loading: true,
       gameRecords: {},
       game: newGame,
@@ -89,6 +83,17 @@ new Vue({
       isDragging: false,
       delayedDragging: false,
     }
+  },
+  mounted(){
+    if(window.user.id && window.wal) {
+      // Load game
+      this.loadGameFromURL()
+    } else if (window.user) {
+      // Get saved games from database and local storage
+      this.getSavedGames()
+    }
+
+
   },
   computed: {
     // Pass Vue components props here
@@ -113,9 +118,23 @@ new Vue({
     }
   },
   methods: {
+    connectWebsocket: function() {
+      // Establish websocket connection to get updates from server
+      if(!this.websocket.ws && this.game.player.clientId) {
+        this.websocket = connectWebsocket(this.game.player.clientId)
+        // Handle websocket events
+        this.websocket.ws.onmessage = (event) => {
+          this.game = onMessage(event, this.game, this.$children[0].$children[3].$children[0].user.wallets)
+        }
+      } else {
+        console.error("Could not establish websocket connection with game server")
+      }
+    },
     loadGameFromURL: async function() {
+      // Get saved games from database and local storage
       await this.getSavedGames()
-      this.game = await loadGameFromURL(this.gameRecords.rows, this.$children[0].$children[3].$children[0].user.wallets)
+      // Load saved game based on URL user id and wallet id
+      this.game = await loadGameFromURL(this.gameRecords.rows)
       // Open camera if specified
       let camera = cameraData;
       camera.deviceId = this.game.cameraDeviceId;
@@ -124,26 +143,39 @@ new Vue({
         camera.show = true
       }
       this.camera = camera;
+      // Establish websocket connection to game server
+      this.connectWebsocket()
       this.loading = false;
     },
     getSavedGames: async function () {
-      this.loading = true
-      let gameRecordsRows = await getGameRecordsFromDatabase(window.user)
+      let gameRecordsRows = await getGameRecordsFromDatabase()
       gameRecordsRows = getGameRecordsFromLocalStorage(gameRecordsRows)
       this.gameRecords = gameRecordsData
       let gameRecordsMap = {}
       gameRecordsRows.forEach((gameRecord) => {
         if(!gameRecordsMap[gameRecord.gameId]) {
-          gameRecordsMap[gameRecord.gameId] = gameRecord
-        } else if(gameRecord.location === 'storage') {
-          // Prioritize  'storage' game records over 'database' game records
-          gameRecordsMap[gameRecord.gameId] = gameRecord
+          gameRecordsMap[gameRecord.gameId] = {}
+          gameRecordsMap[gameRecord.gameId][gameRecord.playerIndex] = gameRecord
+        } else {
+          // If another game record is already present with same player index
+          if(gameRecordsMap[gameRecord.gameId][gameRecord.playerIndex]) {
+            if(gameRecord.location === 'storage') {
+              // Prioritize  'storage' game records over 'database' game records
+              gameRecordsMap[gameRecord.gameId][gameRecord.playerIndex] = gameRecord
+            }
+          } else {
+            gameRecordsMap[gameRecord.gameId][gameRecord.playerIndex] = gameRecord
+          }
         }
       })
       Object.keys(gameRecordsMap).forEach((gameId) => {
-        this.gameRecords.rows.push(gameRecordsMap[gameId])
+          Object.keys(gameRecordsMap[gameId]).forEach((playerIndex) => {
+            this.gameRecords.rows.push(gameRecordsMap[gameId][playerIndex])
+          })
       })
-      this.loading = false
+      if(!(window.user.id && window.wal)) {
+        this.loading = false
+      }
     },
     loadSavedGame: async function(gameRecord) {
       let gamePlayer = await getGamePlayerFromGameRecord(gameRecord)
@@ -254,7 +286,7 @@ new Vue({
     reloadCamera: async function(retry ) {
       console.log("Reloading camera")
       this.closeCamera()
-      this.reloadGame(this.game.id, true)
+      this.reloadGame(true)
     },
     closeCamera: function() {
       this.camera.show = false;
@@ -276,10 +308,10 @@ new Vue({
       this.camera = cameraData;
       if(window.open_camera === "true") {
         window.open_camera = null
-        if(this.game.freeMarketWallet && this.game.freeMarketWallet.id) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + this.game.player.id + "&wal=" + this.game.freeMarketWallet.id);
-        } else if(this.game.player.wallet & this.game.player.wallet.id) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + this.game.player.id + "&wal=" + this.game.player.wallet.id);
+        if(freeMarketWallet(this.game)) {
+          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id,);
+        } else if(playerWallet(this.game)) {
+          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id);
         }
       }
     },
@@ -303,12 +335,12 @@ new Vue({
       this.game.propertiesCarouselSlide = onUpdatePropertiesCarouselSlide(this.game, newSlide, oldSlide)
       storeGameData(this.game, 'propertiesCarouselSlide', this.game.propertiesCarouselSlide)
     },
-    reloadGame: async function (gameId, openCamera = false) {
+    reloadGame: async function (openCamera = false) {
       let href = ""
-      if(this.game.freeMarketWallet && this.game.freeMarketWallet.id) {
-        href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&wal=" + game.freeMarketWallet.id;
-      } else if(this.game.player.wallet && this.game.player.wallet.id) {
-        href = "https://" + window.location.hostname + "/monopoly/game?usr=" + game.player.id + "&wal=" + game.player.wallet.id;
+      if(freeMarketWallet(this.game)) {
+        href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id;
+      } else if(playerWallet(this.game)) {
+        href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id;
       }
       if(openCamera) {
         href += "&open_camera=true"
@@ -338,11 +370,11 @@ new Vue({
         this.game.fundingStatus = 'awaiting'
         this.game.timestamp = Date.now()
         // Game creator's player_id
-        this.game.player.id = this.g.user.id;
+        // this.game.player.id = this.g.user.id;
         // Create free market wallet and dedicated player wallet for game creator
         await this.createFreeMarketWallet();
         // Start checking free market balance
-        checkWalletsBalances(this.game, this.$children[0].$children[3].$children[0].user.wallets)
+        // checkWalletsBalances(this.game, this.$children[0].$children[3].$children[0].user.wallets)
         // Create a static LNURL pay link to be used for funding the free market
         await this.createFreeMarketPayLNURL();
         // Save new game in local storage
@@ -352,7 +384,7 @@ new Vue({
         // Save game data in local storage
         storeGameData(this.game, 'showFundingView', this.game.showFundingView)
         // Redirect to game.html
-        window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + this.game.player.id + "&wal=" + this.game.freeMarketWallet.id;
+        window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id;
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -371,21 +403,28 @@ new Vue({
         )
       if(res.data) {
         console.log("Monopoly: free market wallet created successfully")
-        console.log(res.data)
-        this.game.freeMarketWallet = res.data // Save free market wallet
+        this.game.player.clientId = res.data.client_id
         // Update wallets list in left panel by accessing Vue component data
         this.$children[0].$children[3].$children[0].user.wallets.push({
-          "adminkey": this.game.freeMarketWallet.adminkey,
+          "adminkey": res.data.adminkey,
           "fsat": 0,
           "live_fsat": 0,
           "msat": 0,
           "sat": 0,
-          "id": this.game.freeMarketWallet.id,
-          "inkey": this.game.freeMarketWallet.inkey,
+          "id": res.data.id,
+          "inkey":res.data.inkey,
           "name": "Free market",
-          "url": "/wallet?usr=" + this.g.user.id + "&wal=" + this.game.freeMarketWallet.id
+          "url": "/wallet?usr=" + this.g.user.id + "&wal=" + res.data.id
         })
-        this.wallets = this.$children[0].$children[3].$children[0].user.wallets
+        window.user.wallets.push({
+          "name": "Free market",
+          "user": this.g.user.id,
+          "id": res.data.id,
+          "inkey":res.data.inkey,
+          "adminkey": res.data.adminkey,
+          "balance_msat": 0
+        })
+        this.game.freeMarketWallet = { index: window.user.wallets.length - 1 }
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -403,7 +442,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST', '/lnurlp/api/v1/links',
-          this.game.freeMarketWallet.inkey,
+          inkey(this.game),
           payLNURLData
         );
       if(res.data) {
@@ -414,10 +453,10 @@ new Vue({
           .request(
             'PUT',
             '/monopoly/api/v1/wallet/pay-link',
-            this.game.freeMarketWallet.inkey,
+            inkey(this.game),
             {
               game_id: this.game.id,
-              wallet_id: this.game.freeMarketWallet.id,
+              wallet_id: freeMarketWallet(this.game).id,
               pay_link_id: payLinkId,
               pay_link: payLink
             }
@@ -449,7 +488,7 @@ new Vue({
           this.game.fundingInvoice.data.amount = this.game.fundingInvoice.data.amount * 100
         }
         let res = await LNbits.api.createInvoice(
-          this.game.freeMarketWallet,
+          freeMarketWallet(this.game),
           this.game.fundingInvoice.data.amount,
           this.game.fundingInvoice.data.memo,
           this.game.fundingInvoice.unit,
@@ -461,7 +500,7 @@ new Vue({
           // Save funding invoice in local storage
           storeGameData(this.game, 'fundingInvoice', this.game.fundingInvoice)
           // Once invoice has been created and saved, start checking for payments
-          this.checkFundingInvoicePaid(invoiceReason)
+          // this.checkFundingInvoicePaid(invoiceReason)
 
         } else {
           LNbits.utils.notifyApiError(res.error)
@@ -476,15 +515,15 @@ new Vue({
       // Create player wallet for game creator
       await this.createFirstPlayer()
       // Start checking player balance
-      checkWalletsBalances(this.game, this.$children[0].$children[3].$children[0].user.wallets)
+      // checkWalletsBalances(this.game, this.$children[0].$children[3].$children[0].user.wallets)
       // Check for payments to player wallet
-      checkPaymentsToPlayer(this.game)
+      // checkPaymentsToPlayer(this.game)
       // Create a static LNURL pay link to be used for sending sats to player
-      await this.createPlayerPayLNURL();
+      await createPlayerPayLNURL(this.game)
       // Start checking players
-      checkPlayers(this.game)
+      // checkPlayers(this.game)
       // Start checking players balances
-      checkPlayersBalances(this.game)
+      // checkPlayersBalances(this.game)
 
       onGameFunded(this.game)
     },
@@ -495,7 +534,7 @@ new Vue({
         .request(
           'POST',
           '/monopoly/api/v1/player',
-          this.game.freeMarketWallet.adminkey,
+          freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
             user_id: this.g.user.id
@@ -503,36 +542,51 @@ new Vue({
         )
       if(res.data) {
         console.log("Monopoly: First player created successfully")
-        console.log(res.data)
         this.game.playersCount = 1;
-        this.game.player.index = res.data.player_index
-        this.game.player.name = res.data.name
-        delete res.data.player_index
-        delete res.data.name
-        this.game.player.wallet = res.data
+        storeGameData(this.game, 'playersCount', this.game.playersCount)
+        // Update game.players
+        this.game.players[res.data.player_index] = {
+          name: res.data.name,
+          player_balance: 0
+        }
+        // Store game.players
+        storeGameData(this.game, 'players', this.game.players)
+        // Update game.playersData
+        this.game.playersData.rows.push(
+          {
+            index: res.data.player_index,
+            name: res.data.name,
+            player_balance: 0
+          }
+        )
+        // Store game.playersData
+        storeGameData(this.game, 'playersData', this.game.playersData)
         // Update wallets list in left panel by accessing Vue component data
         this.$children[0].$children[3].$children[0].user.wallets.push({
-          "adminkey": this.game.player.wallet.adminkey,
+          "adminkey": res.data.adminkey,
           "fsat": 0,
           "live_fsat": 0,
           "msat": 0,
           "sat": 0,
-          "id": this.game.player.wallet.id,
-          "inkey": this.game.player.wallet.inkey,
-          "name": this.game.player.name,
-          "url": "/wallet?usr=" + this.g.user.id + "&wal=" + this.game.player.wallet.id
+          "id": res.data.id,
+          "inkey": res.data.inkey,
+          "name": res.data.name,
+          "url": "/wallet?usr=" + this.g.user.id + "&wal=" + res.data.id
         })
+        window.user.wallets.push({
+          "name": res.data.name,
+          "user": this.g.user.id,
+          "id": res.data.id,
+          "inkey":res.data.inkey,
+          "adminkey": res.data.adminkey,
+          "balance_msat": 0
+        })
+        // Update game.player
+        this.game.player.index = res.data.player_index
+        this.game.player.name = res.data.name
+        this.game.player.wallet = { index: window.user.wallets.length - 1 }
+        // Store game.player
         storeGameData(this.game, 'player', this.game.player)
-        storeGameData(this.game, 'playersCount', this.game.playersCount)
-      }
-    },
-    // Logic to create a static LNURL pay link to be used for sending sats to player
-    createPlayerPayLNURL: async function () {
-      const playerPayLinkCreated = await createPlayerPayLNURL(this.game);
-      if(playerPayLinkCreated) {
-        this.game.playerPayLinkCreated = true; // Already saved in local storage
-      } else {
-        LNbits.utils.notifyApiError("Error creating player pay link")
       }
     },
     initializeCards: async function () {
@@ -541,7 +595,7 @@ new Vue({
         .request(
           'POST',
           '/monopoly/api/v1/cards/initialize-cards',
-          this.game.freeMarketWallet.adminkey,
+          freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
             technology_cards_max_index: Object.keys(technology_cards).length,
@@ -559,7 +613,7 @@ new Vue({
         .request(
           'GET',
           '/withdraw/api/v1/links/' + this.game.inviteVoucherId,
-          this.game.freeMarketWallet.adminkey
+          freeMarketWallet(this.game).adminkey,
         )
       if(res.data) {
         const inviteVoucher = res.data.lnurl;
@@ -567,7 +621,7 @@ new Vue({
           .request(
             'GET',
             '/withdraw/api/v1/links/' + this.game.rewardVoucherId,
-            this.game.freeMarketWallet.inkey
+            inkey(this.game),
           )
         if(res.data) {
           const rewardVoucher = res.data.lnurl;
@@ -605,7 +659,7 @@ new Vue({
           this.game.playerInvoice.invoiceAmount = this.game.playerInvoice.amount * 100
         }
         let res = await LNbits.api.createInvoice(
-          this.game.player.wallet,
+          playerWallet(this.game),
           this.game.playerInvoice.invoiceAmount,
           this.game.playerInvoice.amount.toString() + 'sats payment to ' + this.game.player.name,
           'sat',
@@ -643,29 +697,36 @@ new Vue({
       // Delete game voucher now that all players joined and claimed their sats
       await this.deleteInviteVoucher()
       // Stop checking for new players
-      clearInterval(this.game.playersChecker)
+      // clearInterval(this.game.playersChecker)
       // Initialize Lightning and Protocol cards indexes
       await this.initializeCards()
       // Start game
       const res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/game/start',
-          this.game.freeMarketWallet.adminkey,
+          '/monopoly/api/v1/start-game',
+          freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
           }
         )
-      if(res.status === 201) {
+      console.log(res)
+      if(res.data) {
         // Start checking player turn
-        checkPlayerTurn(this.game)
+        // checkPlayerTurn(this.game)
         // Start game
         this.game.started = true;
-        playStartGameSound()
-        // Save game status in local storage
+        // Store game status
         storeGameData(this.game, 'started', this.game.started)
+        // Update player turn
+        this.game.playerTurn = res.data
+        // Store game playerTurn
+        storeGameData(this.game, 'playerTurn', this.game.playerTurn)
+        // Play audio
+        playStartGameSound()
         console.log("GAME STARTED")
-        this.game = initGameData(this.game);
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     nextPlayerTurn: async function () {
@@ -675,7 +736,7 @@ new Vue({
           .request(
             'PUT',
             '/monopoly/api/v1/game/next_player_turn',
-            this.game.player.wallet.inkey,
+            playerWallet(this.game).inkey,
             {
               game_id: this.game.id,
               player_index: this.game.player.index
@@ -684,6 +745,7 @@ new Vue({
         if(res.data) {
           console.log("Incremented player turn: " + res.data)
           this.game.playerTurn = res.data
+          storeGameData(this.game, 'playerTurn', this.game.playerTurn)
           this.game.incrementingPlayerTurn = false
         } else {
           LNbits.utils.notifyApiError(res.error)
@@ -693,12 +755,6 @@ new Vue({
     },
     deleteInviteVoucher: async function () {
       await deleteInviteVoucher(this.game)
-    },
-    checkFundingInvoicePaid: function (invoiceReason = null) {
-      checkFundingInvoicePaid(this.game, invoiceReason)
-    },
-    checkPlayerInvoicePaid: function (invoiceReason = null) {
-      checkPlayerInvoicePaid(this.game, invoiceReason)
     },
     showExplanationText: async function () {
       this.game.showExplanationText = true
@@ -721,10 +777,25 @@ new Vue({
     getFundingInvoiceAmount: function () {
       return this.game.fundingInvoiceAmount
     },
-    showPropertyDetails: function (property) {
-      this.game.showPropertyDialog = true;
-      this.game.propertyToShow = property;
+    showPropertyDetails: function (propertyToShow) {
+      Object.keys(this.game.players).forEach((key) => {
+        let player_index = key
+        if(
+          this.game.properties[player_index] &&
+          this.game.properties[player_index][propertyToShow.color] &&
+          this.game.properties[player_index][propertyToShow.color][propertyToShow.property_id] &&
+          this.game.properties[player_index][propertyToShow.color][propertyToShow.property_id].player_index === player_index
+        ) {
+          propertyToShow.player_index = player_index
+          propertyToShow.player_name = this.game.players[player_index].name
+          propertyToShow.mining_capacity = this.game.properties[player_index][propertyToShow.color][propertyToShow.property_id].mining_capacity
+          propertyToShow.mining_income = this.game.properties[player_index][propertyToShow.color][propertyToShow.property_id].mining_income
+        }
+      })
+      this.game.propertyToShow = propertyToShow
+
       console.log(this.game.propertyToShow)
+      this.game.showPropertyDialog = true;
     },
     getNetworkFeeInvoiceAmount: async function (property) {
       this.game.showSaleInvoiceDialog = false;
@@ -738,12 +809,12 @@ new Vue({
           break;
         case("00ff00"):
           // Invoice network fee for wrench attack
-          switch(property.id) {
-            case 0:
+          switch(property.property_id) {
+            case "0":
               this.game.customNetworkFeeMultiplier = 1;
               this.game.showNetworkFeeInvoiceDialog = true;
               break;
-            case 1:
+            case "1":
               this.game.playerInvoiceAmount = 75;
               await this.createNetworkFeeInvoice(property);
               break;
@@ -775,7 +846,7 @@ new Vue({
         this.game.playerInvoiceAmount = this.game.customNetworkFeeInvoiceAmount * this.game.customNetworkFeeMultiplier;
       }
       this.game.networkFeeInvoiceData = {
-        qr: "N" + property.color + property.id + this.game.playerInvoiceAmount.toString(),
+        qr: "N" + property.color + property.property_id + this.game.playerInvoiceAmount.toString(),
         amount: this.game.playerInvoiceAmount
       };
       this.game.showPropertyDialog = false;
@@ -796,7 +867,7 @@ new Vue({
       this.erasePropertyInvoices()
       this.game.playerInvoiceAmount = amount;
       this.game.propertySaleData = {
-        qr: "S" + property.color + property.id + this.game.playerInvoiceAmount.toString(),
+        qr: "S" + property.color + property.property_id + this.game.playerInvoiceAmount.toString(),
         amount: this.game.playerInvoiceAmount
       };
       this.game.saleInvoiceCreated = true;
@@ -860,7 +931,7 @@ new Vue({
         console.log(this.game.invoice)
         console.log("Paying invoice...")
         this.game.showPayInvoiceSpinner = true
-        let res = await LNbits.api.payInvoice(this.game.player.wallet, this.game.invoice);
+        let res = await LNbits.api.payInvoice(playerWallet(this.game), this.game.invoice);
         if(res.data && res.data.payment_hash) {
           console.log("Invoice paid successfully")
           this.closePayInvoiceDialog()
@@ -880,7 +951,7 @@ new Vue({
               .request(
                 'GET',
                 '/monopoly/api/v1/players/pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.invoiceRecipientIndex,
-                this.game.player.wallet.inkey
+                inkey(this.game)
               )
             if(res.data) {
               invoiceRecipientPayLink = res.data.player_pay_link
@@ -889,11 +960,11 @@ new Vue({
             }
           }
           //Get lnurl pay data
-          let lnurlData = await decodeLNURL(invoiceRecipientPayLink, this.game.player.wallet)
+          let lnurlData = await decodeLNURL(invoiceRecipientPayLink, playerWallet(this.game))
           // Pay invoice to invoice recipient's pay link
           console.log("Paying to invoice recipient's pay link...")
           let res = await LNbits.api.payLnurl(
-            this.game.player.wallet,
+            playerWallet(this.game),
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.invoiceAmount * 1000, // mSats
@@ -926,37 +997,29 @@ new Vue({
               'GET',
               '/monopoly/api/v1/property?game_id=' + this.game.id
               + '&color=' + this.game.propertyPurchase.property.color
-              + '&property_id=' + this.game.propertyPurchase.property.id,
-              this.game.player.wallet.inkey,
+              + '&property_id=' + this.game.propertyPurchase.property.property_id,
+              inkey(this.game),
             )
           if(res.data) {
+            this.game.propertyPurchase.property.player_index = res.data.player_index
+            this.game.propertyPurchase.property.mining_capacity = res.data.mining_capacity
+            this.game.propertyPurchase.property.mining_income = res.data.mining_income
             console.log("Property already registered...")
-            // Get property owner index
-            let propertyOwnerIndex;
-            Object.keys(this.game.properties).forEach((ownerIndex) => {
-              if(this.game.properties[ownerIndex][this.game.propertyPurchase.property.color]) {
-                this.game.properties[ownerIndex][this.game.propertyPurchase.property.color].forEach((property) => {
-                  if(property.id ===  this.game.propertyPurchase.property.id) {
-                    propertyOwnerIndex = property.player_index;
-                  }
-                });
-              }
-            });
             // Get property owner's pay link
             res = await LNbits.api
               .request(
                 'GET',
-                '/monopoly/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + propertyOwnerIndex,
-                this.game.player.wallet.inkey
+                '/monopoly/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.propertyPurchase.property.player_index,
+                inkey(this.game)
               )
             if(res.data) {
               let propertyOwnerPayLink = res.data.pay_link
               //Get lnurl pay data
-              let lnurlData = await decodeLNURL(propertyOwnerPayLink, this.game.player.wallet)
+              let lnurlData = await decodeLNURL(propertyOwnerPayLink, playerWallet(this.game))
               // Pay property price to property owner's pay link
               console.log("Paying property purchase to property owner's pay link...")
               res = await LNbits.api.payLnurl(
-                this.game.player.wallet,
+                playerWallet(this.game),
                 lnurlData.callback,
                 lnurlData.description_hash,
                 this.game.propertyPurchase.property.price * 1000, // mSats
@@ -966,9 +1029,8 @@ new Vue({
               if(res.data && res.data.payment_hash) {
                 console.log("Property purchase was paid successfully")
                 console.log("Updating property ownership")
-                await this.transferPropertyOwnership(this.game.propertyPurchase.property, this.game.player.index)
-                // Play audio
-                playBoughtPropertySound()
+                this.game.propertyPurchase.property.player_index = this.game.player.index
+                await this.transferPropertyOwnership(this.game.propertyPurchase.property)
                 this.closePropertyPurchaseDialog()
                 this.game.showPayInvoiceSpinner = false
                 this.game.purchasingProperty = false;
@@ -984,12 +1046,14 @@ new Vue({
             }
           } else {
             console.log("Property is not yet registered...")
+            this.game.propertyPurchase.property.mining_capacity = 0
+            this.game.propertyPurchase.property.mining_income = 0
             //Get lnurl pay data
-            let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, this.game.player.wallet)
+            let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, playerWallet(this.game))
             // Pay property purchase to free market pay link
             console.log("Paying property purchase to free market pay link...")
             res = await LNbits.api.payLnurl(
-              this.game.player.wallet,
+              playerWallet(this.game),
               lnurlData.callback,
               lnurlData.description_hash,
               this.game.propertyPurchase.property.price * 1000, // mSats
@@ -999,9 +1063,8 @@ new Vue({
             if(res.data && res.data.payment_hash) {
               console.log("Property purchase was paid successfully")
               console.log("Registering property")
-              await this.registerProperty(this.game.propertyPurchase.property, this.game.player.index)
-              // Play audio
-              playBoughtPropertySound()
+              this.game.propertyPurchase.property.player_index = this.game.player.index
+              await this.registerProperty(this.game.propertyPurchase.property)
               this.closePropertyPurchaseDialog()
               this.game.showPayInvoiceSpinner = false
               this.game.purchasingProperty = false
@@ -1021,42 +1084,56 @@ new Vue({
         }
       }
     },
-    registerProperty: async function(property, buyerIndex) {
+    registerProperty: async function(property) {
       let res = await LNbits.api
         .request(
           'POST',
           '/monopoly/api/v1/property',
-          this.game.player.wallet.inkey,
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
-            property_id: property.id,
+            property_id: property.property_id,
             color: property.color,
-            player_index: buyerIndex,
-            mining_capacity: 0,
-            mining_income: 0
+            player_index: property.player_index
           }
         )
       if(res.status === 201) {
         console.log("Property registered successfully")
+        this.game = updateGameProperties(this.game, property)
+        this.game = repositionProperties(this.game)
+        this.game = updatePropertiesCarouselSlide(this.game)
+        // Store game data
+        storeGameData(this.game, 'properties', this.game.properties)
+        storeGameData(this.game, 'propertiesCount', this.game.propertiesCount)
+        // Play audio
+        playPurchasedPropertySound()
+        console.log(this.game.properties)
       }
     },
-    transferPropertyOwnership: async function(property, buyerIndex) {
+    transferPropertyOwnership: async function(property) {
       let res = await LNbits.api
         .request(
           'PUT',
           '/monopoly/api/v1/transfer-property-ownership',
-          this.game.player.wallet.inkey,
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
-            property_id: property.id,
+            property_id: property.property_id,
             color: property.color,
-            player_index: buyerIndex,
-            mining_capacity: 0,
-            mining_income: 0
+            player_index: property.player_index
           }
         )
       if(res.status === 201) {
         console.log("Property ownership transferred successfully")
+        property.player_index = this.game.player.index
+        this.game = updateGameProperties(this.game, property)
+        this.game = repositionProperties(this.game)
+        this.game = updatePropertiesCarouselSlide(this.game)
+        // Store game data
+        storeGameData(this.game, 'properties', this.game.properties)
+        storeGameData(this.game, 'propertiesCount', this.game.propertiesCount)
+        // Play audio
+        playPurchasedPropertySound()
       }
     },
     upgradeProperty: async function() {
@@ -1065,12 +1142,12 @@ new Vue({
           this.game.upgradingProperty = true // Prevent upgrading multiple times
           this.game.showPayInvoiceSpinner = true
           //Get lnurl pay data
-          let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, this.game.player.wallet)
+          let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, playerWallet(this.game))
           console.log("Upgrading property...")
           // Pay property upgrade to free market pay link
           console.log("Paying property upgrade to free market pay link...")
           let res = await LNbits.api.payLnurl(
-            this.game.player.wallet,
+            playerWallet(this.game),
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.propertyUpgrade.price * 1000, // mSats
@@ -1101,18 +1178,22 @@ new Vue({
         .request(
           'PUT',
           '/monopoly/api/v1/upgrade-property-miners',
-          this.game.player.wallet.inkey,
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
             player_index: this.game.player.index,
             color: property.color,
-            property_id: property.id
+            property_id: property.property_id
           }
         )
-      if(res.status === 201) {
+      if(res.data) {
         console.log("Property's mining capacity upgraded successfully")
+        console.log(res.data)
+        this.game.properties[this.game.player.index][property.color][property.property_id].mining_capacity = res.data
         // Play audio
         playBoughtMinerSound()
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     payNetworkFee: async function() {
@@ -1121,31 +1202,32 @@ new Vue({
         this.game.payingNetworkFee = true // Prevent paying multiple times
         this.game.showPayInvoiceSpinner = true
         // Get property owner index
-        let propertyOwnerIndex;
         Object.keys(this.game.properties).forEach((ownerIndex) => {
           if(this.game.properties[ownerIndex][this.game.networkFeeInvoice.property.color]) {
-            this.game.properties[ownerIndex][this.game.networkFeeInvoice.property.color].forEach((property) => {
-              if(property.id ===  this.game.networkFeeInvoice.property.id) {
-                propertyOwnerIndex = property.player_index;
+            Object.keys(this.game.properties[ownerIndex][this.game.networkFeeInvoice.property.color]).forEach((key) => {
+              let property = this.game.properties[ownerIndex][this.game.networkFeeInvoice.property.color][key]
+              if(property.property_id ===  this.game.networkFeeInvoice.property.property_id) {
+                this.game.networkFeeInvoice.property.player_index = property.player_index;
               }
             });
           }
         });
+
         // Get property owner's pay link
         let res = await LNbits.api
           .request(
             'GET',
-            '/monopoly/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + propertyOwnerIndex,
-            this.game.player.wallet.inkey
+            '/monopoly/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.networkFeeInvoice.property.player_index,
+            inkey(this.game)
           )
         if(res.data) {
           let propertyOwnerPayLink = res.data.pay_link
           //Get lnurl pay data
-          let lnurlData = await decodeLNURL(propertyOwnerPayLink, this.game.player.wallet)
+          let lnurlData = await decodeLNURL(propertyOwnerPayLink, playerWallet(this.game))
           // Pay network fee to property owner's pay link
           console.log("Paying network fee to property owner's pay link...")
           res = await LNbits.api.payLnurl(
-            this.game.player.wallet,
+            playerWallet(this.game),
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.networkFeeInvoice.invoiceAmount * 1000, // mSats
@@ -1176,17 +1258,20 @@ new Vue({
         .request(
           'PUT',
           '/monopoly/api/v1/update-property-income',
-          this.game.player.wallet.inkey,
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
             player_index: this.game.player.index,
             color: property.color,
-            property_id: property.id,
+            property_id: property.property_id,
             income_increment: amount
           }
         )
-      if(res.status === 201) {
+      if(res.data) {
         console.log("Property's cumulated mining income updated successfully")
+        this.game.properties[property.player_index][property.color][property.property_id].mining_income = res.data
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     showLightningCard: async function() {
@@ -1194,7 +1279,7 @@ new Vue({
         .request(
           'POST',
           '/monopoly/api/v1/cards/pick-card',
-          this.game.player.wallet.inkey,
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
             card_type: 'technology',
@@ -1222,7 +1307,7 @@ new Vue({
         .request(
           'POST',
           '/monopoly/api/v1/cards/pick-card',
-          this.game.player.wallet.inkey,
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
             card_type: 'black_swan',
@@ -1253,11 +1338,11 @@ new Vue({
     payWrenchAttack: async function() {
       this.game.showPayFineSpinner = true
       //Get lnurl pay data
-      let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, this.game.player.wallet)
+      let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, playerWallet(this.game))
       // Pay wrench attack
       console.log("Paying wrench attack...")
       let res = await LNbits.api.payLnurl(
-        this.game.player.wallet,
+        playerWallet(this.game),
         lnurlData.callback,
         lnurlData.description_hash,
         this.game.wrenchAttackAmountSats * 1000, // mSats
@@ -1273,7 +1358,7 @@ new Vue({
           .request(
             'PUT',
             '/monopoly/api/v1/update_cumulated_fines',
-            this.game.player.wallet.inkey,
+            playerWallet(this.game).inkey,
             {
               game_id: this.game.id,
               player_index: this.game.player.index,
@@ -1326,16 +1411,16 @@ new Vue({
       if(card.fineType && card.fineType === "custom") {
         this.game.fineAmountSats = Math.floor(card.fineMultiplier * this.game.customFineMultiplier)
       } else if(card.fineType && card.fineType === "pct_balance") {
-        this.game.fineAmountSats = Math.floor(card.fineMultiplier * this.game.userBalance)
+        this.game.fineAmountSats = Math.floor(card.fineMultiplier * this.game.playerBalance)
       } else if (card.fineType && card.fineType === "pct_most_recent_tx") {
         this.game.fineAmountSats = Math.floor(card.fineMultiplier * 100) // Implement once tx history is implemented
       }
       //Get lnurl pay data
-      let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, this.game.player.wallet)
+      let lnurlData = await decodeLNURL(this.game.freeMarketWalletPayLink, playerWallet(this.game))
       // Pay fine
       console.log("Paying fine...")
       let res = await LNbits.api.payLnurl(
-        this.game.player.wallet,
+        playerWallet(this.game),
         lnurlData.callback,
         lnurlData.description_hash,
         this.game.fineAmountSats * 1000, // mSats
@@ -1351,7 +1436,7 @@ new Vue({
           .request(
             'PUT',
             '/monopoly/api/v1/update_cumulated_fines',
-            this.game.player.wallet.inkey,
+            playerWallet(this.game).inkey,
             {
               game_id: this.game.id,
               player_index: this.game.player.index,
@@ -1388,12 +1473,24 @@ new Vue({
       } else if (card.rewardType && card.rewardType === "pct_total_liquidity") {
         this.game.rewardAmountSats = Math.floor(card.rewardMultiplier * this.game.initialFunding)
       }
-      let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallet)
-      // Claim reward
-      console.log("Claiming reward...")
-      await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallet, this.game.rewardAmountSats, 'reward')
-      console.log("Reward claimed successfully")
+      let res = await LNbits.api
+        .request(
+          'PUT',
+          '/monopoly/api/v1/claim_card_reward',
+          playerWallet(this.game).inkey,
+          {
+            game_id: this.game.id,
+            player_index: this.game.player.index,
+            amount: this.game.rewardAmountSats
+          }
+        )
+      if(res.status === 201) {
+        console.log("Reward claimed successfully")
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
       this.closeClaimRewardDialog()
+
     },
     closeClaimRewardDialog: function () {
       this.game.showLightningCard = false;
@@ -1429,7 +1526,7 @@ new Vue({
         .request(
           'GET',
           '/monopoly/api/v1/cumulated_fines?game_id=' + this.game.id,
-          this.game.player.wallet.inkey,
+          inkey(this.game),
         )
       if(res.data) {
         console.log(res.data)
@@ -1439,26 +1536,18 @@ new Vue({
       }
     },
     claimCumulatedFines: async function () {
-      // Claim cumulated fines from the free market
-      let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallet)
-      // Claim reward
-      console.log("Claiming free sats...")
-      await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallet, this.game.cumulatedFines, 'free bitcoin')
-      console.log("Free sats claimed successfully")
-      // Reset cumulated_fines to 0 in database
-      console.log("Resetting cumulated fines")
       let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/reset_cumulated_fines',
-          this.game.player.wallet.inkey,
+          '/monopoly/api/v1/claim_cumulated_fines',
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
             player_index: this.game.player.index
           }
         )
       if(res.status === 201) {
-        console.log("Cumulated fines reset successfully")
+        console.log("Cumulated fines claimed successfully")
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -1466,23 +1555,18 @@ new Vue({
       this.game.showFreeBitcoinClaimDialog = false;
     },
     claimStartAmount: async function () {
-      let lnurlData = await decodeLNURL(this.game.rewardVoucher, this.game.player.wallet)
-      // Claim reward
-      console.log("Claiming start bonus...")
-      await withdrawFromLNURL(lnurlData, this.game, this.game.player.wallet, this.game.startClaimAmount, 'start bonus')
-      console.log("Start bonus claimed successfully")
-      let res = await LNbits.api
+     let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/update-player-pow-provided',
-          this.game.player.wallet.inkey,
+          '/monopoly/api/v1/provide_pow',
+          playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
             player_index: this.game.player.index,
           }
         )
       if(res.status === 201) {
-        console.log("Player POW provided updated successfully")
+        console.log("Start bonus claimed successfully")
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -1496,10 +1580,10 @@ new Vue({
       Object.keys(this.game.players).forEach((player_index) => {
         if(this.game.players[player_index].player_balance < lowestBalance) {
           lowestBalance = this.game.players[player_index].player_balance
-          lowestBalancePlayerName = this.game.players[player_index].player_wallet_name
+          lowestBalancePlayerName = this.game.players[player_index].name
         }
       })
-      if(lowestBalancePlayerName == this.game.players[this.game.player.wallet.id].player_wallet_name) {
+      if(lowestBalancePlayerName == this.game.players[player_index].name) {
         lowestBalancePlayerName = "yourself"
       }
       return lowestBalancePlayerName
@@ -1508,10 +1592,10 @@ new Vue({
       this.camera.show = true
       if(window.open_camera !== "true") {
         window.open_camera = "true"
-        if(this.game.freeMarketWallet && this.game.freeMarketWallet.id) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + this.game.player.id + "&wal=" + this.game.freeMarketWallet.id + "&open_camera=true");
-        } else if(this.game.player.wallet & this.game.player.wallet.id) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + this.game.player.id + "&wal=" + this.game.player.wallet.id + "&open_camera=true");
+        if(freeMarketWallet(this.game)) {
+          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id, + "&open_camera=true");
+        } else if(playerWallet(this.game)) {
+          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id + "&open_camera=true");
         }
       }
     },
@@ -1585,7 +1669,7 @@ new Vue({
             } else {
               Object.keys(this.game.players).forEach((player_index) => {
                 if(player_index === this.game.invoiceRecipientIndex) {
-                  this.game.invoiceRecipientName = this.game.players[player_index].player_wallet_name
+                  this.game.invoiceRecipientName = this.game.players[player_index].name
                 }
               })
             }
@@ -1602,7 +1686,8 @@ new Vue({
               }
             } else {
               this.closePropertyDialog()
-              this.showPropertyDetails(properties[QRData.slice(1,7)][QRData.slice(7,8)])
+              let propertyToShow = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
+              this.showPropertyDetails(propertyToShow)
             }
             break
 
@@ -1627,13 +1712,13 @@ new Vue({
             this.closePropertyDialog()
             // const saleInvoice = decodeInvoice(data.invoice);
             this.game.showPropertyPurchaseDialog = true
-            this.game.propertyPurchase.property = properties[QRData.slice(1,7)][QRData.slice(7,8)]
+            this.game.propertyPurchase.property = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
             this.game.propertyPurchase.property.price = QRData.slice(8)
             break
 
           case "N": // Network fee
             this.closePropertyDialog()
-            this.game.networkFeeInvoice.property = properties[QRData.slice(1,7)][QRData.slice(7,8)]
+            this.game.networkFeeInvoice.property = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
             this.game.networkFeeInvoice.invoiceAmount = QRData.slice(8)
             this.game.showNetworkFeePaymentDialog = true
             break
