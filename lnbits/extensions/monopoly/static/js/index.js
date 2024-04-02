@@ -24,7 +24,7 @@ import {
   inkey
 } from './helpers/helpers.js'
 import {
-  getGamePlayerFromGameRecord,
+  getGamePlayerFromGameRecord, getGamePlayersFromUser,
   getGameRecordsFromDatabase,
   onGameFunded
 } from './server/database.js'
@@ -148,8 +148,9 @@ new Vue({
       this.loading = false;
     },
     getSavedGames: async function () {
-      let gameRecordsRows = await getGameRecordsFromDatabase()
-      gameRecordsRows = getGameRecordsFromLocalStorage(gameRecordsRows)
+      let gamePlayers = await getGamePlayersFromUser()
+      let gameRecordsRows = await getGameRecordsFromDatabase(gamePlayers)
+      gameRecordsRows = getGameRecordsFromLocalStorage(gamePlayers, gameRecordsRows)
       this.gameRecords = gameRecordsData
       let gameRecordsMap = {}
       gameRecordsRows.forEach((gameRecord) => {
