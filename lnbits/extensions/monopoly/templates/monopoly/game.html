@@ -301,7 +301,7 @@
             </div>
 
             <!-- Players table -->
-            <div class="q-pa-md">
+            <div>
               <q-table
                 title="Players"
                 dense
@@ -316,8 +316,11 @@
                     <q-td key="name" :props="props" >
                       {% raw %}{{props.row.name}}{% endraw %}
                     </q-td>
-                    <q-td key="balance" :props="props" >
-                      {% raw %}{{props.row.player_balance}}{% endraw %}
+                    <q-td key="balance" :props="props" style="text-align: center">
+                      {% raw %}{{props.row.balance}}{% endraw %}
+                    </q-td>
+                    <q-td key="propertiesCount" :props="props" style="text-align: center">
+                      {% raw %}{{props.row.propertiesCount}}{% endraw %}
                     </q-td>
                   </q-tr>
                 </template>

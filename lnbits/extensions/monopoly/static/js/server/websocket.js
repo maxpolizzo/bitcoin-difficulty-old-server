@@ -59,7 +59,8 @@ export function onMessage(event, game, wallets){
         {
           index: player_index,
           name: data.player_name,
-          player_balance: 0
+          balance: 0,
+          propertiesCount: 0
         }
       )
       // Store game.playersData
@@ -128,8 +129,8 @@ export function onMessage(event, game, wallets){
           storeGameData(game, 'players', game.players)
         }
         game.playersData.rows.forEach((row) => {
-          if(row.index === player_index && row.player_balance !== balance) {
-            row.player_balance = balance
+          if(row.index === player_index && row.balance !== balance) {
+            row.balance = balance
             // Store players
             storeGameData(game, 'playersData', game.playersData)
           }

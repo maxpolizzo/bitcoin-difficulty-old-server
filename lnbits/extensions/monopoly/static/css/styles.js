@@ -296,7 +296,7 @@ export function reactiveStyles(game) {
       },
       cardsStack: {
         height: `36em`,
-        marginLeft: '0.7em',
+        marginLeft: '-0.5em',
         marginTop: '-4.5em',
         marginBottom: '3em'
       },
@@ -312,7 +312,7 @@ export function reactiveStyles(game) {
         });
         let marginTopFactor = 5.6;
         let marginTop = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? (marginTopFactor * 2).toString() + `em` : (marginTopFactor * (parseInt(cardPosition) + 1)).toString() + `em`;
-        let marginLeft = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? 0 : ((-1)**(parseInt(cardPosition) + 1)).toString() + `em`;
+        let marginLeft = Object.keys(game.properties[game.player.index][card.color]).length === 1 ? 0 : (0.5*((-1)**(parseInt(cardPosition) + 1))).toString() + `em`;
         return({
           position: `absolute`,
           zIndex: parseInt(cardPosition) + 2,
