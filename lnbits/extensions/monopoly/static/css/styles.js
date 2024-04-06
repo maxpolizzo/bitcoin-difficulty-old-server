@@ -233,8 +233,21 @@ export function reactiveStyles(game) {
         marginLeft: `0.8em`,
         marginRight: `0.8em`
       },
+      loadingSpinner: {
+        marginTop: `4em`,
+        marginLeft: `7em`,
+      },
+      cameraDeviceIcon: {
+        marginTop: '-1.85em'
+      },
+      cameraDeviceIndex: {
+        marginTop: '-2.2em'
+      },
+      switchCameraButton: {
+        marginTop: '-2em'
+      },
       scanButton: {
-        marginLeft: `0.5em`
+        marginLeft: `3em`
       }
     }
   } else {
@@ -478,8 +491,24 @@ export function reactiveStyles(game) {
         marginLeft: `0.785em`,
         marginRight: `0.785em`
       },
+      loadingSpinner: {
+        marginTop: `5em`,
+        marginLeft: `10em`,
+      },
+      cameraDeviceIcon: {
+        marginLeft: '2.4em',
+        marginTop: '-2.45em'
+      },
+      cameraDeviceIndex: {
+        marginLeft: '0.25em',
+        marginTop: '-2.65em'
+      },
+      switchCameraButton: {
+        marginLeft: '-2.5em',
+        marginTop: '-4.25em'
+      },
       scanButton: {
-        marginLeft: '-0.25em'
+        marginLeft: '-2.25em'
       }
     }
   }

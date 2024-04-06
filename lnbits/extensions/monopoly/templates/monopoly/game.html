@@ -23,6 +23,7 @@
   <q-spinner
     color="orange"
     size="5em"
+    :style="reactiveStyles.loadingSpinner"
   />
 </div>
 
@@ -330,8 +331,8 @@
   <!-- QR code reader popup -->
   <q-dialog v-model="camera.show"  @hide="closeCamera">
 
-    <q-card class="q-pa-lg q-pt-xl">
-      <div class="row">
+    <q-card class="q-pa-lg q-pt-xl" style="padding-top: 1.75em">
+      <!--div class="row">
         <q-btn
           class="col-2"
           icon="refresh"
@@ -356,7 +357,7 @@
           @click="switchCameraDevice"
           style="margin-top: -2em; margin-bottom: 1.5em; z-index: 999;"
         ></q-btn>
-      </div>
+      </div-->
       <div class="rounded-borders overflow-hidden">
         <qrcode-stream
           @init="onInitCamera"
@@ -364,20 +365,50 @@
           @track="camera.trackFunction"
           @detect="detectQR"
         >
-          <div class="row" style="margin-top: 6em;">
-            <div class="offset-1 col-1">
-              <i class="material-icons" style="margin-top: 0.15em;">camera_outlined</i>
+          <div class="row" style="margin-top: 5em;">
+            <div class="offset-1 col-1" :style="reactiveStyles.cameraDeviceIcon">
+              <i class="material-icons">camera_outlined</i>
             </div>
-            <div class="col-1">
+            <div class="col-1" :style="reactiveStyles.cameraDeviceIndex">
               <span style="font-size: 1.5em;">{% raw %}{{camera.deviceIndex}}{% endraw %}</span>
+            </div>
+            <div class="offset-7 col-1" style="margin-top: -0.25em;">
+              <q-btn
+                v-if="camera.enableSwitchCameraButton"
+                :style="reactiveStyles.switchCameraButton"
+                icon="flip_camera_ios"
+                size="1em"
+                @click="switchCameraDevice"
+              ></q-btn>
+              <q-btn
+                v-else
+                :style="reactiveStyles.switchCameraButton"
+                icon="flip_camera_ios"
+                size="1em"
+                @click="switchCameraDevice"
+              ></q-btn>
             </div>
           </div>
         </qrcode-stream>
       </div>
       <div class="row q-mt-lg">
-        <div class="offset-5 col-2">
-          <q-btn  v-if="camera.firstQRDetected && !camera.scanEnabled" icon="qr_code_scanner" color="orange" size="1.5em" :style="reactiveStyles.scanButton" @click="enableScan"></q-btn>
-          <q-btn  v-else disabled icon="qr_code_scanner" size="2em" :style="reactiveStyles.scanButton"></q-btn>
+        <div class="col-2">
+          <q-btn
+            outline
+            color="grey"
+            @click="closeCamera"
+          >Close</q-btn></div>
+        <div class="offset-6 col-4">
+          <q-btn v-if="camera.firstQRDetected && !camera.scanEnabled" :style="reactiveStyles.scanButton" outline color="orange" @click="enableScan">
+            <span>
+              Read QR <i class="material-icons" style="margin-left: 0.25em;">flip</i>
+            </span>
+          </q-btn>
+          <q-btn  v-else :style="reactiveStyles.scanButton" outline disabled @click="enableScan">
+                <span>
+                  Read QR <i color="grey" class="material-icons" style="margin-left: 0.25em;">flip</i>
+                </span>
+          </q-btn>
         </div>
       </div>
       <div v-if="camera.error" style="margin-top: 1em;">

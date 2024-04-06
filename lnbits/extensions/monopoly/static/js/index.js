@@ -12,6 +12,8 @@ import {
 import { reactiveStyles } from '../css/styles.js'
 import {
   paintOutline,
+  paintCenterText,
+  paintBoundingBox
 } from './helpers/camera.js'
 import {
   decodeInvoice,
