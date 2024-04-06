@@ -54,8 +54,17 @@ export const newGame = {
         name: 'balance',
         required: true,
         label: 'Balance (sats)',
-        align: 'left',
+        align: 'center',
         field: 'balance',
+        format: val => `${val}`,
+        sortable: true
+      },
+      {
+        name: 'propertiesCount',
+        required: true,
+        label: 'Properties',
+        align: 'center',
+        field: 'propertiesCount',
         format: val => `${val}`,
         sortable: true
       },

@@ -255,7 +255,7 @@ export function updateGameProperties(game, property) {
         }
       })
     }
-    // If property was not already owned by player, assign position
+    // If property was not already owned by player, assign position and update player propertiesCount in players table
     if(newProperty) {
       updatedProperty.position = Object.keys(game.properties[property.player_index][property.color]).length
     }
@@ -263,22 +263,26 @@ export function updateGameProperties(game, property) {
     // Add property to game.properties
     game.properties[property.player_index][property.color][property.property_id] = updatedProperty
 
-    // Update game.PropertiesCount
-    Object.keys(game.propertiesCount).forEach((playerIndex) => {
-      if(!game.properties[playerIndex] || !Object.keys(game.properties[playerIndex]).length) {
-        game.propertiesCount[playerIndex] = 0
-      }
-    })
+    // Update game.propertiesCount and players propertiesCount in players table
     Object.keys(game.properties).forEach((playerIndex) => {
-      if(!game.propertiesCount[playerIndex]) {
-        game.propertiesCount[playerIndex] = 0
-      }
+      game.propertiesCount[playerIndex] = 0
       Object.keys(game.properties[playerIndex]).forEach((color) => {
         game.propertiesCount[playerIndex] += Object.keys(game.properties[playerIndex][color]).length
       })
     })
+    Object.keys(game.propertiesCount).forEach((playerIndex) => {
+      if(!game.properties[playerIndex] || !Object.keys(game.properties[playerIndex]).length) {
+        game.propertiesCount[playerIndex] = 0
+      }
+      game.playersData.rows.forEach((row) => {
+        if(row.index === playerIndex) {
+          row.propertiesCount = game.propertiesCount[playerIndex]
+        }
+      })
+    })
 
     console.log(game.propertiesCount)
+    console.log(game.properties)
 
     // If property was just sold, close property invoice dialog
     if(game.properties[game.player.index] &&

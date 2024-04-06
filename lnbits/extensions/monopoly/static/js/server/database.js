@@ -115,7 +115,8 @@ export async function fetchPlayers(game) {
           {
             index: player.player_index,
             name: player.player_name,
-            player_balance: null
+            balance: 0,
+            propertiesCount: 0
           }
         )
         storeGameData(game, 'playersData', game.playersData)
@@ -150,7 +151,7 @@ export async function fetchWalletsBalances(game) {
         }
         game.playersData.rows.forEach((row) => {
           if(row.index === wallet.player_index) {
-            row.player_balance = Math.round(wallet.balance_msat / 1000)
+            row.balance = Math.round(wallet.balance_msat / 1000)
           }
         })
       }
