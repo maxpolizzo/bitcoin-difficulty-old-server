@@ -1735,9 +1735,12 @@ new Vue({
         }
       }
     },
-
     closeQRDialog: function () {
       this.qrCodeDialog.show = false
     },
+    closeGameWarning: function () {
+      this.game.showWarningMessage = false
+      storeGameData(this.game, 'showWarningMessage', this.game.showWarningMessage)
+    }
   }
 })

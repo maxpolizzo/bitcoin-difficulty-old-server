@@ -19,6 +19,29 @@
 {% endblock %} {% block page %}
 <link rel="stylesheet" href="/monopoly/static/css/monopoly.css"/>
 
+<header>
+  <div v-if="!game.started && showGameWarningMessage"  class="bg-yellow-4" style="padding: 0.5em;">
+    <div class="row">
+      <b class="col-11" style="font-size: 1em; color: orange; text-align: center">
+        Bookmark your wallet!
+      </b>
+      <div class="col-1" style="color: orange">
+        <q-btn
+          flat
+          round
+          :style="reactiveStyles.closGameWarningButton"
+          icon="close"
+          size="0.5em"
+          @click="closeGameWarning"
+        ></q-btn>
+      </div>
+    </div>
+    <div style="font-size: 1em; color: orange">
+      Make sure to bookmark this page in order to be able to restore your wallets and games!
+    </div>
+  </div>
+</header>
+
 <div v-if="loading" style="margin-left: -10em; margin-top: 10em; margin-bottom: 2em; display: flex; justify-content: center;">
   <q-spinner
     color="orange"
@@ -30,24 +53,47 @@
 <div v-else id="monopoly" class="row q-col-gutter-md">
   <!-- Game view -->
   <q-page-sticky position="top" style="z-index: 999;" v-if="game.started">
-    <q-header class="bg-dark" :style="reactiveStyles.header">
-      <div class="row" style="padding: 1em; font-size: 1.2em;">
-        <div class="col-12 col-md-7">
-          <span :style="reactiveStyles.playerName">
-            {% raw %} {{game.player.name}} {% endraw %}
-          </span>
+    <q-header class="bg-dark" :style="reactiveStyles.header(game.showWarningMessage)">
+      <div>
+        <div v-if="game.showWarningMessage"  class="bg-yellow-4" style="padding: 0.5em;">
+          <div class="row">
+            <b class="col-11" style="font-size: 1em; color: orange; text-align: center">
+              Bookmark your wallet!
+            </b>
+            <div class="col-1" style="color: orange">
+              <q-btn
+                flat
+                round
+                :style="reactiveStyles.closGameWarningButton"
+                icon="close"
+                size="0.5em"
+                @click="closeGameWarning"
+              ></q-btn>
+            </div>
+          </div>
+          <div style="font-size: 1em; color: orange">
+            Make sure to bookmark this page in order to be able to restore your wallets and games!
+          </div>
         </div>
-        <div class="row col-12 col-md-5" :style="reactiveStyles.gameButtonsGroup">
-            <span class="col-5 col-md-6" :style="reactiveStyles.nextPlayerTurnButton">
-              <q-btn v-if="game.playerTurn === game.player.index && !game.incrementingPlayerTurn" row color="orange" icon="next_plan" size="1.5em" @click="nextPlayerTurn"></q-btn>
-              <q-btn v-else disabled row icon="next_plan" size="1.5em"></q-btn>
+
+        <div class="row" style="padding: 1em; font-size: 1.2em;">
+          <div class="col-12 col-md-7">
+            <span :style="reactiveStyles.playerName">
+              {% raw %} {{game.player.name}} {% endraw %}
             </span>
-          <span class="col-3 col-md-2" :style="reactiveStyles.receiveButton">
-              <q-btn row color="orange" icon="file_download" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
-            </span>
-          <span class="col-2 col-md-1" :style="reactiveStyles.sendButton">
-              <q-btn row color="orange" icon="photo_camera" size="1.5em" @click="showCamera"></q-btn>
-            </span>
+          </div>
+          <div class="row col-12 col-md-5" :style="reactiveStyles.gameButtonsGroup">
+              <span class="col-5 col-md-6" :style="reactiveStyles.nextPlayerTurnButton">
+                <q-btn v-if="game.playerTurn === game.player.index && !game.incrementingPlayerTurn" row color="orange" icon="next_plan" size="1.5em" @click="nextPlayerTurn"></q-btn>
+                <q-btn v-else disabled row icon="next_plan" size="1.5em"></q-btn>
+              </span>
+            <span class="col-3 col-md-2" :style="reactiveStyles.receiveButton">
+                <q-btn row color="orange" icon="file_download" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
+              </span>
+            <span class="col-2 col-md-1" :style="reactiveStyles.sendButton">
+                <q-btn row color="orange" icon="photo_camera" size="1.5em" @click="showCamera"></q-btn>
+              </span>
+          </div>
         </div>
       </div>
     </q-header>

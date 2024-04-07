@@ -86,6 +86,7 @@ export const newGame = {
   //////////////////////////////////////////////////////////////////////////////
   rewardVoucher: null,
   inviteLink: null,
+  showWarningMessage: true,
   showInviteButton: false,
   showFundingView: false,
   showFundingDialog: false,
