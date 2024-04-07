@@ -12,8 +12,20 @@ export function reactiveStyles(game) {
       inviteButton: {
         marginLeft: `2em`
       },
-      header: {
-        marginTop: `-5em`
+      header: (showWarningMessage) => {
+        if(showWarningMessage) {
+          return(
+            {
+              marginTop: `-9em`
+            }
+          )
+        } else {
+          return(
+            {
+              marginTop: `-5em`
+            }
+          )
+        }
       },
       playerName: {
         paddingTop: `0.5em`,
@@ -248,6 +260,9 @@ export function reactiveStyles(game) {
       },
       scanButton: {
         marginLeft: `3em`
+      },
+      closGameWarningButton: {
+        marginLeft: `10em`
       }
     }
   } else {
@@ -261,8 +276,20 @@ export function reactiveStyles(game) {
       inviteButton: {
         marginLeft: `-1em`
       },
-      header: {
-        marginTop: `-9em`
+      header: (showWarningMessage) => {
+        if(showWarningMessage) {
+          return(
+            {
+              marginTop: `-14em`
+            }
+          )
+        } else {
+          return(
+            {
+              marginTop: `-9em`
+            }
+          )
+        }
       },
       playerName: {
         paddingTop: `0.7em`,
@@ -283,7 +310,7 @@ export function reactiveStyles(game) {
         marginLeft: `1em`
       },
       fundingViewContainer: {
-        marginTop: `-2.5em`,
+        marginTop: `-2em`,
         paddingRight: `0em`
       },
       propertiesContainer: {
@@ -509,6 +536,9 @@ export function reactiveStyles(game) {
       },
       scanButton: {
         marginLeft: '-2.25em'
+      },
+      closGameWarningButton: {
+
       }
     }
   }
