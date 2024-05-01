@@ -259,7 +259,7 @@ export function reactiveStyles(game) {
         marginTop: '-2em'
       },
       scanButton: {
-        marginLeft: `3em`
+        marginLeft: `4.7em`
       },
       closGameWarningButton: {
         marginLeft: `10em`
@@ -535,7 +535,7 @@ export function reactiveStyles(game) {
         marginTop: '-4.25em'
       },
       scanButton: {
-        marginLeft: '-2.25em'
+        marginLeft: '-0.7em'
       },
       closGameWarningButton: {
 

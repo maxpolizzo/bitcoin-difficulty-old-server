@@ -84,6 +84,7 @@ new Vue({
       enabled: true,
       isDragging: false,
       delayedDragging: false,
+      refreshQRPreviewKey: 0
     }
   },
   mounted(){
@@ -292,8 +293,10 @@ new Vue({
     },
     closeCamera: function() {
       this.camera.show = false;
-      this.camera.scanEnabled = false;
-      this.camera.firstQRDetected = false;
+      // this.camera.scanEnabled = false;
+      this.camera.QRDetected = false;
+      this.game.QRPreview = null
+      this.refreshQRPreviewKey += 1
       // Clear closeCamera timeout
       // clearTimeout(this.camera.closeTimeout)
       // Stop camera
@@ -1315,6 +1318,7 @@ new Vue({
         console.log(black_swan_cards[cardIndex].imgPath)
         this.game.showProtocolCard = true;
         this.game.protocolCardToShow = black_swan_cards[cardIndex];
+        playBlackSwanCardSound()
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -1597,135 +1601,288 @@ new Vue({
     pasteData: async function () {
       this.closeCamera()
       let data = await navigator.clipboard.readText()
-      this.parseQRData(data)
+      this.parseQRData(data, false)
     },
+    /*
     enableScan: function () {
       this.camera.scanEnabled = true
       if(this.camera.data && this.camera.data.content) {
         this.decodeQR()
       }
     },
+    */
     detectQR: async function (QRDataPromise) {
-      this.camera.data = await QRDataPromise
-      if(!this.camera.firstQRDetected) {
-        this.camera.firstQRDetected = true
+      this.game.QRPreview = null
+      this.refreshQRPreviewKey += 1
+      let QRData = await QRDataPromise
+      console.log(QRData)
+      if(QRData.content) {
+        this.camera.data = QRData
+        if(!this.camera.QRDetected) {
+          this.camera.QRDetected = true
+        }
+        console.log(this.camera.data.content)
+        this.parseQRData(this.camera.data.content, true)
       }
-      console.log(this.camera.data.content)
+      /*
       if(this.camera.scanEnabled) {
-        if(this.camera.data && this.camera.data.content) {
+        if(this.camera.data ) {
           if(this.camera.scanEnabled) {
             this.decodeQR()
           }
         }
       } else {
         // Reset closeCamera timeout
-        /*
         clearTimeout(this.camera.closeTimeout)
         this.camera.closeTimeout = setTimeout(() => {
           this.closeCamera()
           this.camera.data = null;
         }, 10000)
-        */
       }
+      */
+    },
+    generateQRPreview: function () {
+      console.log("generate QR preview")
+
+      switch(this.game.QRPreview.type) {
+        case "invoice":
+          this.game.QRPreview.text = "INVOICE: " + this.game.QRPreview.data.amount + " SATS"
+          break;
+        case "tax":
+          this.game.QRPreview.text = "TAXATION IS THEFT :("
+          break;
+        case "network_fee":
+          this.game.QRPreview.text = "NETWORK FEE: " + this.game.QRPreview.data.amount + " SATS"
+          break;
+        case "not_your_turn":
+          this.game.QRPreview.text = "NOT YOUR TURN :/"
+          break;
+        case "property":
+          this.game.QRPreview.imagePath =  this.game.QRPreview.data.property.imgPath
+          break;
+        case "property_sale":
+          this.game.QRPreview.imagePath =  this.game.QRPreview.data.property.imgPath
+          break;
+        case "lightning":
+          this.game.QRPreview.text = "LIGHTNING CARD"
+          break;
+        case "protocol":
+          this.game.QRPreview.text = "PROTOCOL CARD"
+          break;
+        case "start":
+          this.game.QRPreview.text = "START BONUS"
+          break;
+        case "free_bitcoin":
+          this.game.QRPreview.text = "FREE BITCOIN :)"
+          break;
+        default:
+          this.game.QRPreview.text = "Invalid QR preview data type"
+          console.log("Invalid QR preview data type")
+          break
+      }
+      this.refreshQRPreviewKey += 1
+
+      console.log(this.game.QRPreview)
     },
     decodeQR: function () {
-      this.closeCamera()
-      this.camera.scanEnabled = false
-      let QRdata = this.camera.data.content
+      let QRData = this.camera.data.content
       this.camera.data = null
-      this.parseQRData(QRdata)
+      this.closeCamera()
+      this.parseQRData(QRData, false)
     },
-    parseQRData: async function (QRData) {
+    parseQRData: async function (QRData, preview = false) {
       // Regular lightning invoice case
       if(QRData.slice(0, 2) == "ln") {
         const invoice = decodeInvoice(QRData);
         console.log(invoice)
         console.log(invoice.sat)
-        this.game.invoiceAmount = invoice.sat.toString()
-        this.game.invoice = QRData
-        this.game.showPayInvoiceDialog = true
+        if(preview) {
+          this.game.QRPreview = {
+            type: "invoice",
+            data: {
+              amount: invoice.sat.toString()
+            }
+          }
+        } else  {
+          this.game.invoiceAmount = invoice.sat.toString()
+          this.game.invoice = QRData
+          this.game.showPayInvoiceDialog = true
+        }
       } else  {
-
         console.log(QRData)
-
         switch(QRData.slice(0,1)) {
           case "I": // Player invoice
-            this.game.invoice = QRData
-            this.game.invoiceRecipientIndex = QRData.slice(1,2)
-            this.game.invoiceAmount = QRData.slice(2)
-            // Get invoice recipient's name and wallet _id
-            if(this.game.invoiceRecipientIndex === "0") {
-              this.game.invoiceRecipientName = "the free market"
-            } else {
-              Object.keys(this.game.players).forEach((player_index) => {
-                if(player_index === this.game.invoiceRecipientIndex) {
-                  this.game.invoiceRecipientName = this.game.players[player_index].name
+            if(preview) {
+              this.game.QRPreview = {
+                type: "invoice",
+                data: {
+                  amount: QRData.slice(2)
                 }
-              })
+              }
+            } else  {
+              this.game.invoice = QRData
+              this.game.invoiceRecipientIndex = QRData.slice(1,2)
+              this.game.invoiceAmount = QRData.slice(2)
+              // Get invoice recipient's name and wallet _id
+              if(this.game.invoiceRecipientIndex === "0") {
+                this.game.invoiceRecipientName = "the free market"
+              } else {
+                Object.keys(this.game.players).forEach((player_index) => {
+                  if(player_index === this.game.invoiceRecipientIndex) {
+                    this.game.invoiceRecipientName = this.game.players[player_index].name
+                  }
+                })
+              }
+              this.game.showPayInvoiceDialog = true
             }
-            this.game.showPayInvoiceDialog = true
             break
 
           case "P": // Property card
             if(QRData.slice(1,7) == "00ff00") { // Fix for Taxation is theft (formerly wrench attacks) (TO DO: use dedicated QR codes T1 and T2)
               if(this.game.playerTurn === this.game.player.index) {
-                playTaxationIsTheftSound()
-                this.showWrenchAttackDialog(QRData.slice(7,8))
+                if(preview) {
+                  this.game.QRPreview = {
+                    type: "tax",
+                  }
+                } else  {
+                  playTaxationIsTheftSound()
+                  this.showWrenchAttackDialog(QRData.slice(7,8))
+                }
               } else {
-                this.showNotYourTurnPopUp()
+                if(preview) {
+                  this.game.QRPreview = {
+                    type: "not_your_turn",
+                  }
+                } else  {
+                  this.showNotYourTurnPopUp()
+                }
               }
             } else {
-              this.closePropertyDialog()
               let propertyToShow = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
-              this.showPropertyDetails(propertyToShow)
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "property",
+                  data: {
+                    property: propertyToShow
+                  }
+                }
+              } else  {
+                this.closePropertyDialog()
+                this.showPropertyDetails(propertyToShow)
+              }
             }
             break
 
           case "L": // Development card (formerly Lightning card)
             if(this.game.playerTurn === this.game.player.index) {
-              this.showLightningCard()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "lightning",
+                }
+              } else  {
+                this.showLightningCard()
+              }
             } else {
-              this.showNotYourTurnPopUp()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "not_your_turn",
+                }
+              } else  {
+                this.showNotYourTurnPopUp()
+              }
             }
             break
 
           case "B": // Black swan card (formerly Protocol card)
             if(this.game.playerTurn === this.game.player.index) {
-              playBlackSwanCardSound()
-              this.showProtocolCard()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "protocol",
+                }
+              } else  {
+                this.showProtocolCard()
+              }
             } else {
-              this.showNotYourTurnPopUp()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "not_your_turn",
+                }
+              } else  {
+                this.showNotYourTurnPopUp()
+              }
             }
             break
 
           case "S": // Property sale
-            this.closePropertyDialog()
-            // const saleInvoice = decodeInvoice(data.invoice);
-            this.game.showPropertyPurchaseDialog = true
-            this.game.propertyPurchase.property = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
-            this.game.propertyPurchase.property.price = QRData.slice(8)
+            let propertyForSale = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
+            if(preview) {
+              this.game.QRPreview = {
+                type: "property_sale",
+                data: {
+                  property: propertyForSale
+                }
+              }
+            } else  {
+              this.closePropertyDialog()
+              this.game.showPropertyPurchaseDialog = true
+              this.game.propertyPurchase.property = propertyForSale
+              this.game.propertyPurchase.property.price = QRData.slice(8)
+            }
             break
 
           case "N": // Network fee
-            this.closePropertyDialog()
-            this.game.networkFeeInvoice.property = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
-            this.game.networkFeeInvoice.invoiceAmount = QRData.slice(8)
-            this.game.showNetworkFeePaymentDialog = true
+            if(preview) {
+              this.game.QRPreview = {
+                type: "network_fee",
+                data: {
+                  amount: QRData.slice(8)
+                }
+              }
+            } else  {
+              this.closePropertyDialog()
+              this.game.networkFeeInvoice.property = Object.assign({}, properties[QRData.slice(1,7)][QRData.slice(7,8)])
+              this.game.networkFeeInvoice.invoiceAmount = QRData.slice(8)
+              this.game.showNetworkFeePaymentDialog = true
+            }
             break
 
           case "F": // Free Bitcoin
             if(this.game.playerTurn === this.game.player.index) {
-              this.showFreeBitcoinClaimDialog()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "free_bitcoin",
+                }
+              } else  {
+                this.showFreeBitcoinClaimDialog()
+              }
             } else {
-              this.showNotYourTurnPopUp()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "not_your_turn",
+                }
+              } else  {
+                this.showNotYourTurnPopUp()
+              }
             }
             break
 
           case "T": // Start
             if(this.game.playerTurn === this.game.player.index) {
-              this.showStartClaimDialog()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "start",
+                }
+              } else  {
+                this.showStartClaimDialog()
+              }
             } else {
-              this.showNotYourTurnPopUp()
+              if(preview) {
+                this.game.QRPreview = {
+                  type: "not_your_turn",
+                }
+              } else  {
+                this.showNotYourTurnPopUp()
+              }
             }
             break
 
@@ -1733,6 +1890,9 @@ new Vue({
             console.log("Invalid data type")
             break
         }
+      }
+      if(preview) {
+        this.generateQRPreview()
       }
     },
     closeQRDialog: function () {
