@@ -19,29 +19,6 @@
 {% endblock %} {% block page %}
 <link rel="stylesheet" href="/monopoly/static/css/monopoly.css"/>
 
-<header>
-  <div v-if="!game.started && showGameWarningMessage"  class="bg-yellow-4" style="padding: 0.5em;">
-    <div class="row">
-      <b class="col-11" style="font-size: 1em; color: orange; text-align: center">
-        Bookmark your wallet!
-      </b>
-      <div class="col-1" style="color: orange">
-        <q-btn
-          flat
-          round
-          :style="reactiveStyles.closGameWarningButton"
-          icon="close"
-          size="0.5em"
-          @click="closeGameWarning"
-        ></q-btn>
-      </div>
-    </div>
-    <div style="font-size: 1em; color: orange">
-      Make sure to bookmark this page in order to be able to restore your wallets and games!
-    </div>
-  </div>
-</header>
-
 <div v-if="loading" style="margin-left: -10em; margin-top: 10em; margin-bottom: 2em; display: flex; justify-content: center;">
   <q-spinner
     color="orange"
@@ -55,12 +32,12 @@
   <q-page-sticky position="top" style="z-index: 999;" v-if="game.started">
     <q-header class="bg-dark" :style="reactiveStyles.header(game.showWarningMessage)">
       <div>
-        <div v-if="game.showWarningMessage"  class="bg-yellow-4" style="padding: 0.5em;">
+        <div v-if="game.showWarningMessage"  class="bg-yellow text-black" style="padding: 0.5em;">
           <div class="row">
-            <b class="col-11" style="font-size: 1em; color: orange; text-align: center">
+            <b class="col-11" style="font-size: 1em; text-align: center">
               Bookmark your wallet!
             </b>
-            <div class="col-1" style="color: orange">
+            <div class="col-1" style="color: black">
               <q-btn
                 flat
                 round
@@ -71,7 +48,7 @@
               ></q-btn>
             </div>
           </div>
-          <div style="font-size: 1em; color: orange">
+          <div style="font-size: 1em; text-align: center">
             Make sure to bookmark this page in order to be able to restore your wallets and games!
           </div>
         </div>
@@ -438,6 +415,21 @@
               ></q-btn>
             </div>
           </div>
+
+          <div :key="refreshQRPreviewKey" class="row" style="margin-top: 4em;">
+            <div v-if="game.QRPreview && game.QRPreview.imagePath" class="offset-7 col-3" @click="decodeQR">
+              <img
+                style="margin-top: 2em; margin-left: 1em; maxWidth: 100%;"
+                :src="game.QRPreview.imagePath"
+                alt="QR preview image"
+              >
+            </div>
+            <div v-else-if="game.QRPreview && game.QRPreview.text" class="offset-7 col-4" @click="decodeQR">
+              <div
+                style="margin-top: 8em; margin-left: 2em; maxWidth: 100%; text-align: center;"
+              >{% raw %}{{game.QRPreview.text}}{% endraw %}</div>
+            </div>
+          </div>
         </qrcode-stream>
       </div>
       <div class="row q-mt-lg">
@@ -448,14 +440,14 @@
             @click="closeCamera"
           >Close</q-btn></div>
         <div class="offset-6 col-4">
-          <q-btn v-if="camera.firstQRDetected && !camera.scanEnabled" :style="reactiveStyles.scanButton" outline color="orange" @click="enableScan">
+          <q-btn v-if="camera.QRDetected" :style="reactiveStyles.scanButton" outline color="orange" @click="decodeQR">
             <span>
-              Read QR <i class="material-icons" style="margin-left: 0.25em;">flip</i>
+              Open <i class="material-icons" style="margin-left: 0.25em;">open_in_new</i>
             </span>
           </q-btn>
-          <q-btn  v-else :style="reactiveStyles.scanButton" outline disabled @click="enableScan">
+          <q-btn  v-else :style="reactiveStyles.scanButton" outline disabled>
                 <span>
-                  Read QR <i color="grey" class="material-icons" style="margin-left: 0.25em;">flip</i>
+                  Open <i color="grey" class="material-icons" style="margin-left: 0.25em;">open_in_new</i>
                 </span>
           </q-btn>
         </div>
