@@ -6,6 +6,9 @@ export function reactiveStyles(game) {
       welcomeText: {
         marginTop: `0.5em`
       },
+      newGameButton: {
+        marginLeft: `30em`
+      },
       initialFundingButton: {
         marginLeft: `2em`
       },
@@ -269,6 +272,10 @@ export function reactiveStyles(game) {
     return {
       welcomeText: {
         marginTop: `1.5em`
+      },
+      newGameButton: {
+        marginTop: `1em`,
+        marginLeft: `1.5em`
       },
       initialFundingButton: {
         marginLeft: `-1em`
