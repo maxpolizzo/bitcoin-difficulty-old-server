@@ -16,8 +16,8 @@
           <span class="col-6" :style="reactiveStyles.welcomeText">
              Welcome to Bitcoin Monopoly!
           </span>
-          <span class="offset-4 col-2" style="margin-top: 1em;  font-size:0.75em">
-            <q-btn row color="orange" icon="account_balance" style="margin-left: 1.5em" @click="createGame()">
+          <span class="col-6" style="margin-top: 1em; font-size:0.75em">
+            <q-btn row color="orange" icon="account_balance" :style="reactiveStyles.newGameButton" @click="createGame()">
               <span style="margin-left:0.25em;">New game</span>
             </q-btn>
           </span>
