@@ -7,6 +7,25 @@ import {
   playMarketPaymentReceivedSound
 } from '../helpers/audio.js'
 
+export async function createWebsocketAuthorizationToken(game) {
+  let playerIndex = game.created ? '0' : game.player.index
+  let res = await LNbits.api
+    .request(
+      'POST',
+      '/monopoly/api/v1/ws-auth-token',
+      inkey(game),
+      {
+        game_id: game.id,
+        player_index: playerIndex
+      }
+    );
+  if(res.data) {
+    return res.data
+  } else {
+    LNbits.utils.notifyApiError(res.error)
+  }
+}
+
 export async function fetchPaymentsToPlayer(game, reloadFromDatabase = false) {
   const res = await LNbits.api.getPayments(game.player.wallet);
   if(res.data) {

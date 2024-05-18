@@ -7,6 +7,12 @@ from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 
 from . import monopoly_ext, monopoly_renderer, websocketManager
+from .models import PlayerWalletInfo
+from .decorators import require_player_invoice_key
+from .crud import (
+    validate_ws_authorization_token,
+    delete_ws_authorization_token
+)
 
 from loguru import logger
 
@@ -50,7 +56,16 @@ async def invite(
     )
 
 @monopoly_ext.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
+async def websocket_endpoint(
+    websocket: WebSocket,
+    client_id: str,
+    auth_token: str = Query(...),
+):
+    # Verify and burn authorization token
+    authorized = await validate_ws_authorization_token(auth_token)
+    assert authorized, "Error: invalid ws authorization token"
+    await delete_ws_authorization_token(auth_token)
+    # Establish websocket connection with client
     await websocketManager.connect(client_id, websocket)
     try:
         while True:
@@ -59,4 +74,3 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
     except WebSocketDisconnect:
         websocketManager.disconnect(client_id)
-        logger.info(f"Client {client_id} disconnected")

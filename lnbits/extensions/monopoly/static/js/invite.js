@@ -1,8 +1,5 @@
 import { inviteGame } from './data/data.js'
-import {
-  storeGameRecord,
-  storeGameData
-} from './helpers/storage.js'
+import { storeGameRecord } from './helpers/storage.js'
 import {
   checkMaxNumberOfPlayersReached,
   claimInviteVoucher,

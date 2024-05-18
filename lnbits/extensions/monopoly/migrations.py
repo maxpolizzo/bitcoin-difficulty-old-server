@@ -54,6 +54,7 @@ async def m001_initial(db):
             game_id TEXT NOT NULL,
             player_index TEXT NOT NULL,
             player_name TEXT,
+            active BOOLEAN DEFAULT true,
             pow_provided BOOLEAN DEFAULT false,
             technology_card_picked BOOLEAN DEFAULT false,
             black_swan_card_picked BOOLEAN DEFAULT false
@@ -88,6 +89,17 @@ async def m001_initial(db):
             ids TEXT NOT NULL,
             card_index INTEGER NOT NULL,
             max_index INTEGER NOT NULL
+        );
+    """
+    )
+
+    """
+    Websocket authorization tokens table.
+    """
+    await db.execute(
+        f"""
+        CREATE TABLE monopoly.ws_auth_tokens (
+            auth_token TEXT PRIMARY KEY
         );
     """
     )

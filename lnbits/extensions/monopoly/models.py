@@ -93,6 +93,7 @@ class Player(BaseModel):
     game_id: str = Query(...)
     player_index: str = Query(...)
     player_name: str = Query(...)
+    active: bool
 
 class NewPlayerData(BaseModel):
     player_index: str = Query(...)

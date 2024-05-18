@@ -29,7 +29,7 @@
 
 <div v-else id="monopoly" class="row q-col-gutter-md">
   <!-- Game view -->
-  <q-page-sticky position="top" style="z-index: 999;" v-if="game.started">
+  <q-page-sticky position="top" style="z-index: 999;" v-if="game.started || !game.player.active">
     <q-header class="bg-dark" :style="reactiveStyles.header(game.showWarningMessage)">
       <div>
         <div v-if="game.showWarningMessage"  class="bg-yellow text-black" style="padding: 0.5em;">
@@ -49,7 +49,15 @@
             </div>
           </div>
           <div style="font-size: 1em; text-align: center">
-            Make sure to bookmark this page in order to be able to restore your wallets and games!
+            Make sure to bookmark this page in order to be able to restore your player wallet!
+          </div>
+        </div>
+
+        <div v-if="!game.player.active"  class="bg-red text-white" style="padding: 0.5em;">
+          <div class="row">
+            <b class="col-11" style="font-size: 1em; text-align: center">
+              You've been kicked out of this game :/
+            </b>
           </div>
         </div>
 
@@ -59,17 +67,19 @@
               {% raw %} {{game.player.name}} {% endraw %}
             </span>
           </div>
-          <div class="row col-12 col-md-5" :style="reactiveStyles.gameButtonsGroup">
+          <div v-if="game.started" class="row col-12 col-md-5" :style="reactiveStyles.gameButtonsGroup">
               <span class="col-5 col-md-6" :style="reactiveStyles.nextPlayerTurnButton">
-                <q-btn v-if="game.playerTurn === game.player.index && !game.incrementingPlayerTurn" row color="orange" icon="next_plan" size="1.5em" @click="nextPlayerTurn"></q-btn>
+                <q-btn v-if="game.playerTurn === game.player.index && !game.incrementingPlayerTurn && game.player.active" row color="orange" icon="next_plan" size="1.5em" @click="nextPlayerTurn"></q-btn>
                 <q-btn v-else disabled row icon="next_plan" size="1.5em"></q-btn>
               </span>
             <span class="col-3 col-md-2" :style="reactiveStyles.receiveButton">
-                <q-btn row color="orange" icon="file_download" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
-              </span>
+                <q-btn v-if="game.player.active" row color="orange" icon="file_download" size="1.5em" @click="showPlayerInvoiceDialog"></q-btn>
+                <q-btn v-else disabled row icon="file_download" size="1.5em"></q-btn>
+            </span>
             <span class="col-2 col-md-1" :style="reactiveStyles.sendButton">
-                <q-btn row color="orange" icon="photo_camera" size="1.5em" @click="showCamera"></q-btn>
-              </span>
+                <q-btn v-if="game.player.active" row color="orange" icon="photo_camera" size="1.5em" @click="showCamera"></q-btn>
+                <q-btn v-else disabled row icon="photo_camera" size="1.5em"></q-btn>
+            </span>
           </div>
         </div>
       </div>
@@ -109,7 +119,7 @@
         </div>
 
         <!-- Invite players view -->
-        <div style="padding: 1em; font-size: 1.2em;" v-if="game.fundingStatus == 'success' && !game.started">
+        <div style="padding: 1em; font-size: 1.2em;" v-if="game.fundingStatus == 'success' && !game.started && game.player.active">
           <!-- For game creator -->
           <div class="row" v-if="game.created">
             <div class="col-7 col-md-8" style="margin-top: 0.5em;">
@@ -158,7 +168,7 @@
       </q-card>
     </div>
 
-    <div class="col-12 col-md-7" :style="reactiveStyles.propertiesContainer"  v-if="game.started">
+    <div class="col-12 col-md-7" :style="reactiveStyles.propertiesContainer"  v-if="game.started && game.player.active">
       <q-card class="row col-12 col-md-12">
 
         <div class="row" v-if="game.showExplanationText" style="padding: 0.5em;">
@@ -307,7 +317,7 @@
 
     <!-- Right panel to display general game data -->
 
-    <div class="col-12 col-md-5" v-if="game.created || game.imported" :style="reactiveStyles.playersTableContainer">
+    <div class="col-12 col-md-5" v-if="(game.created || game.imported) && game.player.active" :style="reactiveStyles.playersTableContainer">
       <q-card>
         <q-card-section>
           <div v-if="loading" style="margin-top: 2em; margin-bottom: 2em; display: flex; justify-content: center;">
@@ -336,8 +346,11 @@
               >
                 <template v-slot:body="props">
                   <q-tr :props="props" :class="props.row.index === game.playerTurn ? 'bg-orange-4 text-bold' : ''">
-                    <q-td key="name" :props="props" >
-                      {% raw %}{{props.row.name}}{% endraw %}
+                    <q-td key="name" :props="props">
+                      <div class="row">
+                        <div class="col-11 col-md-8" style="font-size: 1.1em;">{% raw %}{{props.row.name}}{% endraw %}</div>
+                        <q-btn v-if="game.created && props.row.index > 1" flat class="col-1 col-md-4" icon="delete_forever" size="0.65em" style="margin-top: -0.25em; z-index: 999;" @click="showDeactivatePlayerDialog(props.row.index)"></q-btn>
+                      </div>
                     </q-td>
                     <q-td key="balance" :props="props" style="text-align: center">
                       {% raw %}{{props.row.balance}}{% endraw %}
@@ -1630,6 +1643,51 @@
       <div class="row q-mt-lg">
         <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closeNetworkFeePaymentDialog()">Close</q-btn>
       </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="game.showDeactivatePlayerDialog" @hide="game.showDeactivatePlayerDialog = false">
+
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card q-card--dark" style="padding: 1em;">
+
+      <q-card class="q-card--dark row" style="padding: 1em;">
+
+        <div class="col-12 col-md-12">
+          <div
+            :style="reactiveStyles.payInvoiceLabel"
+          >
+            Do you really want to kick {% raw %}{{game.playerToDeactivateName}}{% endraw %} out of the game?
+          </div>
+          <div
+            class="row"
+            :style="reactiveStyles.propertyButtons.cardButtonsGroup"
+          >
+            <div class="col-5 col-md-3">
+              <q-btn v-if="!game.showDeactivatePlayerSpinner" @click="deactivatePlayer()" flat color="orange" class="q-ml-auto">
+                Confirm
+              </q-btn>
+              <q-btn v-else  disabled flat class="q-ml-auto">
+                Confirm
+              </q-btn>
+            </div>
+            <!-- Spinner -->
+            <div class="col-1">
+              <q-spinner
+                v-if="game.showDeactivatePlayerSpinner"
+                style="margin-top: 0.65em;"
+                color="orange"
+                size="1em"
+              />
+            </div>
+
+            <div class="offset-3 offset-md-5 col-2" >
+              <q-btn v-close-popup flat color="grey" class="q-ml-auto" @click="closeDeactivatePlayerDialog()">Close</q-btn>
+            </div>
+          </div>
+        </div>
+      </q-card>
+
+
     </q-card>
   </q-dialog>
 </div>

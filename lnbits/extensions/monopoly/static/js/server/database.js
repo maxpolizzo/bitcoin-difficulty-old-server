@@ -327,6 +327,17 @@ export async function getGamePlayerFromGameRecord(gameRecord) {
   return gamePlayer
 }
 
+export async function getGamePlayer(gameRecord){
+  let res = await LNbits.api
+    .request(
+      'GET',
+      '/monopoly/api/v1/player?game_id=' + gameRecord.gameId + '&player_index=' + gameRecord.playerIndex
+    )
+  if(res.data) {
+    return res.data
+  }
+}
+
 export async function getGameRecordsFromDatabase(gamePlayers){
   let gameRecords = []
   // Fetch saved games from database
@@ -442,7 +453,7 @@ export async function loadGameDataFromDatabase() {
         .request(
           'GET',
           '/monopoly/api/v1/player?game_id=' + game.id + '&player_index=' + game.player.index,
-          inkey(game)
+          // inkey(game)
         )
       if(res.data) {
         game.player.name = res.data.player_name
