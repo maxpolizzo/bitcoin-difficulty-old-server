@@ -22,7 +22,8 @@ export const newGame = {
     clientId: null,
     index: null, // db.players[player_user_id].player_index
     name: null, // db.players[player_user_id].player_wallet_name
-    wallet: null // db.players[player_user_id] or fetch player.wallets from LNBits API?
+    wallet: null, // db.players[player_user_id] or fetch player.wallets from LNBits API?
+    active: true
   },
   started: false, // db.games[game_id].started
   created: false, // db.games[game_id].admin_user_id == player_user_id
@@ -92,6 +93,7 @@ export const newGame = {
   showFundingDialog: false,
   showInviteQR: false,
   enableStartGame: false,
+  waitingForPlayersIndexes: [],
   showExplanationText: false,
   showPayInvoiceDialog: false,
   showPlayerInvoiceDialog: false,
@@ -111,6 +113,10 @@ export const newGame = {
   showAlreadyClaimedStartBonusPopUp: false,
   showNetworkFeeInvoiceDialog: false,
   showNetworkFeeInvoice: false,
+  showDeactivatePlayerDialog: false,
+  playerToDeactivateIndex: null,
+  playerToDeactivateName: null,
+  showDeactivatePlayerSpinner: false,
   propertyToShow: {},
   lightningCardToShow: null,
   protocolCardToShow: null,

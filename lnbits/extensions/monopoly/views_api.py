@@ -33,8 +33,9 @@ from .crud import (
     get_wallets_info,
     create_first_player,
     get_player,
-    get_players,
-    get_players_count,
+    is_active_player,
+    get_active_players,
+    get_active_players_count,
     get_max_players_count,
     create_invite_voucher,
     get_game_started,
@@ -43,11 +44,12 @@ from .crud import (
     get_properties,
     get_game_invite,
     invite_player,
+    deactivate_player,
     join_game,
     initialize_cards,
     pick_card,
     start_game,
-    next_player_turn,
+    increment_player_turn,
     register_property,
     transfer_property_ownership,
     get_player_pay_link,
@@ -58,7 +60,8 @@ from .crud import (
     update_cumulated_fines,
     get_cumulated_fines,
     claim_cumulated_fines,
-    claim_card_reward
+    claim_card_reward,
+    create_ws_authorization_token
 )
 from .models import (
     Game,
@@ -86,6 +89,13 @@ from .models import (
 )
 
 # Setters
+@monopoly_ext.post("/api/v1/ws-auth-token", status_code=HTTPStatus.OK)
+async def api_ws_auth_token(
+    data: GameId,
+    player_wallet_info: PlayerWalletInfo = Depends(require_player_index_invoice_key)
+):
+    return await create_ws_authorization_token()
+
 @monopoly_ext.post("/api/v1/game", status_code=HTTPStatus.CREATED)
 async def api_monopoly_create_game(
     data: CreateGame,
@@ -145,7 +155,7 @@ async def api_monopoly_create_invite_voucher(
 ):
     await create_invite_voucher(data)
 
-# Here we do not require any authentication since invited players do not yet have an LNBits account
+# Here we do not require any authentication since invited player does not yet have an LNBits account
 @monopoly_ext.get("/api/v1/invite", status_code=HTTPStatus.OK)
 async def api_monopoly_player_invite(
     game_id: str,
@@ -153,7 +163,7 @@ async def api_monopoly_player_invite(
     request: Request
 ):
     # Make sure all expected players have not joined yet
-    current_players_count = await get_players_count(game_id)
+    current_players_count = await get_active_players_count(game_id)
     max_players_count = await get_max_players_count(game_id)
     assert current_players_count[0] < max_players_count[0], "Maximum number of players has been reached for this game"
     # Create player account and wallet
@@ -173,7 +183,7 @@ async def api_monopoly_join_game(
     playerWalletInfo: PlayerWalletInfo = Depends(require_invoice_key)
 ):
     # Make sure all expected players have not joined yet
-    players_count = await get_players_count(data.game_id)
+    players_count = await get_active_players_count(data.game_id)
     max_players_count = await get_max_players_count(data.game_id)
     assert players_count[0] < max_players_count[0], "Maximum number of players has been reached for this game"
     player = await join_game(
@@ -187,6 +197,13 @@ async def api_monopoly_join_game(
         )
     )
     return player
+
+@monopoly_ext.post("/api/v1/players/deactivate-player", status_code=HTTPStatus.CREATED)
+async def api_monopoly_deactivate_player(
+    data: PlayerIndex,
+    game_admin_user_id: GameAdminUserId = Depends(require_game_creator_admin_key)
+):
+    await deactivate_player(data)
 
 @monopoly_ext.post("/api/v1/cards/initialize-cards", status_code=HTTPStatus.CREATED)
 async def api_monopoly_initialize_cards(
@@ -223,7 +240,7 @@ async def api_monopoly_next_player_turn(
     data: PlayerIndex,
     playerWalletInfo: PlayerWalletInfo = Depends(require_player_index_invoice_key)
 ):
-    player_turn = await next_player_turn(data)
+    player_turn = await increment_player_turn(data)
     return player_turn
 
 @monopoly_ext.post("/api/v1/property", status_code=HTTPStatus.CREATED)
@@ -291,10 +308,10 @@ async def api_monopoly_game(
 ):
     return await get_game(game_id)
 
+# Here we do not require any authentication token in order to allow deactivated player to call
 @monopoly_ext.get("/api/v1/game-time", status_code=HTTPStatus.OK)
 async def api_monopoly_game(
-    game_id: str,
-    player_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
+    game_id: str
 ):
     return await get_game_time(game_id)
 
@@ -334,11 +351,11 @@ async def api_monopoly_game_started(
 ):
     return [game_started for game_started in await get_game_started(game_id)]
 
+# Here we do not require any authentication token in order to allow deactivated player to call
 @monopoly_ext.get("/api/v1/player", status_code=HTTPStatus.OK)
 async def api_monopoly_players(
     game_id: str,
     player_index: str,
-    player_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
 ):
     return await get_player(game_id, player_index)
 
@@ -347,7 +364,7 @@ async def api_monopoly_players(
     game_id: str,
     player_wallet_info: PlayerWalletInfo = Depends(require_player_invoice_key)
 ):
-    return [player for player in await get_players(game_id)]
+    return [player for player in await get_active_players(game_id)]
 
 @monopoly_ext.get("/api/v1/player_turn", status_code=HTTPStatus.OK)
 async def api_monopoly_player_turn(
@@ -364,7 +381,7 @@ async def api_monopoly_properties(
 ):
     return [property for property in await get_properties(game_id)]
 
-# Here we can only require a valid invoice key because Player has not been not created yet (called on invite)
+# Here we can only require a valid invoice key because Player has not been created yet (called on invite)
 @monopoly_ext.get("/api/v1/game_invite", status_code=HTTPStatus.OK)
 async def api_monopoly_game_invite(
     game_id: str,
@@ -379,7 +396,7 @@ async def api_monopoly_players_count(
     game_id: str,
     player_wallet_info: PlayerWalletInfo = Depends(require_invoice_key)
 ):
-    return await get_players_count(game_id)
+    return await get_active_players_count(game_id)
 
 @monopoly_ext.get("/api/v1/property", status_code=HTTPStatus.OK)
 async def api_monopoly_properties(

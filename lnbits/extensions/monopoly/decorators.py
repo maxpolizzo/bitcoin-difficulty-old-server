@@ -13,6 +13,7 @@ from lnbits.decorators import (
 from .crud import (
     get_game,
     get_game_admin_user_id,
+    is_active_player,
     get_player_wallet_info,
     get_player_wallet,
     get_player_wallet_by_player_index
@@ -43,6 +44,13 @@ async def require_player_invoice_key(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Error: wallet not registered for game."
         )
     else:
+        # If player wallet is not free market wallet, check if player is active
+        if player_wallet_info.player_index != "0":
+            is_active = await is_active_player(player_wallet_info.game_id, player_wallet_info.player_index)
+            if is_active != True :
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Error: not an active player"
+                )
         return player_wallet_info
 
 # Requires the admin key of the wallet id passed in the request
@@ -72,7 +80,6 @@ async def require_player_admin_key(
         # Get player wallet
         player_wallet = await get_player_wallet(walletInfo.wallet.id)
         return player_wallet
-
 
 # Requires the invoice key corresponding to the player wallet id passed in the request
 # Used for POST/PUT requests of wallet data
@@ -106,6 +113,13 @@ async def require_player_wallet_invoice_key(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Error: wallet not registered for game."
             )
         else:
+            # If player_wallet is not free market wallet, check if player is active
+            if player_wallet_info.player_index != "0":
+                is_active = await is_active_player(player_wallet_info.game_id, player_wallet_info.player_index)
+                if is_active != True :
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED, detail="Error: not an active player"
+                    )
             return player_wallet_info
 
 # Requires the invoice key corresponding to the wallet of the player index passed in the request
@@ -135,6 +149,13 @@ async def require_player_index_invoice_key(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Error: game_id, player_index and inkey do not match."
         )
     else:
+        # If player_wallet is not free market wallet, check if player is active
+        if player_wallet.player_index != "0":
+            is_active = await is_active_player(player_wallet.game_id, player_wallet.player_index)
+            if is_active != True :
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Error: not an active player"
+                )
         return PlayerWalletInfo(
             game_id=player_wallet.game_id,
             is_free_market=player_wallet.is_free_market,

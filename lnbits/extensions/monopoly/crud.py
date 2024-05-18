@@ -53,7 +53,29 @@ from .models import (
     RewardClaim
 )
 
+from loguru import logger
+
+
 # Setters
+async def create_ws_authorization_token() -> str:
+    auth_token = uuid4().hex
+    await db.execute(
+        """
+        INSERT INTO monopoly.ws_auth_tokens (auth_token)
+        VALUES (?)
+        """,
+        (auth_token),
+    )
+    return auth_token
+
+async def delete_ws_authorization_token(auth_token: str):
+    await db.execute(
+        """
+        DELETE FROM monopoly.ws_auth_tokens WHERE auth_token = ?
+        """,
+        (auth_token),
+    )
+
 async def create_game(data: CreateGame, admin_user_id: str) -> Game:
     game_id = uuid4().hex
     await db.execute(
@@ -161,11 +183,12 @@ async def create_player(data: CreatePlayer) -> Player:
         INSERT INTO monopoly.players (
             game_id,
             player_index,
-            player_name
+            player_name,
+            active
          )
-        VALUES (?, ?, ?)
+        VALUES (?, ?, ?, ?)
         """,
-        (data.game_id, data.player_index, data.player_name),
+        (data.game_id, data.player_index, data.player_name, True),
     )
 
     player = await get_player(data.game_id, data.player_index)
@@ -232,6 +255,7 @@ async def invite_player(game_id: str) -> InvitedPlayer:
     # Create LNBits wallet for invited player
     wallet = await create_wallet(user_id=user.id, wallet_name=player_name)
     assert wallet, "Newly created wallet couldn't be retrieved"
+    # Generate websocket client id for invited player
     ws_client_id = uuid4().hex
 
     invited_user = InvitedPlayer(
@@ -271,7 +295,8 @@ async def join_game(data: JoinGame) -> Player:
     return Player(
         game_id=data.game_id,
         player_index=data.player_index,
-        player_name=data.player_name
+        player_name=data.player_name,
+        active=True,
     )
 
 async def initialize_cards(data: InitializeCards):
@@ -389,38 +414,43 @@ async def pick_card(data: PickCard) -> str:
         return "already_picked"
 
 async def start_game(data: GameId) -> int:
-    players_count = await get_players_count(data.game_id)
+    active_players_indexes = await get_active_players_indexes(data.game_id)
     # Pick a random index for first player turn
-    first_player_turn = str(random.sample(range(1, players_count[0] + 1), 1)[0])
+    first_player_turn = random.sample(active_players_indexes, 1)[0]
 
     await db.execute(
          """
          UPDATE monopoly.games SET started = ?, player_turn = ? WHERE game_id = ?
          """,
-         (True, first_player_turn, data.game_id),
+         (True, first_player_turn.player_index, data.game_id),
     )
 
     # Notify other game players
     msg = json.dumps({
         "type": "game_started",
-        "first_player_turn": first_player_turn
+        "first_player_turn": first_player_turn.player_index
     })
     await websocketManager.notify_other_game_players(data.game_id, "0", msg)
 
-    return first_player_turn
+    return first_player_turn.player_index
 
 
-async def next_player_turn(data: PlayerIndex) -> str:
-    players_count = await get_players_count(data.game_id)
+async def increment_player_turn(data: PlayerIndex) -> str:
+    active_players_indexes = await get_active_players_indexes(data.game_id)
     player_turn = await get_player_turn(data.game_id)
 
     assert player_turn[0] == data.player_index, "Player cannot increment player_turn"
 
-    next_player_turn_int = int(player_turn[0]) + 1
-    if(next_player_turn_int > players_count[0]):
-        next_player_turn_int = 1
-
-    next_player_turn = str(next_player_turn_int)
+    next_player_turn: str
+    i = 0
+    for active_player_index in active_players_indexes:
+        if(active_player_index.player_index == player_turn[0]):
+            if(i + 1 < len(active_players_indexes)):
+                next_player_turn = active_players_indexes[i + 1].player_index
+            else:
+                next_player_turn = active_players_indexes[0].player_index
+            break
+        i += 1
 
     # Update game player_turn
     await db.execute(
@@ -460,6 +490,31 @@ async def next_player_turn(data: PlayerIndex) -> str:
     await websocketManager.notify_other_game_players(data.game_id, data.player_index, msg)
 
     return next_player_turn
+
+async def deactivate_player(data: PlayerIndex):
+    # Pass turn to next active player if needed
+    player_turn = await get_player_turn(data.game_id)
+    if player_turn[0] == data.player_index:
+        await increment_player_turn(data)
+
+    # Deactivate player
+    await db.execute(
+            """
+            UPDATE monopoly.players SET active = ? WHERE game_id = ? AND player_index = ?
+           """,
+           (False, data.game_id, data.player_index),
+    )
+
+    # Notify all game players
+    msg = json.dumps({
+        "type": "player_deactivated",
+        "player_index": data.player_index
+    })
+    await websocketManager.notify_all_game_players(data.game_id, msg)
+
+    # Disconnect deactivated player from websocket
+    client_id = await db.fetchone("SELECT client_id FROM monopoly.wallets WHERE game_id = ? AND player_index = ?", (data.game_id, data.player_index))
+    websocketManager.disconnect(client_id[0])
 
 async def register_property(data: Property):
     await db.execute(
@@ -618,6 +673,13 @@ async def claim_card_reward(data: RewardClaim):
     await pay_invoice(wallet_id=free_market_wallet.id, payment_request=payment_request)
 
 # Getters
+async def validate_ws_authorization_token(auth_token: str) -> bool:
+    row = await db.fetchone("SELECT * FROM monopoly.ws_auth_tokens WHERE auth_token = ?", (auth_token))
+    if row:
+        if row[0] == auth_token:
+            return True
+    return False
+
 async def get_game(game_id: str) -> Game:
     row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
     return Game(**row) if row else None
@@ -662,8 +724,12 @@ async def get_player(game_id: str, player_index: str) -> Player:
     row = await db.fetchone("SELECT * FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
     return Player(**row) if row else None
 
-async def get_players(game_id: str) -> [Player]:
-    rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ?", (game_id))
+async def is_active_player(game_id: str, player_index: str) -> bool:
+    is_active_player = await db.fetchone("SELECT active FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
+    return is_active_player[0] if is_active_player else False
+
+async def get_active_players(game_id: str) -> [Player]:
+    rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ? AND active = ?", (game_id, True))
     return[Player(**row) for row in rows]
 
 async def get_player_turn(game_id: str) -> str:
@@ -682,9 +748,13 @@ async def get_max_players_count(game_id: str) -> int:
     max_players_count = await db.fetchone("SELECT max_players_count FROM monopoly.games WHERE game_id = ?", (game_id))
     return max_players_count
 
-async def get_players_count(game_id: str) -> int:
-    players_count = await db.fetchone("SELECT COUNT(*) FROM monopoly.players WHERE game_id = ?", (game_id))
-    return players_count
+async def get_active_players_count(game_id: str) -> int:
+    active_players_count = await db.fetchone("SELECT COUNT(*) FROM monopoly.players WHERE game_id = ? AND active = ?", (game_id, True))
+    return active_players_count
+
+async def get_active_players_indexes(game_id: str) -> int:
+    rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ? AND active = ?", (game_id, True))
+    return [PlayerIndex(**row) for row in rows]
 
 async def get_card(game_id: str, card_type) -> Card:
     row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, card_type))

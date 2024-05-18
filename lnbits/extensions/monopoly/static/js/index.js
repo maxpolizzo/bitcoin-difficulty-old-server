@@ -121,10 +121,10 @@ new Vue({
     }
   },
   methods: {
-    connectWebsocket: function() {
+    connectWebsocket: async function() {
       // Establish websocket connection to get updates from server
       if(!this.websocket.ws && this.game.player.clientId) {
-        this.websocket = connectWebsocket(this.game.player.clientId)
+        this.websocket = await connectWebsocket(this.game)
         // Handle websocket events
         this.websocket.ws.onmessage = (event) => {
           this.game = onMessage(event, this.game, this.$children[0].$children[3].$children[0].user.wallets)
@@ -138,16 +138,18 @@ new Vue({
       await this.getSavedGames()
       // Load saved game based on URL user id and wallet id
       this.game = await loadGameFromURL(this.gameRecords.rows)
-      // Open camera if specified
-      let camera = cameraData;
-      camera.deviceId = this.game.cameraDeviceId;
-      camera.trackFunction = paintOutline;
-      if(window.open_camera === "true") {
-        camera.show = true
+      if(this.game.player.active) {
+        // Open camera if specified
+        let camera = cameraData;
+        camera.deviceId = this.game.cameraDeviceId;
+        camera.trackFunction = paintOutline;
+        if(window.open_camera === "true") {
+          camera.show = true
+        }
+        this.camera = camera;
+        // Establish websocket connection to game server
+        await this.connectWebsocket()
       }
-      this.camera = camera;
-      // Establish websocket connection to game server
-      this.connectWebsocket()
       this.loading = false;
     },
     getSavedGames: async function () {
@@ -594,6 +596,40 @@ new Vue({
         storeGameData(this.game, 'player', this.game.player)
       }
     },
+    showDeactivatePlayerDialog: function(player_index) {
+      this.game.showDeactivatePlayerDialog = true;
+      this.game.playerToDeactivateIndex = player_index
+      this.game.playerToDeactivateName = this.game.players[this.game.playerToDeactivateIndex].name
+    },
+    closeDeactivatePlayerDialog: function(player_index) {
+      this.game.showDeactivatePlayerSpinner = false
+      this.game.showDeactivatePlayerDialog = false
+      this.game.playerToDeactivateIndex = null
+      this.game.playerToDeactivateName = null
+    },
+    deactivatePlayer: async function() {
+      this.game.showDeactivatePlayerSpinner = true
+      // Kick player out of the game
+      const res = await LNbits.api
+        .request(
+          'POST',
+          '/monopoly/api/v1/players/deactivate-player',
+          freeMarketWallet(this.game).adminkey,
+          {
+            game_id: this.game.id,
+            player_index: this.game.playerToDeactivateIndex,
+          },
+        )
+      if(res.status === 201) {
+        console.log("Monopoly: player " + this.game.playerToDeactivateName + " deactivated successfully")
+      } else {
+        LNbits.utils.notifyApiError(res.error)
+      }
+      this.game.showDeactivatePlayerSpinner = false
+      this.game.showDeactivatePlayerDialog = false
+      this.game.playerToDeactivateIndex = null
+      this.game.playerToDeactivateName = null
+    },
     initializeCards: async function () {
       // Initialize Lightning and Protocol cards indexes
       const res = await LNbits.api
@@ -609,6 +645,8 @@ new Vue({
         )
       if(res.status === 201) {
         console.log("Monopoly: cards initialized successfully")
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     // Logic to format an invite link to invite other players to the game
@@ -1101,6 +1139,8 @@ new Vue({
         // Play audio
         playPurchasedPropertySound()
         console.log(this.game.properties)
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     transferPropertyOwnership: async function(property) {
@@ -1127,6 +1167,8 @@ new Vue({
         storeGameData(this.game, 'propertiesCount', this.game.propertiesCount)
         // Play audio
         playPurchasedPropertySound()
+      } else {
+        LNbits.utils.notifyApiError(res.error)
       }
     },
     upgradeProperty: async function() {

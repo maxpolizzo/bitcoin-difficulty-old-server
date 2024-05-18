@@ -1,3 +1,4 @@
+import { createWebsocketAuthorizationToken } from './api.js'
 import { storeGameData } from '../helpers/storage.js'
 import {
   freeMarketWallet,
@@ -12,19 +13,23 @@ import {
 } from '../helpers/audio.js'
 import {repositionProperties, timeout, updateGameProperties, updatePropertiesCarouselSlide} from '../helpers/utils.js'
 
-export function connectWebsocket(clientId) {
+export async function connectWebsocket(game) {
+  // Fetch authorization token from server (we do this first because it is not possible to pass authentication headers
+  // when connecting websocket)
+  let authToken =  await createWebsocketAuthorizationToken(game)
+  // Establish websocket connection with server
   let websocket = {
     url: "wss://dev.bitcoin-difficulty.io/monopoly/ws/",
     ws: null,
   }
-  websocket.ws = new WebSocket(websocket.url + clientId);
+  websocket.ws = new WebSocket(websocket.url + game.player.clientId + "?auth_token=" + authToken);
   websocket.ws.onerror = (err) => {
     console.error(err)
   };
-  websocket.ws.onclose = () => {
+  websocket.ws.onclose = async () => {
     websocket.ws = null
     console.log("Websocket connection closed")
-    connectWebsocket(clientId)
+    await connectWebsocket(game)
   };
   websocket.ws.onopen = () => {
     console.log("Websocket connection opened")
@@ -73,6 +78,50 @@ export function onMessage(event, game, wallets){
       if(game.freeMarketWallet && game.freeMarketWallet.index && !game.started) {
         // Disable start game button until invited player has claimed invite voucher
         game.enableStartGame = false
+        game.waitingForPlayersIndexes.push(player_index)
+        // Store game.enableStartGame and game.waitingForPlayersIndexes
+        storeGameData(game, 'enableStartGame', game.playersData)
+        storeGameData(game, 'waitingForPlayersIndexes', game.waitingForPlayersIndexes)
+      }
+      break;
+    case("player_deactivated"):
+      game.playersCount -= 1;
+      player_index = data.player_index
+      // Update game.players
+      delete game.players[player_index]
+      // Store game.players
+      storeGameData(game, 'players', game.players)
+      // Update game.playersData
+      let updatedPlayersDataRows= []
+      game.playersData.rows.forEach((row) => {
+        if(row.index !== player_index) {
+          updatedPlayersDataRows.push(row)
+        }
+      })
+      game.playersData.rows = updatedPlayersDataRows
+      // Store game.playersData
+      storeGameData(game, 'playersData', game.playersData)
+      // Enable start game button if we were waiting for deactivated player to claim invite voucher
+      if(game.freeMarketWallet && game.freeMarketWallet.index && !game.started && !game.enableStartGame) {
+        let waitingForPlayersIndexes = []
+        game.waitingForPlayersIndexes.forEach((index) => {
+          if(index !== player_index) {
+            waitingForPlayersIndexes.push(index)
+          }
+        })
+        game.waitingForPlayersIndexes = waitingForPlayersIndexes
+        if(!game.waitingForPlayersIndexes.length) {
+          game.enableStartGame = true
+        }
+        // Store game.enableStartGame and game.waitingForPlayersIndexes
+        storeGameData(game, 'enableStartGame', game.playersData)
+        storeGameData(game, 'waitingForPlayersIndexes', game.waitingForPlayersIndexes)
+      }
+      // Disable all buttons and show banner for deactivated player
+      if(player_index === game.player.index) {
+        game.player.active = false
+        // Store game.player
+        storeGameData(game, 'player', game.player)
       }
       break;
     case("new_payment"):
@@ -135,15 +184,21 @@ export function onMessage(event, game, wallets){
             storeGameData(game, 'playersData', game.playersData)
           }
         })
-        if(game.freeMarketWallet && game.freeMarketWallet.index && !game.started) {
-          // Enable start game button after all invited players have claimed invite voucher
-          let enableStartGame = true
+        // Enable start game button after all invited players have claimed invite voucher
+        if(game.freeMarketWallet && game.freeMarketWallet.index && !game.started && !game.enableStartGame) {
+          let waitingForPlayersIndexes = []
           Object.keys(game.players).forEach((playerIndex) => {
             if(game.players[playerIndex].player_balance < game.initialPlayerBalance) {
-              enableStartGame = false
+              waitingForPlayersIndexes.push(playerIndex)
             }
           })
-          game.enableStartGame = enableStartGame
+          game.waitingForPlayersIndexes = waitingForPlayersIndexes
+          if(!game.waitingForPlayersIndexes.length) {
+            game.enableStartGame = true
+          }
+          // Store game.enableStartGame and game.waitingForPlayersIndexes
+          storeGameData(game, 'enableStartGame', game.playersData)
+          storeGameData(game, 'waitingForPlayersIndexes', game.waitingForPlayersIndexes)
         }
       }
       break;
