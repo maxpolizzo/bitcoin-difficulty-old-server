@@ -3,11 +3,11 @@ from loguru import logger
 
 # Define crud functions here to avoid circular import : __init__ <-- websocket <-- crud <-- __init__
 async def get_client_ids(db, game_id: str) -> [str]:
-    rows = await db.fetchall("SELECT client_id FROM monopoly.wallets WHERE game_id = ?", (game_id))
+    rows = await db.fetchall("SELECT client_id FROM difficulty.wallets WHERE game_id = ?", (game_id))
     return[row[0] for row in rows]
 
 async def get_other_client_ids(db, game_id: str, player_index: str) -> [str]:
-    rows = await db.fetchall("SELECT client_id FROM monopoly.wallets WHERE game_id = ? AND player_index <> ?", (game_id, player_index))
+    rows = await db.fetchall("SELECT client_id FROM difficulty.wallets WHERE game_id = ? AND player_index <> ?", (game_id, player_index))
     return[row[0] for row in rows]
 
 class WebsocketManager:

@@ -2,7 +2,7 @@ import { newGame } from '../data/data.js'
 
 export function getGameRecordsFromLocalStorage(gamePlayers, gameRecords = []) {
   // Fetch existing game records in local storage
-  let storedGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
+  let storedGameRecords = JSON.parse(localStorage.getItem('play.gameRecords'))
   if(storedGameRecords && storedGameRecords.length) {
     for(let j = 0; j < storedGameRecords.length; j++) {
       const gameId = storedGameRecords[j].split('_')[0];
@@ -27,7 +27,7 @@ export function getGameRecordsFromLocalStorage(gamePlayers, gameRecords = []) {
 
 export function storeGameRecord(game) {
   // Store game record to local storage
-  let storedGameRecords = JSON.parse(localStorage.getItem('monopoly.gameRecords'))
+  let storedGameRecords = JSON.parse(localStorage.getItem('play.gameRecords'))
   let gameRecordAlreadyStored = false;
   if(storedGameRecords && storedGameRecords.length) {
     storedGameRecords.forEach((gameRecordString) => {
@@ -62,7 +62,7 @@ export function storeGameRecord(game) {
         storedGameRecords = [game.id + '_' + game.player.index + '_' + game.timestamp]
       }
     }
-    localStorage.setItem('monopoly.gameRecords', JSON.stringify(storedGameRecords))
+    localStorage.setItem('play.gameRecords', JSON.stringify(storedGameRecords))
   }
   // Store game data to local storage
   Object.keys(game).forEach((key) => {
@@ -75,11 +75,11 @@ export function loadGameDataFromLocalStorage(gameRecord) {
   const game = newGame;
   // Update game object with values found in local storage
   Object.keys(game).forEach((key) => {
-    if(localStorage.getItem('monopoly.' + gameRecord.gameId + '_' + gameRecord.playerIndex + '.' + key) !== null) {
+    if(localStorage.getItem('play.' + gameRecord.gameId + '_' + gameRecord.playerIndex + '.' + key) !== null) {
       try {
-        game[key] = JSON.parse(localStorage.getItem('monopoly.' + gameRecord.gameId + '_' + gameRecord.playerIndex + '.' + key))
+        game[key] = JSON.parse(localStorage.getItem('play.' + gameRecord.gameId + '_' + gameRecord.playerIndex + '.' + key))
       } catch(err) {
-        game[key] = localStorage.getItem('monopoly.' + gameRecord.gameId + '_' + gameRecord.playerIndex + '.' + key)
+        game[key] = localStorage.getItem('play.' + gameRecord.gameId + '_' + gameRecord.playerIndex + '.' + key)
       }
     }
   })
@@ -92,13 +92,13 @@ export function storeGameData(game, key, data) {
   if(game.freeMarketWallet && game.freeMarketWallet.index) {
     // Game creator
     localStorage.setItem(
-      'monopoly.' + game.id + '_0' + '.' + key.toString(),
+      'play.' + game.id + '_0' + '.' + key.toString(),
       JSON.stringify(data)
     )
   } else if(game.player && parseInt(game.player.index) > 1) {
     // Other players
     localStorage.setItem(
-      'monopoly.' + game.id + '_' + game.player.index + '.' + key.toString(),
+      'play.' + game.id + '_' + game.player.index + '.' + key.toString(),
       JSON.stringify(data)
     )
   }

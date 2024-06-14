@@ -22,7 +22,7 @@ export async function checkMaxNumberOfPlayersReached(game) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/players_count?game_id=' + game.id,
+      '/play/api/v1/players_count?game_id=' + game.id,
       playerWallet(game).inkey
     )
   if(res.data) {
@@ -68,7 +68,7 @@ export async function createPlayerPayLNURL(game) {
     res = await LNbits.api
       .request(
         'PUT',
-        '/monopoly/api/v1/wallet/pay-link',
+        '/play/api/v1/wallet/pay-link',
         playerWallet(game).inkey,
         {
           game_id: game.id,

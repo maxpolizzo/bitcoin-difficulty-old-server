@@ -157,7 +157,7 @@ export const newGame = {
     unit: 'sat',
     data: {
       amount: null,
-      memo: 'Bitcoin Monopoly: initial funding invoice'
+      memo: 'Bitcoin Difficulty: initial funding invoice'
     }
   },
   // Never stored (only created for copy/paste)

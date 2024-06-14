@@ -25,19 +25,19 @@ from loguru import logger
 
 # Define crud functions here to avoid circular import : __init__ <-- tasks <-- crud <-- __init__
 async def get_other_player_wallets(db, game_id: str, player_index: str) -> [PlayerWallet]:
-    rows = await db.fetchall("SELECT * FROM monopoly.wallets WHERE game_id = ? AND player_index <> ?", (game_id, player_index))
+    rows = await db.fetchall("SELECT * FROM difficulty.wallets WHERE game_id = ? AND player_index <> ?", (game_id, player_index))
     return[PlayerWallet(**row) for row in rows]
 
 async def update_wallet_balance(db, data: UpdateWalletBalance) -> WalletBalance:
     await db.execute(
             """
-            UPDATE monopoly.wallets SET balance_msat = ? WHERE game_id = ? AND player_index = ?
+            UPDATE difficulty.wallets SET balance_msat = ? WHERE game_id = ? AND player_index = ?
            """,
            (data.balance_msat, data.game_id, data.player_index),
     )
 
 async def get_player_wallet_info(db, wallet_id: str) -> PlayerWalletInfo:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
+    row = await db.fetchone("SELECT * FROM difficulty.wallets WHERE id = ?", (wallet_id))
     return PlayerWalletInfo(**row) if row else None
 
 

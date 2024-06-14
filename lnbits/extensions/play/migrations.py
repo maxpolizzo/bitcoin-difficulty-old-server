@@ -4,7 +4,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE monopoly.games (
+        CREATE TABLE difficulty.games (
             game_id TEXT PRIMARY KEY,
             admin_user_id TEXT NOT NULL,
             free_market_liquidity {db.big_int},
@@ -29,7 +29,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE monopoly.wallets (
+        CREATE TABLE difficulty.wallets (
             game_id TEXT NOT NULL,
             is_free_market BOOLEAN DEFAULT false,
             player_index TEXT NOT NULL,
@@ -50,7 +50,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE monopoly.players (
+        CREATE TABLE difficulty.players (
             game_id TEXT NOT NULL,
             player_index TEXT NOT NULL,
             player_name TEXT,
@@ -67,7 +67,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE monopoly.properties (
+        CREATE TABLE difficulty.properties (
             game_id TEXT NOT NULL,
             property_id TEXT NOT NULL,
             color TEXT NOT NULL,
@@ -83,7 +83,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE monopoly.cards (
+        CREATE TABLE difficulty.cards (
             game_id TEXT NOT NULL,
             card_type TEXT NOT NULL,
             ids TEXT NOT NULL,
@@ -98,7 +98,7 @@ async def m001_initial(db):
     """
     await db.execute(
         f"""
-        CREATE TABLE monopoly.ws_auth_tokens (
+        CREATE TABLE difficulty.ws_auth_tokens (
             auth_token TEXT PRIMARY KEY
         );
     """

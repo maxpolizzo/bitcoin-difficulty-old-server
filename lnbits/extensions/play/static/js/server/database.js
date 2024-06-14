@@ -20,7 +20,7 @@ export async function onGameFunded (game) {
   const res = await LNbits.api
     .request(
       'PUT',
-      '/monopoly/api/v1/game/funding',
+      '/play/api/v1/game/funding',
       freeMarketWallet(game).adminkey,
       {
         game_id: game.id,
@@ -35,7 +35,7 @@ export async function onGameFunded (game) {
     storeGameData(game, 'fundingStatus', game.fundingStatus)
     storeGameData(game, 'initialFunding', game.initialFunding)
     storeGameData(game, 'initialPlayerBalance', game.initialPlayerBalance)
-    console.log("Monopoly: game has been funded")
+    console.log("Bitcoin Difficulty: game has been funded")
   } else {
     LNbits.utils.notifyApiError(res.error)
   }
@@ -49,7 +49,7 @@ export async function fetchGameInviteData(gameData) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/game_invite?game_id=' + gameData.id,
+      '/play/api/v1/game_invite?game_id=' + gameData.id,
       inkey(gameData)
     )
   if(res.data) {
@@ -74,7 +74,7 @@ export async function joinGame(gameData) {
   let res = await LNbits.api
     .request(
       'POST',
-      '/monopoly/api/v1/join-game',
+      '/play/api/v1/join-game',
       inkey(gameData),
       {
         game_id: gameData.id,
@@ -97,7 +97,7 @@ export async function fetchPlayers(game) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/players?game_id=' + game.id,
+      '/play/api/v1/players?game_id=' + game.id,
       inkey(game)
     )
   if(res.data) {
@@ -135,7 +135,7 @@ export async function fetchWalletsBalances(game) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/wallets-info?game_id=' + game.id,
+      '/play/api/v1/wallets-info?game_id=' + game.id,
       inkey(game)
     )
   if(res.data) {
@@ -171,7 +171,7 @@ export async function getFreeMarketWalletPayLink(gameData){
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/player_pay_link?game_id=' + gameData.id + '&pay_link_player_index=0',
+      '/play/api/v1/player_pay_link?game_id=' + gameData.id + '&pay_link_player_index=0',
       inkey(gameData)
     )
   if(res.data) {
@@ -187,7 +187,7 @@ export async function fetchGameStarted(game) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/game-started?game_id=' + game.id,
+      '/play/api/v1/game-started?game_id=' + game.id,
       inkey(game)
     )
   if(res.data) {
@@ -214,7 +214,7 @@ export async function fetchPlayerTurn(game) {
   let res = await LNbits.api
       .request(
         'GET',
-        '/monopoly/api/v1/player_turn?game_id=' + game.id,
+        '/play/api/v1/player_turn?game_id=' + game.id,
         inkey(game)
       )
   if(res.data) {
@@ -243,7 +243,7 @@ export async function fetchProperties(game) {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/properties?game_id=' + game.id,
+      '/play/api/v1/properties?game_id=' + game.id,
       inkey(game)
     )
   console.log(res)
@@ -275,7 +275,7 @@ export async function getGamePlayersFromUser(){
     let res = await LNbits.api
       .request(
         'GET',
-        '/monopoly/api/v1/wallet?wallet_id=' + window.user.wallets[index].id,
+        '/play/api/v1/wallet?wallet_id=' + window.user.wallets[index].id,
         window.user.wallets[index].adminkey,
       )
     if(res.data) {
@@ -295,7 +295,7 @@ export async function getGamePlayerFromUserWalletIndex(walletIndex){
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/wallet?wallet_id=' + window.user.wallets[walletIndex].id,
+      '/play/api/v1/wallet?wallet_id=' + window.user.wallets[walletIndex].id,
       window.user.wallets[walletIndex].adminkey,
     )
   if(res.data) {
@@ -331,7 +331,7 @@ export async function getGamePlayer(gameRecord){
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/player?game_id=' + gameRecord.gameId + '&player_index=' + gameRecord.playerIndex
+      '/play/api/v1/player?game_id=' + gameRecord.gameId + '&player_index=' + gameRecord.playerIndex
     )
   if(res.data) {
     return res.data
@@ -347,7 +347,7 @@ export async function getGameRecordsFromDatabase(gamePlayers){
       let res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/game-time?game_id=' + gamePlayers[index].gameId,
+          '/play/api/v1/game-time?game_id=' + gamePlayers[index].gameId,
           window.user.wallets[gamePlayers[index].walletIndex].inkey,
         )
       if(res.data) {
@@ -378,7 +378,7 @@ export async function loadGameDataFromDatabase() {
   let res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/wallet?wallet_id=' + user.wallets[walletIndex].id,
+      '/play/api/v1/wallet?wallet_id=' + user.wallets[walletIndex].id,
       user.wallets[walletIndex].adminkey,
     )
   if(res.data) {
@@ -395,7 +395,7 @@ export async function loadGameDataFromDatabase() {
         res = await LNbits.api
           .request(
             'GET',
-            '/monopoly/api/v1/wallet-info?game_id=' + game.id + '&wallet_id=' + user.wallets[index].id,
+            '/play/api/v1/wallet-info?game_id=' + game.id + '&wallet_id=' + user.wallets[index].id,
             inkey(game),
           )
         if(res.data) {
@@ -417,7 +417,7 @@ export async function loadGameDataFromDatabase() {
       res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/player_pay_link?game_id=' + game.id + '&pay_link_player_index=0',
+          '/play/api/v1/player_pay_link?game_id=' + game.id + '&pay_link_player_index=0',
           inkey(game),
         )
       if(res.data) {
@@ -431,7 +431,7 @@ export async function loadGameDataFromDatabase() {
   res = await LNbits.api
     .request(
       'GET',
-      '/monopoly/api/v1/game?game_id=' + game.id,
+      '/play/api/v1/game?game_id=' + game.id,
       inkey(game)
     )
   if(res.data) {
@@ -452,7 +452,7 @@ export async function loadGameDataFromDatabase() {
       res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/player?game_id=' + game.id + '&player_index=' + game.player.index,
+          '/play/api/v1/player?game_id=' + game.id + '&player_index=' + game.player.index,
           // inkey(game)
         )
       if(res.data) {
@@ -485,7 +485,7 @@ export async function assignWallets(game) {
         let res = await LNbits.api
           .request(
             'GET',
-            '/monopoly/api/v1/wallet-info?game_id=' + game.id + '&wallet_id=' + user.wallets[index].id,
+            '/play/api/v1/wallet-info?game_id=' + game.id + '&wallet_id=' + user.wallets[index].id,
             freeMarketWallet(game).inkey,
           )
         if(res.data) {

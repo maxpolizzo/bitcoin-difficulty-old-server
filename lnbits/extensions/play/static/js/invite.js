@@ -22,7 +22,7 @@ new Vue({
   data: function() {
     return {
       websocket: {
-        url: "wss://dev.bitcoin-difficulty.io/monopoly/ws/",
+        url: "wss://dev.bitcoin-difficulty.io/play/ws/",
         ws: null
       },
       game: inviteGame,
@@ -34,7 +34,7 @@ new Vue({
   },
   mounted(){
     this.initializeGameData().then(async () => {
-      this.enableMonopolyExtension()
+      this.enableDifficultyExtension()
     })
   },
   methods: {
@@ -57,12 +57,12 @@ new Vue({
         ...gameInviteData
       }
     },
-    // Logic to enable the Monopoly extension
-    enableMonopolyExtension: async function()  {
+    // Logic to enable the Bitcoin Difficulty extension
+    enableDifficultyExtension: async function()  {
       await LNbits.api
         .request(
           'GET',
-          '/extensions?usr=' + window.user.id + '&enable=monopoly',
+          '/extensions?usr=' + window.user.id + '&enable=play',
           inkey(this.game)
         )
     },
@@ -104,7 +104,7 @@ new Vue({
     },
     redirect: function() {
       // Redirect to game.html
-      window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id;
+      window.location.href = "https://" + window.location.hostname + "/play/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id;
     }
   },
   computed: {
