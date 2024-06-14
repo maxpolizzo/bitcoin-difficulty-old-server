@@ -10,27 +10,27 @@ from lnbits.tasks import catch_everything_and_restart
 from .tasks import PaymentsWatcher
 from .websocket import WebsocketManager
 
-db = Database("ext_monopoly")
-
-monopoly_static_files = [
+play_static_files = [
     {
-        "path": "/monopoly/static",
-        "app": StaticFiles(packages=[("lnbits", "extensions/monopoly/static")]),
-        "name": "monopoly_static",
+        "path": "/play/static",
+        "app": StaticFiles(packages=[("lnbits", "extensions/play/static")]),
+        "name": "play_static",
     }
 ]
 
-monopoly_ext: APIRouter = APIRouter(prefix="/monopoly", tags=["monopoly"])
+play_ext: APIRouter = APIRouter(prefix="/play", tags=["play"])
+
+db = Database("ext_difficulty")
 
 websocketManager = WebsocketManager(db)
 
-def monopoly_renderer():
-    return template_renderer(["lnbits/extensions/monopoly/templates"])
+def difficulty_renderer():
+    return template_renderer(["lnbits/extensions/play/templates/difficulty"])
 
 from .views import *  # noqa
 from .views_api import *  # noqa
 
-def monopoly_start(): # Executed in lnbits app.py for all valid extensions
+def play_start(): # Executed in lnbits app.py for all valid extensions
     paymentsWatcher = PaymentsWatcher(db, websocketManager)
     loop = asyncio.get_event_loop()
     loop.create_task(catch_everything_and_restart(paymentsWatcher.wait_for_paid_invoices))

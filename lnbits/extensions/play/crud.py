@@ -61,7 +61,7 @@ async def create_ws_authorization_token() -> str:
     auth_token = uuid4().hex
     await db.execute(
         """
-        INSERT INTO monopoly.ws_auth_tokens (auth_token)
+        INSERT INTO difficulty.ws_auth_tokens (auth_token)
         VALUES (?)
         """,
         (auth_token),
@@ -71,7 +71,7 @@ async def create_ws_authorization_token() -> str:
 async def delete_ws_authorization_token(auth_token: str):
     await db.execute(
         """
-        DELETE FROM monopoly.ws_auth_tokens WHERE auth_token = ?
+        DELETE FROM difficulty.ws_auth_tokens WHERE auth_token = ?
         """,
         (auth_token),
     )
@@ -80,7 +80,7 @@ async def create_game(data: CreateGame, admin_user_id: str) -> Game:
     game_id = uuid4().hex
     await db.execute(
         """
-        INSERT INTO monopoly.games (game_id, admin_user_id, max_players_count, available_player_names, cumulated_fines)
+        INSERT INTO difficulty.games (game_id, admin_user_id, max_players_count, available_player_names, cumulated_fines)
         VALUES (?, ?, ?, ?, ?)
         """,
         (game_id, admin_user_id, data.max_players_count, data.available_player_names, 0),
@@ -111,7 +111,7 @@ async def create_free_market_wallet(data: GameId, user_id: str) -> PlayerWallet:
 async def create_player_wallet(data: CreatePlayerWallet) -> PlayerWallet:
     await db.execute(
         """
-        INSERT INTO monopoly.wallets (
+        INSERT INTO difficulty.wallets (
         game_id, is_free_market, player_index, client_id, user, id, inkey, adminkey)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -124,7 +124,7 @@ async def create_player_wallet(data: CreatePlayerWallet) -> PlayerWallet:
 async def update_wallet_pay_link(data: RegisterWalletPayLink) -> PayLink:
     await db.execute(
             """
-            UPDATE monopoly.wallets SET pay_link_id = ?, pay_link = ? WHERE id = ?
+            UPDATE difficulty.wallets SET pay_link_id = ?, pay_link = ? WHERE id = ?
             """,
             (data.pay_link_id, data.pay_link, data.wallet_id),
     )
@@ -136,7 +136,7 @@ async def update_wallet_pay_link(data: RegisterWalletPayLink) -> PayLink:
 async def update_free_market_liquidity(data: UpdateFreeMarketLiquidity) -> FreeMarketLiquidity:
     await db.execute(
             """
-            UPDATE monopoly.games SET free_market_liquidity = ? WHERE game_id = ?
+            UPDATE difficulty.games SET free_market_liquidity = ? WHERE game_id = ?
             """,
             (data.free_market_liquidity, data.game_id),
     )
@@ -180,7 +180,7 @@ async def create_first_player(data: CreateFirstPlayer) -> NewPlayerData:
 async def create_player(data: CreatePlayer) -> Player:
     await db.execute(
         """
-        INSERT INTO monopoly.players (
+        INSERT INTO difficulty.players (
             game_id,
             player_index,
             player_name,
@@ -206,7 +206,7 @@ async def create_player(data: CreatePlayer) -> Player:
 
 async def pick_player_name(game_id: str) -> str:
     # Get available player names for game
-    available_player_names_string = await db.fetchone("SELECT available_player_names FROM monopoly.games WHERE game_id = ?", (game_id))
+    available_player_names_string = await db.fetchone("SELECT available_player_names FROM difficulty.games WHERE game_id = ?", (game_id))
     available_player_names = available_player_names_string[0].split(",")
     # Pick a random index
     picked_index = random.sample(range(0, len(available_player_names)), 1)[0]
@@ -219,7 +219,7 @@ async def pick_player_name(game_id: str) -> str:
     # Update available player names for game
     await db.execute(
         """
-        UPDATE monopoly.games SET available_player_names = ? WHERE game_id = ?
+        UPDATE difficulty.games SET available_player_names = ? WHERE game_id = ?
         """,
         (new_available_player_names_string, game_id),
     )
@@ -229,7 +229,7 @@ async def pick_player_name(game_id: str) -> str:
 async def create_invite_voucher(data: CreateVoucher):
     await db.execute(
             """
-            UPDATE monopoly.games SET invite_voucher_id = ? WHERE game_id = ?
+            UPDATE difficulty.games SET invite_voucher_id = ? WHERE game_id = ?
             """,
             (data.voucher_id, data.game_id),
     )
@@ -237,7 +237,7 @@ async def create_invite_voucher(data: CreateVoucher):
 async def update_game_funding(data: UpdateGameFunding):
      await db.execute(
              """
-             UPDATE monopoly.games SET initial_funding = ?, initial_player_balance = ? WHERE game_id = ?
+             UPDATE difficulty.games SET initial_funding = ?, initial_player_balance = ? WHERE game_id = ?
              """,
              (data.initial_funding, data.initial_player_balance, data.game_id),
      )
@@ -310,7 +310,7 @@ async def initialize_cards(data: InitializeCards):
     # Initialize technology cards record
     await db.execute(
         """
-        INSERT INTO monopoly.cards (game_id, card_type, ids, card_index, max_index)
+        INSERT INTO difficulty.cards (game_id, card_type, ids, card_index, max_index)
         VALUES (?, ?, ?, ?, ?)
         """,
         (data.game_id, "technology", shuffled_technology_cards_ids, 0, data.technology_cards_max_index),
@@ -328,7 +328,7 @@ async def initialize_cards(data: InitializeCards):
     # Initialize black swan cards record
     await db.execute(
         """
-        INSERT INTO monopoly.cards (game_id, card_type, ids, card_index, max_index)
+        INSERT INTO difficulty.cards (game_id, card_type, ids, card_index, max_index)
         VALUES (?, ?, ?, ?, ?)
         """,
         (data.game_id, "black_swan", shuffled_black_swan_cards_ids, 0, data.black_swan_cards_max_index),
@@ -382,7 +382,7 @@ async def pick_card(data: PickCard) -> str:
             # Update player card_picked
             await db.execute(
                 """
-                UPDATE monopoly.players SET """ + data.card_type + """_card_picked = ? WHERE game_id = ? AND player_index = ?
+                UPDATE difficulty.players SET """ + data.card_type + """_card_picked = ? WHERE game_id = ? AND player_index = ?
                 """,
                 (True, data.game_id, data.player_index),
             )
@@ -395,7 +395,7 @@ async def pick_card(data: PickCard) -> str:
 
             await db.execute(
                     """
-                    UPDATE monopoly.cards SET card_index = ? WHERE game_id = ? AND card_type = ?
+                    UPDATE difficulty.cards SET card_index = ? WHERE game_id = ? AND card_type = ?
                    """,
                    (next_card_index, data.game_id, data.card_type),
             )
@@ -420,7 +420,7 @@ async def start_game(data: GameId) -> int:
 
     await db.execute(
          """
-         UPDATE monopoly.games SET started = ?, player_turn = ? WHERE game_id = ?
+         UPDATE difficulty.games SET started = ?, player_turn = ? WHERE game_id = ?
          """,
          (True, first_player_turn.player_index, data.game_id),
     )
@@ -455,7 +455,7 @@ async def increment_player_turn(data: PlayerIndex) -> str:
     # Update game player_turn
     await db.execute(
       """
-      UPDATE monopoly.games SET player_turn = ? WHERE game_id = ?
+      UPDATE difficulty.games SET player_turn = ? WHERE game_id = ?
       """,
       (next_player_turn, data.game_id),
     )
@@ -463,13 +463,13 @@ async def increment_player_turn(data: PlayerIndex) -> str:
     # Update player technology_card_picked and black_swan_card_picked to false for next player
     await db.execute(
         """
-        UPDATE monopoly.players SET technology_card_picked = ? WHERE game_id = ? AND player_index = ?
+        UPDATE difficulty.players SET technology_card_picked = ? WHERE game_id = ? AND player_index = ?
         """,
         (False, data.game_id, next_player_turn),
     )
     await db.execute(
         """
-        UPDATE monopoly.players SET black_swan_card_picked = ? WHERE game_id = ? AND player_index = ?
+        UPDATE difficulty.players SET black_swan_card_picked = ? WHERE game_id = ? AND player_index = ?
         """,
         (False, data.game_id, next_player_turn),
     )
@@ -477,7 +477,7 @@ async def increment_player_turn(data: PlayerIndex) -> str:
     # Update player pow_provided to false for next player
     await db.execute(
         """
-        UPDATE monopoly.players SET pow_provided = ? WHERE game_id = ? AND player_index = ?
+        UPDATE difficulty.players SET pow_provided = ? WHERE game_id = ? AND player_index = ?
        """,
        (False, data.game_id, next_player_turn),
     )
@@ -500,7 +500,7 @@ async def deactivate_player(data: PlayerIndex):
     # Deactivate player
     await db.execute(
             """
-            UPDATE monopoly.players SET active = ? WHERE game_id = ? AND player_index = ?
+            UPDATE difficulty.players SET active = ? WHERE game_id = ? AND player_index = ?
            """,
            (False, data.game_id, data.player_index),
     )
@@ -513,13 +513,13 @@ async def deactivate_player(data: PlayerIndex):
     await websocketManager.notify_all_game_players(data.game_id, msg)
 
     # Disconnect deactivated player from websocket
-    client_id = await db.fetchone("SELECT client_id FROM monopoly.wallets WHERE game_id = ? AND player_index = ?", (data.game_id, data.player_index))
+    client_id = await db.fetchone("SELECT client_id FROM difficulty.wallets WHERE game_id = ? AND player_index = ?", (data.game_id, data.player_index))
     websocketManager.disconnect(client_id[0])
 
 async def register_property(data: Property):
     await db.execute(
             """
-            INSERT INTO monopoly.properties (game_id, property_id, color, player_index, mining_capacity, mining_income)
+            INSERT INTO difficulty.properties (game_id, property_id, color, player_index, mining_capacity, mining_income)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
             (data.game_id, data.property_id, data.color, data.player_index, 0, 0),
@@ -542,7 +542,7 @@ async def transfer_property_ownership(data: Property):
 
     await db.execute(
             """
-            UPDATE monopoly.properties SET player_index = ? WHERE game_id = ? AND color = ? AND property_id = ?
+            UPDATE difficulty.properties SET player_index = ? WHERE game_id = ? AND color = ? AND property_id = ?
            """,
            (data.player_index, data.game_id, data.color, data.property_id),
     )
@@ -564,7 +564,7 @@ async def update_property_income(data: UpdatePropertyIncome) -> int:
 
     await db.execute(
             """
-            UPDATE monopoly.properties SET mining_income = ? WHERE game_id = ? AND color = ? AND property_id = ?
+            UPDATE difficulty.properties SET mining_income = ? WHERE game_id = ? AND color = ? AND property_id = ?
            """,
            (new_mining_income, data.game_id, data.color, data.property_id),
     )
@@ -596,7 +596,7 @@ async def upgrade_property_miners(data: UpgradeMiners) -> int:
 
     await db.execute(
            """
-           UPDATE monopoly.properties SET mining_capacity = ? WHERE game_id = ? AND color = ? AND property_id = ?
+           UPDATE difficulty.properties SET mining_capacity = ? WHERE game_id = ? AND color = ? AND property_id = ?
           """,
           (new_mining_capacity, data.game_id, data.color, data.property_id),
     )
@@ -626,7 +626,7 @@ async def provide_pow(data: PlayerIndex):
     # Update player pow_provided
     await db.execute(
         """
-        UPDATE monopoly.players SET pow_provided = ? WHERE game_id = ? AND player_index = ?
+        UPDATE difficulty.players SET pow_provided = ? WHERE game_id = ? AND player_index = ?
        """,
        (True, data.game_id, data.player_index),
     )
@@ -637,7 +637,7 @@ async def update_cumulated_fines(data: UpdateCumulatedFines):
 
     await db.execute(
         """
-        UPDATE monopoly.games SET cumulated_fines = ? WHERE game_id= ?
+        UPDATE difficulty.games SET cumulated_fines = ? WHERE game_id= ?
        """,
        (updated_cumulated_fines, data.game_id),
     )
@@ -656,7 +656,7 @@ async def claim_cumulated_fines(data: PlayerIndex):
     # Reset cumulated fines
     await db.execute(
         """
-        UPDATE monopoly.games SET cumulated_fines = 0 WHERE game_id= ?
+        UPDATE difficulty.games SET cumulated_fines = 0 WHERE game_id= ?
         """,
         (data.game_id),
     )
@@ -674,110 +674,110 @@ async def claim_card_reward(data: RewardClaim):
 
 # Getters
 async def validate_ws_authorization_token(auth_token: str) -> bool:
-    row = await db.fetchone("SELECT * FROM monopoly.ws_auth_tokens WHERE auth_token = ?", (auth_token))
+    row = await db.fetchone("SELECT * FROM difficulty.ws_auth_tokens WHERE auth_token = ?", (auth_token))
     if row:
         if row[0] == auth_token:
             return True
     return False
 
 async def get_game(game_id: str) -> Game:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
+    row = await db.fetchone("SELECT * FROM difficulty.games WHERE game_id = ?", (game_id))
     return Game(**row) if row else None
 
 async def get_game_admin_user_id(game_id: str) -> GameAdminUserId:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
+    row = await db.fetchone("SELECT * FROM difficulty.games WHERE game_id = ?", (game_id))
     return GameAdminUserId(**row) if row else None
 
 async def get_player_wallet(wallet_id: str) -> PlayerWallet:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
+    row = await db.fetchone("SELECT * FROM difficulty.wallets WHERE id = ?", (wallet_id))
     return PlayerWallet(**row) if row else None
 
 async def get_player_wallet_by_player_index(game_id: str, player_index: str) -> PlayerWallet:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE game_id = ? AND player_index = ?", (game_id, player_index))
+    row = await db.fetchone("SELECT * FROM difficulty.wallets WHERE game_id = ? AND player_index = ?", (game_id, player_index))
     return PlayerWallet(**row) if row else None
 
 async def get_wallet_pay_link(wallet_id: str) -> PayLink:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
+    row = await db.fetchone("SELECT * FROM difficulty.wallets WHERE id = ?", (wallet_id))
     return PayLink(**row) if row else None
 
 async def get_free_market_liquidity(game_id: str) -> FreeMarketLiquidity:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
+    row = await db.fetchone("SELECT * FROM difficulty.games WHERE game_id = ?", (game_id))
     return FreeMarketLiquidity(**row) if row else None
 
 async def get_player_wallet_info(wallet_id: str) -> PlayerWalletInfo:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE id = ?", (wallet_id))
+    row = await db.fetchone("SELECT * FROM difficulty.wallets WHERE id = ?", (wallet_id))
     return PlayerWalletInfo(**row) if row else None
 
 async def get_wallets_info(game_id: str) -> [PlayerWalletInfo]:
-    rows = await db.fetchall("SELECT * FROM monopoly.wallets WHERE game_id = ?", (game_id))
+    rows = await db.fetchall("SELECT * FROM difficulty.wallets WHERE game_id = ?", (game_id))
     return[PlayerWalletInfo(**row) for row in rows]
 
 async def get_game_started(game_id: str) -> GameStarted:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
+    row = await db.fetchone("SELECT * FROM difficulty.games WHERE game_id = ?", (game_id))
     return GameStarted(**row) if row else None
 
 async def get_game_time(game_id: str) -> GameTime:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id))
+    row = await db.fetchone("SELECT * FROM difficulty.games WHERE game_id = ?", (game_id))
     return GameTime(**row) if row else None
 
 async def get_player(game_id: str, player_index: str) -> Player:
-    row = await db.fetchone("SELECT * FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
+    row = await db.fetchone("SELECT * FROM difficulty.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
     return Player(**row) if row else None
 
 async def is_active_player(game_id: str, player_index: str) -> bool:
-    is_active_player = await db.fetchone("SELECT active FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
+    is_active_player = await db.fetchone("SELECT active FROM difficulty.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
     return is_active_player[0] if is_active_player else False
 
 async def get_active_players(game_id: str) -> [Player]:
-    rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ? AND active = ?", (game_id, True))
+    rows = await db.fetchall("SELECT * FROM difficulty.players WHERE game_id = ? AND active = ?", (game_id, True))
     return[Player(**row) for row in rows]
 
 async def get_player_turn(game_id: str) -> str:
-    player_turn = await db.fetchone("SELECT player_turn FROM monopoly.games WHERE game_id = ?", (game_id))
+    player_turn = await db.fetchone("SELECT player_turn FROM difficulty.games WHERE game_id = ?", (game_id))
     return player_turn
 
 async def get_properties(game_id: str) -> [Property]:
-    rows = await db.fetchall("SELECT * FROM monopoly.properties WHERE game_id = ?", (game_id,))
+    rows = await db.fetchall("SELECT * FROM difficulty.properties WHERE game_id = ?", (game_id,))
     return[Property(**row) for row in rows]
 
 async def get_game_invite(game_id: str) -> GameInvite:
-    row = await db.fetchone("SELECT * FROM monopoly.games WHERE game_id = ?", (game_id,))
+    row = await db.fetchone("SELECT * FROM difficulty.games WHERE game_id = ?", (game_id,))
     return GameInvite(**row) if row else None
 
 async def get_max_players_count(game_id: str) -> int:
-    max_players_count = await db.fetchone("SELECT max_players_count FROM monopoly.games WHERE game_id = ?", (game_id))
+    max_players_count = await db.fetchone("SELECT max_players_count FROM difficulty.games WHERE game_id = ?", (game_id))
     return max_players_count
 
 async def get_active_players_count(game_id: str) -> int:
-    active_players_count = await db.fetchone("SELECT COUNT(*) FROM monopoly.players WHERE game_id = ? AND active = ?", (game_id, True))
+    active_players_count = await db.fetchone("SELECT COUNT(*) FROM difficulty.players WHERE game_id = ? AND active = ?", (game_id, True))
     return active_players_count
 
 async def get_active_players_indexes(game_id: str) -> int:
-    rows = await db.fetchall("SELECT * FROM monopoly.players WHERE game_id = ? AND active = ?", (game_id, True))
+    rows = await db.fetchall("SELECT * FROM difficulty.players WHERE game_id = ? AND active = ?", (game_id, True))
     return [PlayerIndex(**row) for row in rows]
 
 async def get_card(game_id: str, card_type) -> Card:
-    row = await db.fetchone("SELECT * FROM monopoly.cards WHERE game_id = ? AND card_type = ?", (game_id, card_type))
+    row = await db.fetchone("SELECT * FROM difficulty.cards WHERE game_id = ? AND card_type = ?", (game_id, card_type))
     return Card(**row) if row else None
 
 async def get_player_card_picked(game_id: str, player_index: str, card_type: str) -> bool:
     if (card_type == "technology"):
-        card_picked = await db.fetchone("SELECT technology_card_picked FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
+        card_picked = await db.fetchone("SELECT technology_card_picked FROM difficulty.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
         return card_picked
     elif (card_type == "black_swan"):
-        card_picked = await db.fetchone("SELECT black_swan_card_picked FROM monopoly.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
+        card_picked = await db.fetchone("SELECT black_swan_card_picked FROM difficulty.players WHERE game_id = ? AND player_index = ?", (game_id, player_index))
         return card_picked
     else:
         return True
 
 async def get_property(game_id: str, color: str, property_id: int) -> Property:
-    row = await db.fetchone("SELECT * FROM monopoly.properties WHERE game_id = ? AND color = ? AND property_id = ?", (game_id, color, property_id))
+    row = await db.fetchone("SELECT * FROM difficulty.properties WHERE game_id = ? AND color = ? AND property_id = ?", (game_id, color, property_id))
     return Property(**row) if row else None
 
 async def get_player_pay_link(data: GetPayLink) -> PayLink:
-    row = await db.fetchone("SELECT * FROM monopoly.wallets WHERE game_id = ? AND player_index = ?", (data.game_id, data.pay_link_player_index))
+    row = await db.fetchone("SELECT * FROM difficulty.wallets WHERE game_id = ? AND player_index = ?", (data.game_id, data.pay_link_player_index))
     return PayLink(**row) if row else None
 
 async def get_cumulated_fines(game_id: str) -> int:
-    cumulated_fines = await db.fetchone("SELECT cumulated_fines FROM monopoly.games WHERE game_id = ?", (game_id))
+    cumulated_fines = await db.fetchone("SELECT cumulated_fines FROM difficulty.games WHERE game_id = ?", (game_id))
     return cumulated_fines

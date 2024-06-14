@@ -19,7 +19,7 @@ export async function connectWebsocket(game) {
   let authToken =  await createWebsocketAuthorizationToken(game)
   // Establish websocket connection with server
   let websocket = {
-    url: "wss://dev.bitcoin-difficulty.io/monopoly/ws/",
+    url: "wss://dev.bitcoin-difficulty.io/play/ws/",
     ws: null,
   }
   websocket.ws = new WebSocket(websocket.url + game.player.clientId + "?auth_token=" + authToken);

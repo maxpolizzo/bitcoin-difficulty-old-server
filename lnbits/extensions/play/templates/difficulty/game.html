@@ -11,13 +11,13 @@
   window.open_camera = {{ open_camera | tojson | safe  }}
   {% endif %}
 </script>
-<script type="module" src="/monopoly/static/js/index.js"></script>
+<script type="module" src="/play/static/js/index.js"></script>
 <!-- CDNJS :: Sortable (https://cdnjs.com/) -->
 <script src="//cdn.jsdelivr.net/npm/sortablejs@1.8.4/Sortable.min.js"></script>
 <!-- CDNJS :: Vue.Draggable (https://cdnjs.com/) -->
 <script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
 {% endblock %} {% block page %}
-<link rel="stylesheet" href="/monopoly/static/css/monopoly.css"/>
+<link rel="stylesheet" href="/play/static/css/difficulty.css"/>
 
 <div v-if="loading" style="margin-left: -10em; margin-top: 10em; margin-bottom: 2em; display: flex; justify-content: center;">
   <q-spinner
@@ -27,7 +27,7 @@
   />
 </div>
 
-<div v-else id="monopoly" class="row q-col-gutter-md">
+<div v-else id="difficulty" class="row q-col-gutter-md">
   <!-- Game view -->
   <q-page-sticky position="top" style="z-index: 999;" v-if="game.started || !game.player.active">
     <q-header class="bg-dark" :style="reactiveStyles.header(game.showWarningMessage)">
@@ -173,21 +173,19 @@
 
         <div class="row" v-if="game.showExplanationText" style="padding: 0.5em;">
           <span class="col-12 col-md-12" style="padding: 0.5em; font-size: 1em;">
-            Play using the Bitcoin Monopoly physical board, rolling dices
-            and drawing cards as you would do playing classic Monopoly. Use the
-            LNBits Bitcoin Monopoly extension to buy and upgrade properties, and
-            every time you need to send and receive payments.
+            Play with the Bitcoin Difficulty physical board, a pair of dices and
+            the LNBits Bitcoin Difficulty extension running in your mobile browser.
           </span>
           <span class="col-12 col-md-12" style="padding: 0.5em; font-size: 1em;">
             All payments are made with sats via the Lightning network. Use the
-            Camera button to scan QR codes (properties, cards, invoices, payment
-            links and vouchers). Use the Invoice button to generate custom
+            Scan button to scan QR codes (power stations, cards, invoices, payment
+            links and vouchers). Use the Receive button to generate custom
             invoices and request payments from other players.
           </span>
         </div>
 
         <div class="col-9 col-md-10" style="padding: 0.5em; font-size: 1.75em;">
-          Your properties:
+          Your power stations:
         </div>
 
         <div class="col-3 col-md-2" style="padding: 0.5em; font-size: 1.75em;">
@@ -201,8 +199,8 @@
 
         <div class="row" v-if="!game.propertiesCount[game.player.index] || game.propertiesCount[game.player.index] == 0" style="padding: 0.5em;">
           <span class="col-12 col-md-12" style="padding: 0.5em; font-size: 1em;">
-            You don’t own any properties yet. Scan a property’s QR code using the
-            Camera button above to buy your first property.
+            You don’t own any power station yet. Scan a power station’s QR code using the
+            Scan button above to buy your first power station.
           </span>
         </div>
 

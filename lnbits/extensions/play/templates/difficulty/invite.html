@@ -5,14 +5,14 @@
     window.invite_vars = {{ invite_vars | tojson | safe }}
   {% endif %}
 </script>
-<script type="module" src="/monopoly/static/js/invite.js"></script>
+<script type="module" src="/play/static/js/invite.js"></script>
 {% endblock %} {% block page %}
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-7 q-gutter-y-md">
     <q-card>
       <div style="padding: 1em; font-size: 1.2em;">
         <div style="margin-top: 0.5em;">
-           GM, you've been invited to play Bitcoin Monopoly!
+           GM, you've been invited to play Bitcoin Difficulty!
         </div>
         <div class="row" v-if="!maxNumberOfPlayersReached">
           <div style="margin-top: 1em;">

@@ -12,7 +12,7 @@ export async function createWebsocketAuthorizationToken(game) {
   let res = await LNbits.api
     .request(
       'POST',
-      '/monopoly/api/v1/ws-auth-token',
+      '/play/api/v1/ws-auth-token',
       inkey(game),
       {
         game_id: game.id,
@@ -117,7 +117,7 @@ export async function fetchWalletsBalances(game) {
         res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/wallet/balance',
+            '/play/api/v1/wallet/balance',
             inkey(game),
             {
               game_id: game.id,
@@ -165,7 +165,7 @@ export async function fetchWalletsBalances(game) {
         res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/game/free-market-liquidity',
+            '/play/api/v1/game/free-market-liquidity',
             freeMarketWallet(game).adminkey,
             {
               game_id: game.id,
@@ -193,7 +193,7 @@ export async function fetchWalletsBalances(game) {
     let res = await LNbits.api
       .request(
         'GET',
-        '/monopoly/api/v1/free-market-liquidity?game_id=' + game.id,
+        '/play/api/v1/free-market-liquidity?game_id=' + game.id,
         inkey(game),
       )
     if(res.data) {
@@ -222,7 +222,7 @@ export async function createRewardVoucher(game) {
     is_unique: false,
     max_withdrawable: game.initialFunding,
     min_withdrawable: 1,
-    title: "Monopoly rewards voucher",
+    title: "Bitcoin Difficulty rewards voucher",
     use_custom: false,
     wait_time: 1,
     uses: 250 // max number of uses allowed by the withdraw extension
@@ -242,7 +242,7 @@ export async function createRewardVoucher(game) {
     res = await LNbits.api
       .request(
         'POST',
-        '/monopoly/api/v1/game/reward-voucher',
+        '/play/api/v1/game/reward-voucher',
         freeMarketWallet(game).adminkey,
         {
           game_id: game.id,
@@ -250,7 +250,7 @@ export async function createRewardVoucher(game) {
         }
       )
     if(res.status === 201) {
-      console.log("Monopoly: reward voucher created successfully")
+      console.log("Difficulty: reward voucher created successfully")
       // Save lnurl voucher id in local storage
       game.rewardVoucherId = voucherId;
       storeGameData(game, 'rewardVoucherId', game.rewardVoucherId)
@@ -273,7 +273,7 @@ export async function createInviteVoucher(game) {
     is_unique: false,
     max_withdrawable: game.initialPlayerBalance,
     min_withdrawable: game.initialPlayerBalance,
-    title: "Monopoly invite voucher",
+    title: "Bitcoin Difficulty invite voucher",
     use_custom: false,
     wait_time: 1,
     uses: game.maxPlayersCount // Maximum number of players to be invited via voucher (including game creator)
@@ -293,7 +293,7 @@ export async function createInviteVoucher(game) {
     res = await LNbits.api
       .request(
         'POST',
-        '/monopoly/api/v1/game/invite-voucher',
+        '/play/api/v1/game/invite-voucher',
         freeMarketWallet(game).adminkey,
         {
           game_id: game.id,
@@ -301,7 +301,7 @@ export async function createInviteVoucher(game) {
         }
       )
     if(res.status === 201) {
-      console.log("Monopoly: invite voucher created successfully")
+      console.log("Bitcoin Difficulty: invite voucher created successfully")
       // Save lnurl voucher id in local storage
       game.inviteVoucherId = voucherId;
       storeGameData(game, 'inviteVoucherId', game.inviteVoucherId)

@@ -68,7 +68,7 @@ new Vue({
   data: function() {
     return {
       websocket: {
-        url: "wss://dev.bitcoin-difficulty.io/monopoly/ws/",
+        url: "wss://dev.bitcoin-difficulty.io/play/ws/",
         ws: null
       },
       loading: true,
@@ -186,7 +186,7 @@ new Vue({
     loadSavedGame: async function(gameRecord) {
       let gamePlayer = await getGamePlayerFromGameRecord(gameRecord)
       // Redirect to game.html
-      window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" +  window.user.id + "&wal=" +  gamePlayer.walletId;
+      window.location.href = "https://" + window.location.hostname + "/play/game?usr=" +  window.user.id + "&wal=" +  gamePlayer.walletId;
     },
     // Methods for QR code scanning
     onInitCamera: async function() {
@@ -316,9 +316,9 @@ new Vue({
       if(window.open_camera === "true") {
         window.open_camera = null
         if(freeMarketWallet(this.game)) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id,);
+          window.history.pushState({}, document.title, "/play/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id,);
         } else if(playerWallet(this.game)) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id);
+          window.history.pushState({}, document.title, "/play/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id);
         }
       }
     },
@@ -345,9 +345,9 @@ new Vue({
     reloadGame: async function (openCamera = false) {
       let href = ""
       if(freeMarketWallet(this.game)) {
-        href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id;
+        href = "https://" + window.location.hostname + "/play/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id;
       } else if(playerWallet(this.game)) {
-        href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id;
+        href = "https://" + window.location.hostname + "/play/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id;
       }
       if(openCamera) {
         href += "&open_camera=true"
@@ -361,7 +361,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/game',
+          '/play/api/v1/game',
           this.g.user.wallets[0].adminkey, // Pass game creator's pre-existing wallet's admin key as API key
           {
             admin_user_id: this.g.user.id,  // Pass game creator's user_id
@@ -370,7 +370,7 @@ new Vue({
           }
         )
       if(res.data) {
-        console.log("Monopoly: new game registered successfully")
+        console.log("Bitcoin Difficulty: new game registered successfully")
         console.log(res.data)
         this.game.created = true
         this.game.id = res.data.game_id
@@ -391,7 +391,7 @@ new Vue({
         // Save game data in local storage
         storeGameData(this.game, 'showFundingView', this.game.showFundingView)
         // Redirect to game.html
-        window.location.href = "https://" + window.location.hostname + "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id;
+        window.location.href = "https://" + window.location.hostname + "/play/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id;
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -402,14 +402,14 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/wallet/free-market',
+          '/play/api/v1/wallet/free-market',
           this.g.user.wallets[0].adminkey,
           {
             game_id: this.game.id
           }
         )
       if(res.data) {
-        console.log("Monopoly: free market wallet created successfully")
+        console.log("Bitcoin Difficulty: free market wallet created successfully")
         this.game.player.clientId = res.data.client_id
         // Update wallets list in left panel by accessing Vue component data
         this.$children[0].$children[3].$children[0].user.wallets.push({
@@ -459,7 +459,7 @@ new Vue({
         res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/wallet/pay-link',
+            '/play/api/v1/wallet/pay-link',
             inkey(this.game),
             {
               game_id: this.game.id,
@@ -469,7 +469,7 @@ new Vue({
             }
           )
         if(res.data) {
-          console.log("Monopoly: LNURL pay link created successfully")
+          console.log("Bitcoin Difficulty: LNURL pay link created successfully")
           console.log(res.data)
           // Save lnurl pay link in local storage
           this.game.freeMarketWalletPayLinkId = payLinkId;
@@ -540,7 +540,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/player',
+          '/play/api/v1/player',
           freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
@@ -548,7 +548,7 @@ new Vue({
           }
         )
       if(res.data) {
-        console.log("Monopoly: First player created successfully")
+        console.log("Bitcoin Difficulty: First player created successfully")
         this.game.playersCount = 1;
         storeGameData(this.game, 'playersCount', this.game.playersCount)
         // Update game.players
@@ -613,7 +613,7 @@ new Vue({
       const res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/players/deactivate-player',
+          '/play/api/v1/players/deactivate-player',
           freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
@@ -621,7 +621,7 @@ new Vue({
           },
         )
       if(res.status === 201) {
-        console.log("Monopoly: player " + this.game.playerToDeactivateName + " deactivated successfully")
+        console.log("Bitcoin Difficulty: player " + this.game.playerToDeactivateName + " deactivated successfully")
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -635,7 +635,7 @@ new Vue({
       const res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/cards/initialize-cards',
+          '/play/api/v1/cards/initialize-cards',
           freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
@@ -644,7 +644,7 @@ new Vue({
           },
         )
       if(res.status === 201) {
-        console.log("Monopoly: cards initialized successfully")
+        console.log("Bitcoin Difficulty: cards initialized successfully")
       } else {
         LNbits.utils.notifyApiError(res.error)
       }
@@ -662,7 +662,7 @@ new Vue({
         const inviteVoucher = res.data.lnurl;
         // Invite and reward vouchers are passed in the invite URL and cannot be obtained by other means
         return "https://" + window.location.hostname +
-          "/monopoly/api/v1/invite?game_id=" + this.game.id +
+          "/play/api/v1/invite?game_id=" + this.game.id +
           "&invite_voucher=" + inviteVoucher
       } else {
         LNbits.utils.notifyApiError(res.error)
@@ -735,7 +735,7 @@ new Vue({
       const res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/start-game',
+          '/play/api/v1/start-game',
           freeMarketWallet(this.game).adminkey,
           {
             game_id: this.game.id,
@@ -766,7 +766,7 @@ new Vue({
         const res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/game/next_player_turn',
+            '/play/api/v1/game/next_player_turn',
             playerWallet(this.game).inkey,
             {
               game_id: this.game.id,
@@ -981,7 +981,7 @@ new Vue({
             let res = await LNbits.api
               .request(
                 'GET',
-                '/monopoly/api/v1/players/pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.invoiceRecipientIndex,
+                '/play/api/v1/players/pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.invoiceRecipientIndex,
                 inkey(this.game)
               )
             if(res.data) {
@@ -999,7 +999,7 @@ new Vue({
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.invoiceAmount * 1000, // mSats
-            'Bitcoin Monopoly: player invoice',
+            'Bitcoin Bitcoin Difficulty: player invoice',
             ''
           )
           if(res.data && res.data.payment_hash) {
@@ -1026,7 +1026,7 @@ new Vue({
           let res = await LNbits.api
             .request(
               'GET',
-              '/monopoly/api/v1/property?game_id=' + this.game.id
+              '/play/api/v1/property?game_id=' + this.game.id
               + '&color=' + this.game.propertyPurchase.property.color
               + '&property_id=' + this.game.propertyPurchase.property.property_id,
               inkey(this.game),
@@ -1040,7 +1040,7 @@ new Vue({
             res = await LNbits.api
               .request(
                 'GET',
-                '/monopoly/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.propertyPurchase.property.player_index,
+                '/play/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.propertyPurchase.property.player_index,
                 inkey(this.game)
               )
             if(res.data) {
@@ -1054,7 +1054,7 @@ new Vue({
                 lnurlData.callback,
                 lnurlData.description_hash,
                 this.game.propertyPurchase.property.price * 1000, // mSats
-                'Bitcoin Monopoly: property purchase',
+                'Bitcoin Bitcoin Difficulty: property purchase',
                 ''
               )
               if(res.data && res.data.payment_hash) {
@@ -1088,7 +1088,7 @@ new Vue({
               lnurlData.callback,
               lnurlData.description_hash,
               this.game.propertyPurchase.property.price * 1000, // mSats
-              'Bitcoin Monopoly: property purchase',
+              'Bitcoin Bitcoin Difficulty: property purchase',
               ''
             )
             if(res.data && res.data.payment_hash) {
@@ -1119,7 +1119,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/property',
+          '/play/api/v1/property',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1147,7 +1147,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/transfer-property-ownership',
+          '/play/api/v1/transfer-property-ownership',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1186,7 +1186,7 @@ new Vue({
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.propertyUpgrade.price * 1000, // mSats
-            'Bitcoin Monopoly: property upgrade',
+            'Bitcoin Bitcoin Difficulty: property upgrade',
             ''
           )
           if(res.data && res.data.payment_hash) {
@@ -1212,7 +1212,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/upgrade-property-miners',
+          '/play/api/v1/upgrade-property-miners',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1252,7 +1252,7 @@ new Vue({
         let res = await LNbits.api
           .request(
             'GET',
-            '/monopoly/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.networkFeeInvoice.property.player_index,
+            '/play/api/v1/player_pay_link?game_id=' + this.game.id + '&pay_link_player_index=' + this.game.networkFeeInvoice.property.player_index,
             inkey(this.game)
           )
         if(res.data) {
@@ -1266,7 +1266,7 @@ new Vue({
             lnurlData.callback,
             lnurlData.description_hash,
             this.game.networkFeeInvoice.invoiceAmount * 1000, // mSats
-            'Bitcoin Monopoly: network fee',
+            'Bitcoin Bitcoin Difficulty: network fee',
             ''
           )
           if(res.data && res.data.payment_hash) {
@@ -1292,7 +1292,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/update-property-income',
+          '/play/api/v1/update-property-income',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1313,7 +1313,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/cards/pick-card',
+          '/play/api/v1/cards/pick-card',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1341,7 +1341,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'POST',
-          '/monopoly/api/v1/cards/pick-card',
+          '/play/api/v1/cards/pick-card',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1382,7 +1382,7 @@ new Vue({
         lnurlData.callback,
         lnurlData.description_hash,
         this.game.wrenchAttackAmountSats * 1000, // mSats
-        'Bitcoin Monopoly: wrench attack',
+        'Bitcoin Bitcoin Difficulty: wrench attack',
         ''
       )
       if(res.data && res.data.payment_hash) {
@@ -1393,7 +1393,7 @@ new Vue({
         res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/update_cumulated_fines',
+            '/play/api/v1/update_cumulated_fines',
             playerWallet(this.game).inkey,
             {
               game_id: this.game.id,
@@ -1460,7 +1460,7 @@ new Vue({
         lnurlData.callback,
         lnurlData.description_hash,
         this.game.fineAmountSats * 1000, // mSats
-        'Bitcoin Monopoly: fine',
+        'Bitcoin Bitcoin Difficulty: fine',
         ''
         )
       if(res.data && res.data.payment_hash) {
@@ -1471,7 +1471,7 @@ new Vue({
         res = await LNbits.api
           .request(
             'PUT',
-            '/monopoly/api/v1/update_cumulated_fines',
+            '/play/api/v1/update_cumulated_fines',
             playerWallet(this.game).inkey,
             {
               game_id: this.game.id,
@@ -1512,7 +1512,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/claim_card_reward',
+          '/play/api/v1/claim_card_reward',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1561,7 +1561,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'GET',
-          '/monopoly/api/v1/cumulated_fines?game_id=' + this.game.id,
+          '/play/api/v1/cumulated_fines?game_id=' + this.game.id,
           inkey(this.game),
         )
       if(res.data) {
@@ -1575,7 +1575,7 @@ new Vue({
       let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/claim_cumulated_fines',
+          '/play/api/v1/claim_cumulated_fines',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1594,7 +1594,7 @@ new Vue({
      let res = await LNbits.api
         .request(
           'PUT',
-          '/monopoly/api/v1/provide_pow',
+          '/play/api/v1/provide_pow',
           playerWallet(this.game).inkey,
           {
             game_id: this.game.id,
@@ -1629,9 +1629,9 @@ new Vue({
       if(window.open_camera !== "true") {
         window.open_camera = "true"
         if(freeMarketWallet(this.game)) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id, + "&open_camera=true");
+          window.history.pushState({}, document.title, "/play/game?usr=" + window.user.id + "&wal=" + freeMarketWallet(this.game).id, + "&open_camera=true");
         } else if(playerWallet(this.game)) {
-          window.history.pushState({}, document.title, "/monopoly/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id + "&open_camera=true");
+          window.history.pushState({}, document.title, "/play/game?usr=" + window.user.id + "&wal=" + playerWallet(this.game).id + "&open_camera=true");
         }
       }
     },

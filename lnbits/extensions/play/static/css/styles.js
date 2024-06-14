@@ -1,4 +1,4 @@
-// Reactive components styling (for some reason using media-queries in monopoly.css does not work)
+// Reactive components styling (for some reason using media-queries in play.css does not work)
 export function reactiveStyles(game) {
   if(window.innerWidth > 768) {
     // For desktop

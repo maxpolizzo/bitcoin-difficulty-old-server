@@ -1,0 +1,6 @@
+{
+  "name": "Bitcoin Difficulty",
+  "short_description": "Play Bitcoin Difficulty",
+  "icon": "grid_view",
+  "contributors": ["maxpolizzo"]
+}
