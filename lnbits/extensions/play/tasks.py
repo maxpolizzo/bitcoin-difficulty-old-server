@@ -11,6 +11,7 @@ from lnbits.core.crud import (
     get_payments
 )
 from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import catch_everything_and_restart
 from lnbits.tasks import register_invoice_listener
 
 from .models import (
@@ -48,21 +49,23 @@ class PaymentsWatcher:
         self.lastChecked = time.time()
         self.thread: Thread
 
-    # Loop to update players balances on payments made by player wallets to other wallets outside of the game
-    async def wait_for_outgoing_payments(self):
-        self.thread: Thread = Thread(target = self.check_outgoing_payments)
+    def create_tasks(self):
+        # Invoices coming from the backend Lightning node are already queued in the main event loop by lnbits invoice_listener
+        # Create first task in the main event loop to read invoices
+        loop = asyncio.get_event_loop()
+        loop.create_task(catch_everything_and_restart(self.wait_for_paid_invoices))
+        # Create second task in a separate thread to watch for outgoing payments
+        self.thread: Thread = Thread(target = self.outgoing_payments_loop)
         self.thread.daemon = True
         self.thread.start()
 
-    def check_outgoing_payments(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(
-            self.check_outgoing_payments_loop()
+    # Loop to update players balances on payments made by player wallets to other wallets outside of the game
+    def outgoing_payments_loop(self):
+        asyncio.new_event_loop().run_until_complete(
+            catch_everything_and_restart(self.wait_for_outgoing_payments)
         )
-        loop.close()
 
-    async def check_outgoing_payments_loop(self):
+    async def wait_for_outgoing_payments(self):
         while True:
             payments = await get_payments(complete=True, outgoing=True, since=self.lastChecked)
             for payment in payments:
